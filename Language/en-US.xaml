@@ -24,9 +24,18 @@
 
 	<System:String x:Key="save_fs_prompt">Select a partition and the desired entries you want to capture, then press Capture</System:String>
 	<System:String x:Key="loading">Loading...</System:String>
+	<System:String x:Key="dbInit">Initializing database</System:String>
+	<System:String x:Key="db_dir_create_suc">Successfully created db. directory: </System:String>
+	<System:String x:Key="db_file_create_suc">Successfully created db. file: </System:String>
+	<System:String x:Key="db_connect_suc">Successfully connected to db.: </System:String>
+	<System:String x:Key="db_create_suc">Successfully created table: </System:String>
+	<System:String x:Key="db_table_found">Found table in database: </System:String>
+	<System:String x:Key="no_captures">You currently have no captures.
+		Make some on the other tab, and they will show up here.</System:String>
 	<System:String x:Key="ready">Ready</System:String>
 	<System:String x:Key="capture_prop">Capture properties:</System:String>
 	<System:String x:Key="selected_drive">Selected drive:</System:String>
+	<System:String x:Key="sn_selected_drive">Serial number of selected drive:</System:String>
 	<System:String x:Key="nickname">Drive nickname:</System:String>
 	<System:String x:Key="incl_serialnumber">Include serial number in drive name</System:String>
 	

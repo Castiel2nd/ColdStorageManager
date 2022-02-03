@@ -19,5 +19,6 @@
 			</MultiDataTrigger>
 		</Style.Triggers>
 	</Style>
+
 	<Thickness x:Key="CommonMargin" Left="2" Bottom="2" Right="2" Top="2"></Thickness>
 </ResourceDictionary>

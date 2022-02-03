@@ -19,22 +19,27 @@ using System.Configuration;
 using System.Drawing;
 using System.IO;
 using System.Windows.Interop;
+using ColdStorageManager.Models;
 
 namespace ColdStorageManager
 {
 	//static class for global variables
 	public static class Globals
 	{
-		public static string version = "v0.1";
+		public static string version = "v0.2";
 		public static MainWindow mainWindow = null;
+		public static DbManager dbManager;
 		public static string configFileName = "CSM.config";
 		public static Configuration configFile;
 		public static KeyValueConfigurationCollection settings;
 		public static List<PhysicalDrive> physicalDrives;
+		public static ObservableCollection<CaptureBase> captures;
 		public static Partition selectedPartition;
 		public static WpfObservableRangeCollection<CSMFileSystemEntry> fileDialogEntryTree;
 		public static List<CSMFileSystemEntry> fsList;
 		public static TextBlock statusBarTb;
+		public static TextBlock dbStatusBarTb;
+		public static Ellipse dbStatusEllipse;
 
 
 		private static string[] sizes =
@@ -52,6 +57,11 @@ namespace ColdStorageManager
 			}
 
 			return string.Format("{0:0.00}", size) + sizes[i];
+		}
+
+		public static string GetLocalizedString(string key)
+		{
+			return Application.Current.Resources[key].ToString();
 		}
 
 		public static List<CSMFileSystemEntry> GetFileSystemEntries(in string path, in bool getIcon = true)
@@ -110,8 +120,14 @@ namespace ColdStorageManager
 			Title = "Cold Storage Manager " + Globals.version;
 			trvDrives.ItemsSource = Globals.physicalDrives;
 			Globals.fileDialogEntryTree = new WpfObservableRangeCollection<CSMFileSystemEntry>();
-			Globals.statusBarTb = statusbarText;
-			statusbarText.Text = Application.Current.Resources["ready"].ToString();
+			Globals.statusBarTb = statusBarTb;
+			Globals.dbStatusBarTb = dbStatusBarTb;
+			Globals.dbStatusEllipse = dbStatusEllipse;
+			statusBarTb.Text = Application.Current.Resources["ready"].ToString();
+			Globals.dbManager = new DbManager();
+			Globals.captures = new ObservableCollection<CaptureBase>();
+			trvCaptures.ItemsSource = Globals.captures;
+			RefreshCaptures();
 			Globals.mainWindow = this;
 
 		}
@@ -184,7 +200,8 @@ namespace ColdStorageManager
 			if (trvSender.SelectedItem is Partition selected)
 			{
 				Globals.selectedPartition = selected;
-				driveTxtBx.Text = selected.Parent.Model + ((bool)snChkBx.IsChecked ? " [" + selected.Parent.SerialNumber + "]" : "");
+				driveTxtBx.Text = selected.Parent.Model;
+				driveSnTxtBx.Text = selected.Parent.SerialNumber;
 				Globals.fileDialogEntryTree.Clear();
 				Globals.fileDialogEntryTree.AddRange(Globals.GetFileSystemEntries(selected.Letter+"\\"));
 				trvFileDialog.ItemsSource = Globals.fileDialogEntryTree;
@@ -240,18 +257,49 @@ namespace ColdStorageManager
 		{
 			ConvertFSObservListToList();
 			ExpandFSList();
-			CFSHandler.WriteCFS("test", driveTxtBx.Text, nicknameTxtBx.Text);
-			statusbarText.Text = "Successfully captured " + Globals.selectedPartition.Letter + " [" +
-			                     Globals.selectedPartition.Label + "]";
+			Globals.dbManager.SaveCapture(new Capture(Globals.selectedPartition.Parent.Model,
+											Globals.selectedPartition.Parent.SerialNumber,
+											nicknameTxtBx.Text,
+											Globals.selectedPartition.Index,
+											DateTime.Now.ToString(),
+											CFSHandler.GetCFSBytes(Globals.selectedPartition.Parent.Model, nicknameTxtBx.Text)));
+			//CFSHandler.WriteCFS("test", driveTxtBx.Text, nicknameTxtBx.Text);
+			statusBarTb.Text = "Successfully captured " + Globals.selectedPartition.Letter + " [" +
+			                   Globals.selectedPartition.Label + "]";
+			RefreshCaptures();
 		}
 
-		private void SnChkBx_OnClick(object sender, RoutedEventArgs e)
+		private void RefreshCaptures()
 		{
-			if (Globals.selectedPartition != null)
+			Globals.captures.Clear();
+			List<Capture> captures = Globals.dbManager.GetCaptures();
+			if (captures.Count > 0)
 			{
-				CheckBox cb = sender as CheckBox;
-				driveTxtBx.Text = Globals.selectedPartition.Parent.Model + ((bool)snChkBx.IsChecked ? " [" + Globals.selectedPartition.Parent.SerialNumber + "]" : "");
+				foreach (var capture in captures)
+				{
+					bool found = false;
+					foreach (var capturePhDisk in Globals.captures)
+					{
+						if (capturePhDisk.drive_nickname == capture.drive_nickname && capturePhDisk.drive_sn == capture.drive_sn)
+						{
+							found = true;
+							((CapturePhDisk)capturePhDisk).captures.Add(capture);
+							break;
+						}
+					}
 
+					if (!found)
+					{
+						CapturePhDisk phDisk =
+							new CapturePhDisk(capture.drive_model, capture.drive_sn, capture.drive_nickname);
+						phDisk.captures.Add(capture);
+						Globals.captures.Add(phDisk);
+					}
+				}
+			}
+			else
+			{
+				Globals.captures.Add(new CapturePlaceholder(Globals.GetLocalizedString("no_captures")));
 			}
 		}
 	}

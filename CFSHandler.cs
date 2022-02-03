@@ -14,62 +14,13 @@ namespace ColdStorageManager
 		private static string dirEnterIndicator = @"\";
 		private static string dirLeaveIndicator = @"/";
 
-		public static bool WriteCFS(string fileName, string driveName, string nickname)
+		//writes CFS to file
+		public static bool WriteCFS(string fileName, string driveModel, string nickname)
 		{
-			List<CSMFileSystemEntry> list = Globals.fsList;
 			using (MemoryStream ms = new MemoryStream(1000))
 			{
 				StreamWriter sw = new StreamWriter(ms);
-				sw.WriteLine(fileTypeIdentifier + "#" + version);
-				sw.WriteLine(driveName);
-				sw.WriteLine(nickname);
-				List<List<CSMFileSystemEntry>> listRefs =
-					new List<List<CSMFileSystemEntry>>();
-				List<int> indexes = new List<int>();
-				int j = 0;
-				listRefs.Add(list);indexes.Add(0);
-				bool breaking = false;
-				for (int i = 0;;)
-				{
-					while (i == listRefs[j].Count)
-					{
-						sw.WriteLine(dirLeaveIndicator);
-						if (j == 0)
-						{
-							breaking = true;
-							break;
-						}
-						listRefs.RemoveAt(j);
-						indexes.RemoveAt(j);
-						j--;
-						i = indexes[j];
-					}
-					if (breaking)
-					{
-						break;
-					}
-
-					CSMFileSystemEntry entry = listRefs[j][i];
-					//Console.WriteLine("Written to sw: " + entry.Name);
-					i++;
-					if (entry is CSMDirectory dir)
-					{
-						sw.WriteLine(entry.Name + dirEnterIndicator);
-						if (!dir.IsEmpty)
-						{
-							indexes[j] = i;
-							j++;
-							listRefs.Add(dir.ChildrenList);
-							indexes.Add(0);
-							i = 0;
-						}
-					}
-					else
-					{
-						sw.WriteLine(entry.Name);
-					}
-				}
-				sw.Flush();
+				WriteToStream(sw, driveModel, nickname);
 
 				using (FileStream fs = new FileStream(fileName + fileExtension, FileMode.Create, FileAccess.Write))
 				{
@@ -86,6 +37,74 @@ namespace ColdStorageManager
 			}
 
 			return true;
+		}
+
+		public static byte[] GetCFSBytes(string driveModel, string nickname)
+		{
+			byte[] ret;
+			using (MemoryStream ms = new MemoryStream(1000))
+			{
+				StreamWriter sw = new StreamWriter(ms);
+				WriteToStream(sw, driveModel, nickname);
+				ret = ms.ToArray();
+			}
+
+			return ret;
+		}
+
+		private static void WriteToStream(StreamWriter sw, string driveModel, string nickname)
+		{
+			List<CSMFileSystemEntry> list = Globals.fsList;
+			sw.WriteLine(fileTypeIdentifier + "#" + version);
+			sw.WriteLine(driveModel);
+			sw.WriteLine(nickname);
+			List<List<CSMFileSystemEntry>> listRefs =
+				new List<List<CSMFileSystemEntry>>();
+			List<int> indexes = new List<int>();
+			int j = 0;
+			listRefs.Add(list); indexes.Add(0);
+			bool breaking = false;
+			for (int i = 0; ;)
+			{
+				while (i == listRefs[j].Count)
+				{
+					sw.WriteLine(dirLeaveIndicator);
+					if (j == 0)
+					{
+						breaking = true;
+						break;
+					}
+					listRefs.RemoveAt(j);
+					indexes.RemoveAt(j);
+					j--;
+					i = indexes[j];
+				}
+				if (breaking)
+				{
+					break;
+				}
+
+				CSMFileSystemEntry entry = listRefs[j][i];
+				//Console.WriteLine("Written to sw: " + entry.Name);
+				i++;
+				if (entry is CSMDirectory dir)
+				{
+					sw.WriteLine(entry.Name + dirEnterIndicator);
+					if (!dir.IsEmpty)
+					{
+						indexes[j] = i;
+						j++;
+						listRefs.Add(dir.ChildrenList);
+						indexes.Add(0);
+						i = 0;
+					}
+				}
+				else
+				{
+					sw.WriteLine(entry.Name);
+				}
+			}
+			sw.Flush();
 		}
 
 	}

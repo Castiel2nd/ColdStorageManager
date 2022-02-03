@@ -11,4 +11,87 @@
 			<TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Medium"></TextBlock>
 		</StackPanel>
 	</Border>
+
+	<Border x:Key="physicalDriveEntry" Background="Lavender" BorderBrush="DeepSkyBlue" CornerRadius="8" BorderThickness="1" Margin="0,0,0,5" x:Shared="False">
+		<Grid Background="#b7e5f7" Height="Auto" Width="282" Margin="2">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto"></ColumnDefinition>
+				<ColumnDefinition Width="*"></ColumnDefinition>
+				<ColumnDefinition Width="Auto"></ColumnDefinition>
+			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"></RowDefinition>
+				<RowDefinition Height="*"></RowDefinition>
+			</Grid.RowDefinitions>
+			<TextBlock Text="{Binding Model}" FontWeight="Medium" Margin="0,0,20,0" HorizontalAlignment="Left"></TextBlock>
+			<TextBlock Grid.Column="2" Text="{Binding GetFormattedSize}" HorizontalAlignment="Right"></TextBlock>
+			<StackPanel Grid.Row="1" Orientation="Horizontal">
+				<TextBlock Text="["></TextBlock>
+				<TextBlock Text="{Binding SerialNumber}"></TextBlock>
+				<TextBlock Text="]"></TextBlock>
+			</StackPanel>
+		</Grid>
+	</Border>
+
+	<Grid x:Key="partitionEntry" x:Shared="False">
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="Auto"></ColumnDefinition>
+			<ColumnDefinition Width="*"></ColumnDefinition>
+			<ColumnDefinition Width="Auto"></ColumnDefinition>
+		</Grid.ColumnDefinitions>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"></RowDefinition>
+			<RowDefinition Height="Auto"></RowDefinition>
+		</Grid.RowDefinitions>
+		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,2">
+			<TextBlock Grid.Row="0" Text="{Binding Letter}" Margin="0,0,10,0"></TextBlock>
+			<TextBlock Grid.Row="0" Text="{Binding Label}"></TextBlock>
+		</StackPanel>
+		<StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,5">
+			<ProgressBar Value="{Binding UsedSpacePercent}" Width="50" Margin="0,0,20,0" Foreground="LightSeaGreen"></ProgressBar>
+			<TextBlock Text="Free: "></TextBlock>
+			<TextBlock Text="{Binding UsedSpaceFormatted}"></TextBlock>
+		</StackPanel>
+	</Grid>
+
+	<Border x:Key="capturePhDriveEntry" Background="#f0fae6" BorderBrush="#00ff40" CornerRadius="8" BorderThickness="1" Margin="0,0,0,5" x:Shared="False">
+		<Grid Background="#FFB7F7C4" Height="Auto" Width="282" Margin="2">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto"></ColumnDefinition>
+				<ColumnDefinition Width="*"></ColumnDefinition>
+				<ColumnDefinition Width="Auto"></ColumnDefinition>
+			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"></RowDefinition>
+				<RowDefinition Height="*"></RowDefinition>
+			</Grid.RowDefinitions>
+			<TextBlock Text="{Binding drive_model}" FontWeight="Medium" Margin="0,0,20,0" HorizontalAlignment="Left"></TextBlock>
+			<TextBlock Grid.Column="2" Text="" HorizontalAlignment="Right"></TextBlock>
+			<StackPanel Grid.Row="1" Orientation="Horizontal">
+				<TextBlock Text="["></TextBlock>
+				<TextBlock Text="{Binding drive_sn}"></TextBlock>
+				<TextBlock Text="]"></TextBlock>
+			</StackPanel>
+		</Grid>
+	</Border>
+
+	<Grid x:Key="capturePartitionEntry" x:Shared="False">
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="Auto"></ColumnDefinition>
+			<ColumnDefinition Width="*"></ColumnDefinition>
+			<ColumnDefinition Width="Auto"></ColumnDefinition>
+		</Grid.ColumnDefinitions>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"></RowDefinition>
+			<RowDefinition Height="Auto"></RowDefinition>
+		</Grid.RowDefinitions>
+		<TextBlock Grid.Row="0" Text="{Binding Label}"></TextBlock>
+		<StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,5">
+			<ProgressBar Value="50" Width="50" Margin="0,0,20,0" Foreground="#20b2aa"></ProgressBar>
+			<TextBlock Text="Free: "></TextBlock>
+			<TextBlock Text=""></TextBlock>
+		</StackPanel>
+	</Grid>
+
+	<Label x:Key="capturePlaceholder" FontSize="16" FontWeight="Medium" Content="{Binding Msg}"></Label>
 </ResourceDictionary>
