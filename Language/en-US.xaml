@@ -1,0 +1,33 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+					xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+					xmlns:local="clr-namespace:ColdStorageManager.Language"
+					xmlns:System="clr-namespace:System;assembly=System.Runtime">
+
+	<System:String x:Key="langCode">en-US</System:String>
+	<System:String x:Key="langName">English (United States)</System:String>
+	<System:String x:Key="en-US">English (United States)</System:String>
+	<System:String x:Key="hu-HU">Hungarian</System:String>
+	
+	<System:String x:Key="file">File</System:String>
+	<System:String x:Key="options">Options</System:String>
+	<System:String x:Key="help">Help</System:String>
+	<System:String x:Key="about">About</System:String>
+	
+	<System:String x:Key="language_s">Language:</System:String>
+	
+	<System:String x:Key="ok">OK</System:String>
+	<System:String x:Key="apply">Apply</System:String>
+	<System:String x:Key="cancel">Cancel</System:String>
+	<System:String x:Key="capture">Capture</System:String>
+	<System:String x:Key="capturing">Capturing</System:String>
+	<System:String x:Key="searching">Searching</System:String>
+
+	<System:String x:Key="save_fs_prompt">Select a partition and the desired entries you want to capture, then press Capture</System:String>
+	<System:String x:Key="loading">Loading...</System:String>
+	<System:String x:Key="ready">Ready</System:String>
+	<System:String x:Key="capture_prop">Capture properties:</System:String>
+	<System:String x:Key="selected_drive">Selected drive:</System:String>
+	<System:String x:Key="nickname">Drive nickname:</System:String>
+	<System:String x:Key="incl_serialnumber">Include serial number in drive name</System:String>
+	
+</ResourceDictionary>

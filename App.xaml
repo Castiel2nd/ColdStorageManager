@@ -1,0 +1,16 @@
+﻿<Application x:Class="ColdStorageManager.App"
+			 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:local="clr-namespace:ColdStorageManager"
+			 xmlns:System="clr-namespace:System;assembly=System.Runtime"
+			 Startup="App_OnStartup">
+	<Application.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="Language/en-US.xaml"/>
+				<ResourceDictionary Source="Styles/Default.xaml"/>
+				<ResourceDictionary Source="Templates/DataTemplates.xaml"/>
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</Application.Resources>
+</Application>

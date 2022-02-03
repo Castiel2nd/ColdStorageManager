@@ -1,0 +1,43 @@
+﻿<Window x:Class="ColdStorageManager.Options"
+		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:local="clr-namespace:ColdStorageManager"
+		mc:Ignorable="d"
+		Title="{DynamicResource options}" Height="450" Width="800" HorizontalContentAlignment="Left"
+        ShowInTaskbar="False"
+>
+	<DockPanel>
+		<Grid DockPanel.Dock="Top">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="1*"/>
+				<ColumnDefinition Width="1*"/>
+			</Grid.ColumnDefinitions>
+			<Label Width="100" Content="{DynamicResource language_s}" VerticalAlignment="Top" Margin="10"></Label>
+			<ComboBox Name="cmbLang" SelectedValuePath="Tag" Grid.Column="1" HorizontalContentAlignment="Left" Width="200" Margin="10" VerticalAlignment="Top" Height="25">
+			</ComboBox>
+
+		</Grid>
+		<StackPanel DockPanel.Dock="Bottom" Height="80" VerticalAlignment="Bottom">
+			<Grid Height="80" Width="800">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="8*"></ColumnDefinition>
+					<ColumnDefinition Width="2*"></ColumnDefinition>
+					<ColumnDefinition Width="2*"></ColumnDefinition>
+					<ColumnDefinition Width="2*"></ColumnDefinition>
+					<ColumnDefinition Width="1*"></ColumnDefinition>
+				</Grid.ColumnDefinitions>
+				<Grid.RowDefinitions>
+					<RowDefinition/>
+				</Grid.RowDefinitions>
+				<Button x:Name="okBtn" Grid.Column="1" Content="{DynamicResource ResourceKey=ok}" HorizontalAlignment="Center" VerticalAlignment="Center" Height="25" Padding="5,3,5,5" Click="okBtn_Click" />
+				<Button x:Name="applyBtn" Grid.Column="2" Content="{DynamicResource ResourceKey=apply}" HorizontalAlignment="Center" VerticalAlignment="Center" Height="25" Padding="5,3,5,5" Click="applyBtn_Click" />
+				<Button x:Name="cancelBtn" Grid.Column="3" Content="{DynamicResource ResourceKey=cancel}" HorizontalAlignment="Center" VerticalAlignment="Center" Height="25" Padding="5,3,5,5" IsCancel="True" Click="cancelBtn_Click"/>
+
+			</Grid>
+			
+		</StackPanel>
+	</DockPanel>
+	
+</Window>

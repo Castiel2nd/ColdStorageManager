@@ -1,0 +1,24 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+					xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+					xmlns:local="clr-namespace:ColdStorageManager.Language"
+					xmlns:System="clr-namespace:System;assembly=System.Runtime">
+
+	<System:String x:Key="langCode">hu-HU</System:String>
+	<System:String x:Key="langName">Magyar</System:String>
+
+	<System:String x:Key="file">Fájl</System:String>
+	<System:String x:Key="options">Beállítások</System:String>
+	<System:String x:Key="help">Segítség</System:String>
+	<System:String x:Key="about">Névjegy</System:String>
+
+	<System:String x:Key="language_s">Nyelv:</System:String>
+
+	<System:String x:Key="en-US">Angol (Egyesült Államok)</System:String>
+	<System:String x:Key="hu-HU">Magyar</System:String>
+
+	<System:String x:Key="ok">OK</System:String>
+	<System:String x:Key="apply">Alkalmaz</System:String>
+	<System:String x:Key="cancel">Mégse</System:String>
+
+
+</ResourceDictionary>

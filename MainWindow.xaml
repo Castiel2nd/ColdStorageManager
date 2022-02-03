@@ -1,0 +1,182 @@
+﻿<Window x:Class="ColdStorageManager.MainWindow"
+		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:local="clr-namespace:ColdStorageManager"
+		mc:Ignorable="d"
+		Title="Cold Storage Manager v0" Height="800" Width="1280"
+        >
+	<DockPanel>
+		<Menu DockPanel.Dock="Top">
+			<MenuItem Header="{DynamicResource file}">
+				<MenuItem Header="{DynamicResource options}" Click="OptionsMenu_Click"></MenuItem>
+			</MenuItem>
+			<MenuItem Header="{DynamicResource help}">
+				<MenuItem Header="{DynamicResource about}"></MenuItem>
+			</MenuItem>
+		</Menu>
+		<StatusBar Name="mainStatusBar" DockPanel.Dock="Bottom">
+			<StatusBarItem>
+				<TextBlock Name="statusbarText" Text="{DynamicResource loading}"></TextBlock>
+			</StatusBarItem>
+		</StatusBar>
+
+		<TabControl>
+			<TabControl.Resources>
+				<Style TargetType="{x:Type TabItem}">
+					<Setter Property="MinWidth" Value="45"></Setter>
+					<Setter Property="Height" Value="26"></Setter>
+					<Setter Property="BorderThickness" Value="0"/>
+					<Setter Property="Padding" Value="0" />
+					<Setter Property="HeaderTemplate">
+						<Setter.Value>
+							<DataTemplate>
+								<Border Name="border"  Background="#FF1C8ED4" BorderBrush="#FF0F4E75" BorderThickness="2">
+									<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+										<TextBlock Text="{TemplateBinding Content}" FontSize="16" FontWeight="Medium" Padding="2"></TextBlock>
+									</StackPanel>
+								</Border>
+								<DataTemplate.Triggers>
+									<DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type TabItem}},Path=IsSelected}" Value="True">
+										<Setter TargetName="border" Property="Background" Value="#FF41B1F5"/>
+										<Setter TargetName="border" Property="BorderBrush" Value="#FF1875AF"/>
+									</DataTrigger>
+								</DataTemplate.Triggers>
+							</DataTemplate>
+						</Setter.Value>
+					</Setter>
+				</Style>
+			</TabControl.Resources>
+			<TabItem Header="{DynamicResource capturing}">
+				<Grid DockPanel.Dock="Left" HorizontalAlignment="Stretch">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="2*" MaxWidth="500"></ColumnDefinition>
+						<ColumnDefinition Width="5"></ColumnDefinition>
+						<ColumnDefinition Width="3*"></ColumnDefinition>
+						<ColumnDefinition Width="5"></ColumnDefinition>
+						<ColumnDefinition Width="3*"></ColumnDefinition>
+					</Grid.ColumnDefinitions>
+					<Grid.RowDefinitions>
+						<RowDefinition Height="70"></RowDefinition>
+						<RowDefinition Height="*"></RowDefinition>
+						<RowDefinition Height="70"></RowDefinition>
+					</Grid.RowDefinitions>
+					<Label Grid.ColumnSpan="5" FontSize="27" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Content="{DynamicResource save_fs_prompt}"></Label>
+					<TreeView Name="trvDrives" Grid.Row="1" Height="Auto" SelectedItemChanged="PartitionSelected">
+						<TreeView.ItemContainerStyle>
+							<Style TargetType="{x:Type TreeViewItem}">
+								<Setter Property="IsExpanded" Value="True"></Setter>
+							</Style>
+						</TreeView.ItemContainerStyle>
+						<TreeView.Resources>
+							<HierarchicalDataTemplate DataType="{x:Type local:PhysicalDrive}" ItemsSource="{Binding Partitions}">
+								<Border Background="Lavender" BorderBrush="DeepSkyBlue" CornerRadius="8" BorderThickness="1" Margin="0,0,0,5">
+									<Grid Background="#b7e5f7" Height="Auto" Width="282" Margin="2">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="Auto"></ColumnDefinition>
+											<ColumnDefinition Width="*"></ColumnDefinition>
+											<ColumnDefinition Width="Auto"></ColumnDefinition>
+										</Grid.ColumnDefinitions>
+										<Grid.RowDefinitions>
+											<RowDefinition Height="Auto"></RowDefinition>
+											<RowDefinition Height="*"></RowDefinition>
+										</Grid.RowDefinitions>
+										<TextBlock Text="{Binding Model}" FontWeight="Medium" Margin="0,0,20,0" HorizontalAlignment="Left"></TextBlock>
+										<TextBlock Grid.Column="2" Text="{Binding GetFormattedSize}" HorizontalAlignment="Right"></TextBlock>
+										<StackPanel Grid.Row="1" Orientation="Horizontal">
+											<TextBlock Text="["></TextBlock>
+											<TextBlock Text="{Binding SerialNumber}"></TextBlock>
+											<TextBlock Text="]"></TextBlock>
+										</StackPanel>
+									</Grid>
+								</Border>
+							</HierarchicalDataTemplate>
+							<DataTemplate DataType="{x:Type local:Partition}">
+								<Grid>
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="Auto"></ColumnDefinition>
+										<ColumnDefinition Width="*"></ColumnDefinition>
+										<ColumnDefinition Width="Auto"></ColumnDefinition>
+									</Grid.ColumnDefinitions>
+									<Grid.RowDefinitions>
+										<RowDefinition Height="Auto"></RowDefinition>
+										<RowDefinition Height="Auto"></RowDefinition>
+									</Grid.RowDefinitions>
+									<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,2">
+										<TextBlock Grid.Row="0" Text="{Binding Letter}" Margin="0,0,10,0"></TextBlock>
+										<TextBlock Grid.Row="0" Text="{Binding Label}"></TextBlock>
+									</StackPanel>
+									<StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,5">
+										<ProgressBar Value="{Binding UsedSpacePercent}" Width="50" Margin="0,0,20,0" Foreground="LightSeaGreen"></ProgressBar>
+										<TextBlock Text="Free: "></TextBlock>
+										<TextBlock Text="{Binding UsedSpaceFormatted}"></TextBlock>
+									</StackPanel>
+
+								</Grid>
+							</DataTemplate>
+						</TreeView.Resources>
+					</TreeView>
+
+					<TreeView Name="trvFileDialog" Grid.Row="1" Grid.Column="2" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
+						<TreeView.Resources>
+							<Style TargetType="{x:Type TreeViewItem}">
+								<EventSetter Event="Expanded" Handler="TrvFileDialog_OnExpanded"></EventSetter>
+							</Style>
+							<HierarchicalDataTemplate DataType="{x:Type local:CSMDirectory}" ItemsSource="{Binding Children}">
+								<ContentControl Content="{StaticResource fileDialogEntry}"></ContentControl>
+							</HierarchicalDataTemplate>
+							<DataTemplate DataType="{x:Type local:CSMFile}">
+								<ContentControl Content="{StaticResource fileDialogEntry}"></ContentControl>
+							</DataTemplate>
+						</TreeView.Resources>
+					</TreeView>
+
+					<Grid Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="50"></RowDefinition>
+							<RowDefinition Height="*"></RowDefinition>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"></ColumnDefinition>
+							<ColumnDefinition Width="4*"></ColumnDefinition>
+							<ColumnDefinition Width="*"></ColumnDefinition>
+						</Grid.ColumnDefinitions>
+						<Label Grid.ColumnSpan="3" Content="{DynamicResource capture_prop}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="23" FontWeight="SemiBold"></Label>
+						<StackPanel Grid.Row="1" Grid.Column="1"  Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" CanVerticallyScroll="True" CanHorizontallyScroll="True">
+							<StackPanel.Resources>
+								<Style TargetType="Label">
+									<Setter Property="Margin" Value="{StaticResource CommonMargin}"></Setter>
+								</Style>
+								<Style TargetType="TextBox">
+									<Setter Property="Margin" Value="{StaticResource CommonMargin}"></Setter>
+								</Style>
+							</StackPanel.Resources>
+							<Label Content="{DynamicResource selected_drive}"></Label>
+							<TextBox Name="driveTxtBx" IsReadOnly="True" MinWidth="80"></TextBox>
+							<StackPanel Orientation="Horizontal">
+								<CheckBox Name="snChkBx" HorizontalAlignment="Center" VerticalAlignment="Center" Click="SnChkBx_OnClick"></CheckBox>
+								<Label Content="{DynamicResource incl_serialnumber}" Target="{Binding ElementName=snChkBx}"></Label>
+							</StackPanel>
+							<Label Content="{DynamicResource nickname}" Target="{Binding ElementName=nicknameTxtBx}"></Label>
+							<TextBox Name="nicknameTxtBx"></TextBox>
+						</StackPanel>
+					</Grid>
+
+
+					<StackPanel Grid.Row="2" Grid.ColumnSpan="5" Orientation="Horizontal" HorizontalAlignment="Center">
+						<Button FontSize="26" Padding="8" Content="{DynamicResource capture}" HorizontalAlignment="Center" VerticalAlignment="Center" Click="Capture_Click"></Button>
+					</StackPanel>
+
+					<GridSplitter Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"></GridSplitter>
+					<GridSplitter Grid.Row="1" Grid.Column="3" HorizontalAlignment="Stretch"></GridSplitter>
+				</Grid>
+			</TabItem>
+
+			<TabItem Header="{DynamicResource searching}">
+
+			</TabItem>
+		</TabControl>
+	</DockPanel>
+
+</Window>
