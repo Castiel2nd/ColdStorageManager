@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <Folder Include="ForeignCode\" />
+    <Folder Include="Images\Readme\" />
   </ItemGroup>
 
 </Project>
