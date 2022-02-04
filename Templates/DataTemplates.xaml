@@ -66,7 +66,7 @@
 				<RowDefinition Height="*"></RowDefinition>
 			</Grid.RowDefinitions>
 			<TextBlock Text="{Binding drive_model}" FontWeight="Medium" Margin="0,0,20,0" HorizontalAlignment="Left"></TextBlock>
-			<TextBlock Grid.Column="2" Text="" HorizontalAlignment="Right"></TextBlock>
+			<TextBlock Grid.Column="2" Text="{Binding FormattedSize}" HorizontalAlignment="Right"></TextBlock>
 			<StackPanel Grid.Row="1" Orientation="Horizontal">
 				<TextBlock Text="["></TextBlock>
 				<TextBlock Text="{Binding drive_sn}"></TextBlock>
@@ -84,13 +84,24 @@
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"></RowDefinition>
 			<RowDefinition Height="Auto"></RowDefinition>
+			<RowDefinition Height="Auto"></RowDefinition>
 		</Grid.RowDefinitions>
-		<TextBlock Grid.Row="0" Text="{Binding Label}"></TextBlock>
-		<StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,5">
-			<ProgressBar Value="50" Width="50" Margin="0,0,20,0" Foreground="#20b2aa"></ProgressBar>
-			<TextBlock Text="Free: "></TextBlock>
-			<TextBlock Text=""></TextBlock>
+		<StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+			<TextBlock Grid.Row="0" Text="{DynamicResource part_no}"></TextBlock>
+			<TextBlock Grid.Row="0" Text="{Binding partition_number}" Margin="0,0,10,0"></TextBlock>
+			<TextBlock Grid.Row="0" Text="{DynamicResource label}"></TextBlock>
+			<TextBlock Grid.Row="0" Text="{Binding partition_label}"></TextBlock>
 		</StackPanel>
+		<StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,3">
+			<ProgressBar Value="{Binding UsedSpacePercent}" Width="50" Margin="0,0,20,0" Foreground="#20b2aa"></ProgressBar>
+			<TextBlock Text="Free: "></TextBlock>
+			<TextBlock Text="{Binding UsedSpaceFormatted}"></TextBlock>
+		</StackPanel>
+		<StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,3">
+			<TextBlock Grid.Row="0" Text="{DynamicResource capture_datetime}"></TextBlock>
+			<TextBlock Grid.Row="0" Text="{Binding capture_datetime_localized}"></TextBlock>
+		</StackPanel>
+		
 	</Grid>
 
 	<Label x:Key="capturePlaceholder" FontSize="16" FontWeight="Medium" Content="{Binding Msg}"></Label>

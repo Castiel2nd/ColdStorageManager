@@ -43,7 +43,7 @@ namespace ColdStorageManager
 			Globals.dbStatusBarTb.Text = Application.Current.Resources["db_connect_suc"] + dbCapturesFilePath;
 			IsConnectionSuccessful = true;
 			command = dbConnection.CreateCommand();
-			CreateTable(dbCapturesTableName);
+			CreateTableIfNotFound(dbCapturesTableName);
 		}
 
 		~DbManager()
@@ -61,16 +61,18 @@ namespace ColdStorageManager
 		{
 			dbConnection.Execute(
 				"insert into " + dbCapturesTableName +
-				" (drive_model, drive_sn, drive_nickname, partition_number, capture_date, capture) values (@drive_model, @drive_sn, @drive_nickname, @partition_number, @capture_date, @capture)",
+				" (drive_model, drive_sn, drive_size, drive_nickname, partition_label, partition_number, partition_size, partition_free_space, capture_datetime, capture) " +
+				"values (@drive_model, @drive_sn, @drive_size, @drive_nickname, @partition_label, @partition_number, @partition_size, @partition_free_space, @capture_datetime, @capture)",
 				capture);
 		}
 
-		private void CreateTable(string tableName)
+		private void CreateTableIfNotFound(string tableName)
 		{
 			if (!checkIfTableExists(tableName))
 			{
 				command.CommandText =
-					"CREATE TABLE 'Captures'(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_model TEXT, drive_sn TEXT, drive_nickname TEXT, partition_number INTEGER, capture_date TEXT, capture BLOB)";
+					"CREATE TABLE 'Captures'(id INTEGER PRIMARY KEY AUTOINCREMENT, drive_model TEXT, drive_sn TEXT, drive_size INTEGER," +
+					" drive_nickname TEXT, partition_label TEXT, partition_number INTEGER, partition_size INTEGER, partition_free_space INTEGER, capture_datetime TEXT, capture BLOB)";
 				try
 				{
 					int res = command.ExecuteNonQuery();

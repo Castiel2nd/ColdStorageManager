@@ -259,8 +259,12 @@ namespace ColdStorageManager
 			ExpandFSList();
 			Globals.dbManager.SaveCapture(new Capture(Globals.selectedPartition.Parent.Model,
 											Globals.selectedPartition.Parent.SerialNumber,
+											Globals.selectedPartition.Parent.TotalSpace,
 											nicknameTxtBx.Text,
+											Globals.selectedPartition.Label,
 											Globals.selectedPartition.Index,
+											Globals.selectedPartition.TotalSpace,
+											Globals.selectedPartition.FreeSpace,
 											DateTime.Now.ToString(),
 											CFSHandler.GetCFSBytes(Globals.selectedPartition.Parent.Model, nicknameTxtBx.Text)));
 			//CFSHandler.WriteCFS("test", driveTxtBx.Text, nicknameTxtBx.Text);
@@ -277,6 +281,7 @@ namespace ColdStorageManager
 			{
 				foreach (var capture in captures)
 				{
+					capture.SetViews();
 					bool found = false;
 					foreach (var capturePhDisk in Globals.captures)
 					{
@@ -291,10 +296,16 @@ namespace ColdStorageManager
 					if (!found)
 					{
 						CapturePhDisk phDisk =
-							new CapturePhDisk(capture.drive_model, capture.drive_sn, capture.drive_nickname);
+							new CapturePhDisk(capture.drive_model, capture.drive_sn, capture.drive_size, capture.drive_nickname);
 						phDisk.captures.Add(capture);
 						Globals.captures.Add(phDisk);
 					}
+				}
+
+				//sort captures per drive per partition number
+				foreach (var capturePhDisk in Globals.captures)
+				{
+					((CapturePhDisk)capturePhDisk).captures.Sort((Capture cap1, Capture cap2) => cap1.partition_number.CompareTo(cap2.partition_number));
 				}
 			}
 			else
