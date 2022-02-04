@@ -1,5 +1,4 @@
 # ColdStorageManager
-------
 
 A Windows desktop app that can save the files (or at least their names with some metadata)
 stored on a selected partition, and later search in them -- without that drive having to be connected at all.
