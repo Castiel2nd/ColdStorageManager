@@ -36,6 +36,8 @@ namespace ColdStorageManager
 		public static ObservableCollection<CaptureBase> captures;
 		public static Partition selectedPartition;
 		public static WpfObservableRangeCollection<CSMFileSystemEntry> fileDialogEntryTree;
+		public static WpfObservableRangeCollection<string> filesFound;
+		public static WpfObservableRangeCollection<string> dirsFound;
 		public static List<CSMFileSystemEntry> fsList;
 		public static TextBlock statusBarTb;
 		public static TextBlock dbStatusBarTb;
@@ -64,7 +66,7 @@ namespace ColdStorageManager
 			return Application.Current.Resources[key].ToString();
 		}
 
-		public static List<CSMFileSystemEntry> GetFileSystemEntries(in string path, in bool getIcon = true)
+		public static List<CSMFileSystemEntry> GetFileSystemEntries(in string path, in CSMDirectory parent = null, in bool getIcon = true)
 		{
 			List<CSMFileSystemEntry> fileSystemEntries = new List<CSMFileSystemEntry>();
 
@@ -89,12 +91,12 @@ namespace ColdStorageManager
 
 			foreach (string dir in dirs)
 			{
-				fileSystemEntries.Add(new CSMDirectory(dir, getIcon));
+				fileSystemEntries.Add(new CSMDirectory(dir, parent, getIcon));
 			}
 
 			foreach (string file in Directory.GetFiles(path))
 			{
-				fileSystemEntries.Add(new CSMFile(file, getIcon));
+				fileSystemEntries.Add(new CSMFile(file, parent, getIcon));
 			}
 
 			return fileSystemEntries;
@@ -120,6 +122,11 @@ namespace ColdStorageManager
 			Title = "Cold Storage Manager " + Globals.version;
 			trvDrives.ItemsSource = Globals.physicalDrives;
 			Globals.fileDialogEntryTree = new WpfObservableRangeCollection<CSMFileSystemEntry>();
+			Globals.filesFound = new WpfObservableRangeCollection<string>();
+			Globals.dirsFound = new WpfObservableRangeCollection<string>();
+			trvFileDialog.ItemsSource = Globals.fileDialogEntryTree;
+			fileListView.ItemsSource = Globals.filesFound;
+			dirListView.ItemsSource = Globals.dirsFound;
 			Globals.statusBarTb = statusBarTb;
 			Globals.dbStatusBarTb = dbStatusBarTb;
 			Globals.dbStatusEllipse = dbStatusEllipse;
@@ -204,7 +211,6 @@ namespace ColdStorageManager
 				driveSnTxtBx.Text = selected.Parent.SerialNumber;
 				Globals.fileDialogEntryTree.Clear();
 				Globals.fileDialogEntryTree.AddRange(Globals.GetFileSystemEntries(selected.Letter+"\\"));
-				trvFileDialog.ItemsSource = Globals.fileDialogEntryTree;
 			}
 		}
 
@@ -238,14 +244,13 @@ namespace ColdStorageManager
 		private void TrvFileDialog_OnExpanded(object sender, RoutedEventArgs e)
 		{
 			TreeViewItem item = e.OriginalSource as TreeViewItem;
-			if (item.DataContext != null && item.DataContext.GetType() == typeof(CSMDirectory))
+			if (item.DataContext is CSMDirectory dir)
 			{
-				CSMDirectory dir = item.DataContext as CSMDirectory;
 				//Console.WriteLine(dir);
-				if (dir.Children.Count == 1)
+				if (!dir.IsExpanded)
 				{
 					dir.Children.Clear();
-					var list = Globals.GetFileSystemEntries(dir.Path);
+					var list = Globals.GetFileSystemEntries(dir.Path, dir);
 					dir.Children.AddRange(list);
 					dir.IsExpanded = true;
 				}
@@ -312,6 +317,32 @@ namespace ColdStorageManager
 			{
 				Globals.captures.Add(new CapturePlaceholder(Globals.GetLocalizedString("no_captures")));
 			}
+		}
+
+		private void Search(string stringToSearch)
+		{
+			if (stringToSearch.Length > 2)
+			{
+				Globals.filesFound.Clear();
+				Globals.dirsFound.Clear();
+				foreach (var captureGl in Globals.captures)
+				{
+					if (captureGl is CapturePhDisk capturePhDisk)
+					{
+						foreach (var capture in capturePhDisk.captures)
+						{
+							var res = CFSHandler.Search(capture.capture, stringToSearch);
+							Globals.filesFound.AddRange(res.files);
+							Globals.dirsFound.AddRange(res.dirs);
+						}
+					}
+				}
+			}
+		}
+
+		private void SearchButton_Click(object sender, RoutedEventArgs e)
+		{
+			Search(searchTxtBox.Text);
 		}
 	}
 

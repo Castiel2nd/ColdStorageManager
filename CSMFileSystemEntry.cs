@@ -2,27 +2,73 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using ColdStorageManager.Annotations;
 
 namespace ColdStorageManager
 {
-	public abstract class CSMFileSystemEntry
+	public abstract class CSMFileSystemEntry : INotifyPropertyChanged
 	{
+		protected bool? isChecked;
+
 		public string Name { get; set; }
 		public string Path { get; set; }
 
-		public Boolean IsChecked { get; set; }
+		public CSMDirectory Parent { get; set; }
+
+		public virtual bool? IsChecked
+		{
+			get
+			{
+				return isChecked;
+			}
+			set
+			{
+				isChecked = value;
+				if (Parent != null)
+				{
+					Parent.ChildChecked(value);
+				}
+				IsCheckedChanged();
+			}
+		}
 
 		public ImageSource Icon { get; set; }
+
+		public virtual void CheckedByParent(bool? value)
+		{
+			isChecked = value;
+			IsCheckedChanged();
+		}
+
+		protected void IsCheckedChanged()
+		{
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("IsChecked"));
+		}
+
+		public void DirectCheck(bool? value)
+		{
+			isChecked = value;
+		}
 
 		public override string ToString()
 		{
 			return Name;
+		}
+
+		public event PropertyChangedEventHandler PropertyChanged;
+
+		[NotifyPropertyChangedInvocator]
+		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+		{
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
 	}
 
@@ -30,9 +76,43 @@ namespace ColdStorageManager
 	{
 		private DirectoryInfo directoryInfo;
 		private WpfObservableRangeCollection<CSMFileSystemEntry> children;
+		private int checkedCount = 0;
+		private bool isExpanded = false;
 
 		public bool IsEmpty { get; set; }
-		public bool IsExpanded { get; set; }
+
+		public bool IsExpanded
+		{
+			get
+			{
+				return isExpanded;
+			}
+			set
+			{
+				if (value)
+				{
+					checkedCount = children.Count;
+				}
+
+				isExpanded = value;
+			}
+		}
+
+		public override bool? IsChecked
+		{
+			get
+			{
+				return isChecked;
+			}
+			set
+			{
+				isChecked = value;
+				IsCheckedChanged();
+				Parent?.ChildChecked(value);
+				CheckChildren(value);
+			}
+		}
+
 		public bool IsUnaccessible { get; set; }
 		public List<CSMFileSystemEntry> ChildrenList { get; set; }
 
@@ -40,7 +120,6 @@ namespace ColdStorageManager
 		{
 			get
 			{
-				//Console.WriteLine("Children getter");
 				return children;
 			}
 			set
@@ -48,10 +127,12 @@ namespace ColdStorageManager
 				children = value;
 			}
 		}
-		public CSMDirectory(string path, bool getIcon = true)
+		public CSMDirectory(string path, CSMDirectory parent = null, bool getIcon = true)
 		{
+			Parent = parent;
 			IsUnaccessible = false;
 			directoryInfo = new DirectoryInfo(path);
+
 			/*try
 			{
 				IsEmpty = !directoryInfo.EnumerateFileSystemInfos().Any();
@@ -61,19 +142,76 @@ namespace ColdStorageManager
 				IsEmpty = true;
 				IsUnaccessible = true;
 			}*/
-			
+
 			Path = path;
 			IsEmpty = false;
-			IsExpanded = false;
 			IsUnaccessible = false;
-			IsChecked = true;
+			if (Parent != null)
+			{
+				isChecked = Parent.IsChecked;
+			}
+			else
+			{
+				isChecked = true;
+			}
 			if (getIcon)
 			{
 				Icon = Win32.ToImageSource(Win32.Extract(Path));
 			}
-			Children = new WpfObservableRangeCollection<CSMFileSystemEntry>();
-			Children.Add(new CSMPlaceholder(Application.Current.Resources["loading"].ToString()));
+			children = new WpfObservableRangeCollection<CSMFileSystemEntry>();
+			children.Add(new CSMPlaceholder(Application.Current.Resources["loading"].ToString()));
 			Name = directoryInfo.Name;
+		}
+
+		public override void CheckedByParent(bool? value)
+		{
+			base.CheckedByParent(value);
+			CheckChildren(value);
+		}
+
+		private void CheckChildren(bool? value)
+		{
+			if (isExpanded)
+			{
+				foreach (var csmFileSystemEntry in children)
+				{
+					csmFileSystemEntry.CheckedByParent(value);
+				}
+			}
+		}
+
+		public void ChildChecked(bool? value)
+		{
+			if (value == null)
+			{
+				isChecked = null;
+			}
+			else if(value == true)
+			{
+				checkedCount++;
+				if (checkedCount == children.Count)
+				{
+					isChecked = true;
+				}
+				else
+				{
+					isChecked = null;
+				}
+			}
+			else
+			{
+				checkedCount--;
+				if (checkedCount == 0)
+				{
+					isChecked = false;
+				}
+				else
+				{
+					isChecked = null;
+				}
+			}
+			IsCheckedChanged();
+			Parent?.ChildChecked(isChecked);
 		}
 
 		public void ConvertChildrenToListPropagate()
@@ -90,7 +228,7 @@ namespace ColdStorageManager
 
 		public void ExpandChildrenListPropagate()
 		{
-			ChildrenList = Globals.GetFileSystemEntries(Path, false);
+			ChildrenList = Globals.GetFileSystemEntries(Path, this, false);
 			IsExpanded = true;
 			if (ChildrenList.Count == 0)
 			{
@@ -118,11 +256,19 @@ namespace ColdStorageManager
 
 		public string Size { get; set; }
 
-		public CSMFile(string path, bool getIcon = true)
+		public CSMFile(string path, CSMDirectory parent = null, bool getIcon = true)
 		{
+			Parent = parent;
 			fileInfo = new FileInfo(path);
 			Path = path;
-			IsChecked = true;
+			if (Parent != null)
+			{
+				isChecked = Parent.IsChecked;
+			}
+			else
+			{
+				isChecked = true;
+			}
 			if (getIcon)
 			{
 				Icon = Win32.ToImageSource(Win32.Extract(Path));

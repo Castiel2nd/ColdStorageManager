@@ -11,11 +11,11 @@ namespace ColdStorageManager
 		private static string fileExtension = ".cfs";
 		private static string fileTypeIdentifier = "Cold_Storage_Manager-Captured_File_System";
 		private static string version = Globals.version;
-		private static string dirEnterIndicator = @"\";
-		private static string dirLeaveIndicator = @"/";
+		private static char dirEnterIndicator = '\\';
+		private static char dirLeaveIndicator = '/';
+		private static StringBuilder stringBuilder;
 
-		//writes CFS to file
-		public static bool WriteCFS(string fileName, string driveModel, string nickname)
+		public static bool WriteCFSToFile(string fileName, string driveModel, string nickname)
 		{
 			using (MemoryStream ms = new MemoryStream(1000))
 			{
@@ -68,12 +68,12 @@ namespace ColdStorageManager
 			{
 				while (i == listRefs[j].Count)
 				{
-					sw.WriteLine(dirLeaveIndicator);
 					if (j == 0)
 					{
 						breaking = true;
 						break;
 					}
+					sw.WriteLine(dirLeaveIndicator);
 					listRefs.RemoveAt(j);
 					indexes.RemoveAt(j);
 					j--;
@@ -90,7 +90,11 @@ namespace ColdStorageManager
 				if (entry is CSMDirectory dir)
 				{
 					sw.WriteLine(entry.Name + dirEnterIndicator);
-					if (!dir.IsEmpty)
+					if (dir.IsEmpty)
+					{
+						sw.WriteLine(dirLeaveIndicator);
+					}
+					else
 					{
 						indexes[j] = i;
 						j++;
@@ -107,5 +111,81 @@ namespace ColdStorageManager
 			sw.Flush();
 		}
 
+		private static void StrBldrRemoveLastDir()
+		{
+			stringBuilder.Length--;
+			stringBuilder.Length = LastIndexOf(stringBuilder, dirEnterIndicator)+1;
+		}
+
+		public static int LastIndexOf(this StringBuilder sb, char find, bool ignoreCase = false, int startIndex = -1, CultureInfo culture = null)
+		{
+			if (sb == null) throw new ArgumentNullException(nameof(sb));
+			if (startIndex == -1) startIndex = sb.Length - 1;
+			if (startIndex < 0 || startIndex >= sb.Length) throw new ArgumentException("startIndex must be between 0 and sb.Lengh-1", nameof(sb));
+			if (culture == null) culture = CultureInfo.InvariantCulture;
+
+			int lastIndex = -1;
+			if (ignoreCase) find = Char.ToUpper(find, culture);
+			for (int i = startIndex; i >= 0; i--)
+			{
+				char c = ignoreCase ? Char.ToUpper(sb[i], culture) : (sb[i]);
+				if (find == c)
+				{
+					lastIndex = i;
+					break;
+				}
+			}
+			return lastIndex;
+		}
+
+		public static (List<string> files, List<string> dirs) Search(byte[] capture, string stringToSearch)
+		{
+			List<string> files = new List<string>();
+			List<string> dirs = new List<string>();
+
+			if (stringBuilder == null)
+			{
+				stringBuilder = new StringBuilder();
+			}
+
+			stringBuilder.Clear();
+			stringBuilder.Append(dirEnterIndicator);
+
+			using(MemoryStream ms = new MemoryStream(capture))
+			using (StreamReader sr = new StreamReader(ms))
+			{
+				sr.ReadLine();
+				sr.ReadLine();
+				sr.ReadLine();
+				string line;
+				for (; !sr.EndOfStream;)
+				{
+					//Console.WriteLine(stringBuilder);
+					line = sr.ReadLine();
+					if (line.EndsWith(dirEnterIndicator))
+					{
+						stringBuilder.Append(line);
+						line.TrimEnd(dirEnterIndicator);
+						if (line.Contains(stringToSearch))
+						{
+							dirs.Add(stringBuilder.ToString());
+						}
+					}
+					else if (line.EndsWith(dirLeaveIndicator))
+					{
+						StrBldrRemoveLastDir();
+					}
+					else
+					{
+						if (line.Contains(stringToSearch))
+						{
+							files.Add(stringBuilder.ToString() + line);
+						}
+					}
+				}
+			}
+
+			return (files, dirs);
+		}
 	}
 }

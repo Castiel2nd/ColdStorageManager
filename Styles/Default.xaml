@@ -20,5 +20,15 @@
 		</Style.Triggers>
 	</Style>
 
+	<Style TargetType="Label" x:Key="h2Labels">
+		<Setter Property="FontSize" Value="17"></Setter>
+		<Setter Property="FontWeight" Value="DemiBold"></Setter>
+	</Style>
+
+	<Style TargetType="Label" x:Key="h1Labels">
+		<Setter Property="FontSize" Value="27"></Setter>
+		<Setter Property="FontWeight" Value="Bold"></Setter>
+	</Style>
+
 	<Thickness x:Key="CommonMargin" Left="2" Bottom="2" Right="2" Top="2"></Thickness>
 </ResourceDictionary>

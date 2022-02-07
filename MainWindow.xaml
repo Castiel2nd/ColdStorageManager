@@ -111,7 +111,6 @@
 							</DataTemplate>
 						</TreeView.Resources>
 					</TreeView>
-
 					<Grid Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch">
 						<Grid.RowDefinitions>
 							<RowDefinition Height="50"></RowDefinition>
@@ -152,7 +151,7 @@
 			</TabItem>
 
 			<TabItem Header="{DynamicResource searching}">
-				<Grid DockPanel.Dock="Left" HorizontalAlignment="Stretch">
+				<Grid DockPanel.Dock="Left" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="2*" MaxWidth="500"></ColumnDefinition>
 						<ColumnDefinition Width="5"></ColumnDefinition>
@@ -165,26 +164,47 @@
 						<RowDefinition Height="*"></RowDefinition>
 						<RowDefinition Height="70"></RowDefinition>
 					</Grid.RowDefinitions>
-					<Label Grid.ColumnSpan="5" FontSize="27" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Content="{DynamicResource save_fs_prompt}"></Label>
+					<Label Grid.ColumnSpan="5" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource h1Labels}"  Content="{DynamicResource search_prompt}"></Label>
 
-					<TreeView Name="trvCaptures" Grid.Row="1" Height="Auto" SelectedItemChanged="PartitionSelected">
-						<TreeView.ItemContainerStyle>
-							<Style TargetType="{x:Type TreeViewItem}">
-								<Setter Property="IsExpanded" Value="True"></Setter>
-							</Style>
-						</TreeView.ItemContainerStyle>
-						<TreeView.Resources>
-							<HierarchicalDataTemplate DataType="{x:Type models:CapturePhDisk}" ItemsSource="{Binding captures}">
-								<ContentControl Content="{StaticResource capturePhDriveEntry}"></ContentControl>
-							</HierarchicalDataTemplate>
-							<DataTemplate DataType="{x:Type models:Capture}">
-								<ContentControl Content="{StaticResource capturePartitionEntry}"></ContentControl>
-							</DataTemplate>
-							<DataTemplate DataType="{x:Type models:CapturePlaceholder}">
-								<ContentControl Content="{StaticResource capturePlaceholder}"></ContentControl>
-							</DataTemplate>
-						</TreeView.Resources>
-					</TreeView>
+					<StackPanel Grid.Row="1">
+						<Label Content="{DynamicResource captures}" Style="{StaticResource h2Labels}"></Label>
+						<TreeView Name="trvCaptures" Height="Auto" SelectedItemChanged="PartitionSelected">
+							<TreeView.ItemContainerStyle>
+								<Style TargetType="{x:Type TreeViewItem}">
+									<Setter Property="IsExpanded" Value="True"></Setter>
+								</Style>
+							</TreeView.ItemContainerStyle>
+							<TreeView.Resources>
+								<HierarchicalDataTemplate DataType="{x:Type models:CapturePhDisk}" ItemsSource="{Binding captures}">
+									<ContentControl Content="{StaticResource capturePhDriveEntry}"></ContentControl>
+								</HierarchicalDataTemplate>
+								<DataTemplate DataType="{x:Type models:Capture}">
+									<ContentControl Content="{StaticResource capturePartitionEntry}"></ContentControl>
+								</DataTemplate>
+								<DataTemplate DataType="{x:Type models:CapturePlaceholder}">
+									<ContentControl Content="{StaticResource capturePlaceholder}"></ContentControl>
+								</DataTemplate>
+							</TreeView.Resources>
+						</TreeView>
+					</StackPanel>
+
+					<StackPanel Grid.Row="1" Grid.Column="2">
+						<Label Content="{DynamicResource ffile}" Style="{StaticResource h2Labels}"></Label>
+						<ListView Name="fileListView">
+							
+						</ListView>
+					</StackPanel>
+
+					<StackPanel Grid.Row="1" Grid.Column="4">
+						<Label Content="{DynamicResource fdir}" Style="{StaticResource h2Labels}"></Label>
+						<ListView Name="dirListView" VerticalAlignment="Stretch">
+						</ListView>
+					</StackPanel>
+
+					<StackPanel Grid.Row="2" Grid.ColumnSpan="5" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+						<TextBox Name="searchTxtBox" MinWidth="100" MaxWidth="500" Margin="0,0,15,0"></TextBox>
+						<Button Content="{DynamicResource search}" Click="SearchButton_Click"></Button>
+					</StackPanel>
 
 					<GridSplitter Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"></GridSplitter>
 					<GridSplitter Grid.Row="1" Grid.Column="3" HorizontalAlignment="Stretch"></GridSplitter>
