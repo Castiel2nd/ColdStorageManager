@@ -127,6 +127,11 @@ namespace ColdStorageManager
 				children = value;
 			}
 		}
+
+		public DateTime GetCreationTime => directoryInfo.CreationTime;
+		public DateTime GetLastAccessTime => directoryInfo.LastAccessTime;
+		public DateTime GetLastModificationTime => directoryInfo.LastWriteTime;
+
 		public CSMDirectory(string path, CSMDirectory parent = null, bool getIcon = true)
 		{
 			Parent = parent;
@@ -254,7 +259,11 @@ namespace ColdStorageManager
 	{
 		private FileInfo fileInfo;
 
-		public string Size { get; set; }
+		public long Size { get; }
+
+		public DateTime GetCreationTime => fileInfo.CreationTime;
+		public DateTime GetLastAccessTime => fileInfo.LastAccessTime;
+		public DateTime GetLastModificationTime => fileInfo.LastWriteTime;
 
 		public CSMFile(string path, CSMDirectory parent = null, bool getIcon = true)
 		{
@@ -273,7 +282,8 @@ namespace ColdStorageManager
 			{
 				Icon = Win32.ToImageSource(Win32.Extract(Path));
 			}
-			Size = fileInfo.Length.ToString();
+
+			Size = fileInfo.Length;
 			Name = fileInfo.Name;
 		}
 	}

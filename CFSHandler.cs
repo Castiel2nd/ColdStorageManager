@@ -1,18 +1,23 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.Text;
+using System.Windows.Media;
+using ColdStorageManager.Models;
 
 namespace ColdStorageManager
 {
 	internal static class CFSHandler
 	{
-		private static string fileExtension = ".cfs";
-		private static string fileTypeIdentifier = "Cold_Storage_Manager-Captured_File_System";
+		private const string fileExtension = ".cfs";
+		private const string fileTypeIdentifier = "Cold_Storage_Manager-Captured_File_System";
+		private const ushort numBlobTypes = Globals.numBlobTypes;
 		private static string version = Globals.version;
-		private static char dirEnterIndicator = '\\';
-		private static char dirLeaveIndicator = '/';
+		private const char dirEnterIndicator = '\\';
+		private const char dirLeaveIndicator = '/';
+		private const char dataSeparator = '|';
 		private static StringBuilder stringBuilder;
 
 		public static bool WriteCFSToFile(string fileName, string driveModel, string nickname)
@@ -20,7 +25,7 @@ namespace ColdStorageManager
 			using (MemoryStream ms = new MemoryStream(1000))
 			{
 				StreamWriter sw = new StreamWriter(ms);
-				WriteToStream(sw, driveModel, nickname);
+				WriteToStreams(sw, driveModel, nickname);
 
 				using (FileStream fs = new FileStream(fileName + fileExtension, FileMode.Create, FileAccess.Write))
 				{
@@ -39,20 +44,87 @@ namespace ColdStorageManager
 			return true;
 		}
 
-		public static byte[] GetCFSBytes(string driveModel, string nickname)
+		public static (byte[] capture, byte[] sizes, byte[] creation_times, byte[] last_access_times, byte[] last_mod_times, uint lines)
+			GetCFSBytes(string driveModel, string nickname, bool size = false, bool createTime  = false,
+			bool accessTime = false, bool modTime = false)
 		{
-			byte[] ret;
-			using (MemoryStream ms = new MemoryStream(1000))
+			(byte[] capture, byte[] sizes, byte[] creation_times, byte[] last_access_times, byte[] last_mod_times, uint lines) ret;
+
+			MemoryStream[] msArray = new MemoryStream[numBlobTypes];
+			StreamWriter[] swArray = new StreamWriter[numBlobTypes];
+
+			//init arrays
+			msArray[0] = new MemoryStream(1000);
+			if(size)
+				msArray[1] = new MemoryStream(1000);
+			if (createTime)
+				msArray[2] = new MemoryStream(1000);
+			if (accessTime)
+				msArray[3] = new MemoryStream(1000);
+			if (modTime)
+				msArray[4] = new MemoryStream(1000);
+			swArray[0] = new StreamWriter(msArray[0]);
+			if (size)
+				swArray[1] = new StreamWriter(msArray[1]);
+			if (createTime)
+				swArray[2] = new StreamWriter(msArray[2]);
+			if (accessTime)
+				swArray[3] = new StreamWriter(msArray[3]);
+			if (modTime)
+				swArray[4] = new StreamWriter(msArray[4]);
+
+			ret.lines = WriteToStreams(swArray, driveModel, nickname, size, createTime, accessTime, modTime);
+			ret.capture = msArray[0].ToArray();
+			ret.sizes = msArray[1]?.ToArray();
+			ret.creation_times = msArray[2]?.ToArray();
+			ret.last_access_times = msArray[3]?.ToArray();
+			ret.last_mod_times = msArray[4]?.ToArray();
+
+			for (int i = 0; i< numBlobTypes; i++)
 			{
-				StreamWriter sw = new StreamWriter(ms);
-				WriteToStream(sw, driveModel, nickname);
-				ret = ms.ToArray();
+				swArray[i]?.Close();
+				msArray[i]?.Close();
 			}
 
 			return ret;
 		}
 
-		private static void WriteToStream(StreamWriter sw, string driveModel, string nickname)
+		public static void PrepareCapture(Capture capture)
+		{
+			if (capture.capture_properties != 0)
+			{
+				var bools = Globals.DecodeCaptureProperties(capture.capture_properties);
+				bool size = bools.size;
+				bool createTime = bools.createTime;
+				bool lastAccessTime = bools.lastAccessTime;
+				bool last = bools.lastModTime;
+				uint lines = 0;
+				string line;
+				string[] splitData;
+				using MemoryStream ms = new MemoryStream(capture.capture);
+				using (StreamReader sr = new StreamReader(ms))
+				{
+					sr.ReadLine();
+					sr.ReadLine();
+					sr.ReadLine();
+					
+					while (!sr.EndOfStream)
+					{
+						line = sr.ReadLine();
+
+						if (!line.EndsWith(dirLeaveIndicator))
+						{
+
+						}
+
+						lines++;
+					}
+				}
+			}
+		}
+
+		private static uint WriteToStreams(StreamWriter[] swArray, string driveModel, string nickname, bool size = false, bool createTime = false,
+			bool accessTime = false, bool modTime = false)
 		{
 			List<CSMFileSystemEntry> list = Globals.fsList;
 			sw.WriteLine(fileTypeIdentifier + "#" + version);
@@ -64,7 +136,10 @@ namespace ColdStorageManager
 			int j = 0;
 			listRefs.Add(list); indexes.Add(0);
 			bool breaking = false;
-			for (int i = 0; ;)
+			uint lines = 3;
+			string entryStr;
+			CSMFile file;
+			for (int i = 0; ; lines++)
 			{
 				while (i == listRefs[j].Count)
 				{
@@ -74,6 +149,7 @@ namespace ColdStorageManager
 						break;
 					}
 					sw.WriteLine(dirLeaveIndicator);
+					lines++;
 					listRefs.RemoveAt(j);
 					indexes.RemoveAt(j);
 					j--;
@@ -89,10 +165,24 @@ namespace ColdStorageManager
 				i++;
 				if (entry is CSMDirectory dir)
 				{
-					sw.WriteLine(entry.Name + dirEnterIndicator);
+					entryStr = entry.Name;
+					if (createTime)
+					{
+						entryStr += (dataSeparator + dir.GetCreationTime.ToString());
+					}
+					if (accessTime)
+					{
+						entryStr += (dataSeparator + dir.GetLastAccessTime.ToString());
+					}
+					if (modTime)
+					{
+						entryStr += (dataSeparator + dir.GetLastModificationTime.ToString());
+					}
+					sw.WriteLine(entryStr + dirEnterIndicator);
 					if (dir.IsEmpty)
 					{
 						sw.WriteLine(dirLeaveIndicator);
+						lines++;
 					}
 					else
 					{
@@ -105,10 +195,30 @@ namespace ColdStorageManager
 				}
 				else
 				{
-					sw.WriteLine(entry.Name);
+					file = entry as CSMFile;
+					entryStr = entry.Name;
+					if (size)
+					{
+						entryStr += (dataSeparator + file.Size.ToString());
+					}
+					if (createTime)
+					{
+						entryStr += (dataSeparator + file.GetCreationTime.ToString());
+					}
+					if (accessTime)
+					{
+						entryStr += (dataSeparator + file.GetLastAccessTime.ToString());
+					}
+					if (modTime)
+					{
+						entryStr += (dataSeparator + file.GetLastModificationTime.ToString());
+					}
+					sw.WriteLine(entryStr);
 				}
 			}
 			sw.Flush();
+
+			return lines;
 		}
 
 		private static void StrBldrRemoveLastDir()

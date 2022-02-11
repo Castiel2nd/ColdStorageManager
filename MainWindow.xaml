@@ -131,6 +131,26 @@
 									<Setter Property="Margin" Value="{StaticResource CommonMargin}"></Setter>
 								</Style>
 							</StackPanel.Resources>
+							<GroupBox Header="{DynamicResource metadata_sel}">
+								<StackPanel>
+									<StackPanel Orientation="Horizontal">
+										<CheckBox Name="sizeCb" VerticalAlignment="Center"></CheckBox>
+										<Label Content="{DynamicResource size}"></Label>
+									</StackPanel>
+									<StackPanel Orientation="Horizontal">
+										<CheckBox Name="createTimeCb" VerticalAlignment="Center"></CheckBox>
+										<Label Content="{DynamicResource creation_time}"></Label>
+									</StackPanel>
+									<StackPanel Orientation="Horizontal">
+										<CheckBox Name="lastAccessCb" VerticalAlignment="Center"></CheckBox>
+										<Label Content="{DynamicResource access_time}"></Label>
+									</StackPanel>
+									<StackPanel Orientation="Horizontal">
+										<CheckBox Name="lastModCb" VerticalAlignment="Center"></CheckBox>
+										<Label Content="{DynamicResource mod_time}"></Label>
+									</StackPanel>
+								</StackPanel>
+							</GroupBox>
 							<Label Content="{DynamicResource selected_drive}"></Label>
 							<TextBox Name="driveTxtBx" IsReadOnly="True" MinWidth="150"></TextBox>
 							<Label Content="{DynamicResource sn_selected_drive}"></Label>
@@ -166,9 +186,22 @@
 					</Grid.RowDefinitions>
 					<Label Grid.ColumnSpan="5" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource h1Labels}"  Content="{DynamicResource search_prompt}"></Label>
 
-					<StackPanel Grid.Row="1">
-						<Label Content="{DynamicResource captures}" Style="{StaticResource h2Labels}"></Label>
-						<TreeView Name="trvCaptures" Height="Auto" SelectedItemChanged="PartitionSelected">
+					<Grid Grid.Row="1">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto"></RowDefinition>
+							<RowDefinition Height="*"></RowDefinition>
+						</Grid.RowDefinitions>
+						<Grid>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto"></ColumnDefinition>
+								<ColumnDefinition Width="*"></ColumnDefinition>
+								<ColumnDefinition Width="Auto"></ColumnDefinition>
+							</Grid.ColumnDefinitions>
+							<Label Content="{DynamicResource captures}" Style="{StaticResource h2Labels}"></Label>
+							<Button Grid.Column="2" Content="{DynamicResource del}" HorizontalAlignment="Center" VerticalAlignment="Center" Click="DeleteBtn_Click" Margin="0,0,5,0"></Button>
+						</Grid>
+						
+						<TreeView Name="trvCaptures" Height="Auto" SelectedItemChanged="PartitionSelected" Grid.Row="1">
 							<TreeView.ItemContainerStyle>
 								<Style TargetType="{x:Type TreeViewItem}">
 									<Setter Property="IsExpanded" Value="True"></Setter>
@@ -186,20 +219,29 @@
 								</DataTemplate>
 							</TreeView.Resources>
 						</TreeView>
-					</StackPanel>
+					</Grid>
 
-					<StackPanel Grid.Row="1" Grid.Column="2">
+					<Grid Grid.Row="1" Grid.Column="2">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto"></RowDefinition>
+							<RowDefinition Height="*"></RowDefinition>
+						</Grid.RowDefinitions>
 						<Label Content="{DynamicResource ffile}" Style="{StaticResource h2Labels}"></Label>
-						<ListView Name="fileListView">
-							
+						<ListView  Name="fileListView" Grid.Row="1">
 						</ListView>
-					</StackPanel>
+					</Grid>
 
-					<StackPanel Grid.Row="1" Grid.Column="4">
+					<Grid Grid.Row="1" Grid.Column="4">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto"></RowDefinition>
+							<RowDefinition Height="*"></RowDefinition>
+						</Grid.RowDefinitions>
 						<Label Content="{DynamicResource fdir}" Style="{StaticResource h2Labels}"></Label>
-						<ListView Name="dirListView" VerticalAlignment="Stretch">
-						</ListView>
-					</StackPanel>
+						<Grid Grid.Row="1">
+							<ListView Name="dirListView">
+							</ListView>
+						</Grid>
+					</Grid>
 
 					<StackPanel Grid.Row="2" Grid.ColumnSpan="5" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
 						<TextBox Name="searchTxtBox" MinWidth="100" MaxWidth="500" Margin="0,0,15,0"></TextBox>

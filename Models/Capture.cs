@@ -26,8 +26,11 @@ namespace ColdStorageManager.Models
 		public string UsedSpaceFormatted { get; set; }
 
 		public ushort UsedSpacePercent { get; set; }
+		public ushort capture_properties { get; set; }
 		public string capture_datetime { get; set; }
 		public DateTime capture_datetime_object { get; set; }
+
+		public uint capture_lines_number { get; set; }
 
 		public string capture_datetime_localized
 		{
@@ -38,9 +41,20 @@ namespace ColdStorageManager.Models
 		}
 
 		public byte[] capture { get; set; }
+		public byte[] sizes { get; set; }
+		public long[] sizes_prepared { get; set; }
+		public byte[] creation_times { get; set; }
+		public DateTime[] creation_times_prepared { get; set; }
+		public byte[] last_access_times { get; set; }
+		public DateTime[] last_access_times_prepared { get; set; }
+		public byte[] last_mod_times { get; set; }
+		public DateTime[] last_mod_times_prepared { get; set; }
+
+
 
 		public Capture(int id, string driveModel, string driveSn, ulong driveSize, string driveNickname, string partitionLabel,
-			uint partitionNumber, ulong partitionSize, ulong partitionFreeSpace, string captureDatetime, byte[] capture)
+			uint partitionNumber, ulong partitionSize, ulong partitionFreeSpace, ushort captureProperties, string captureDatetime,
+			uint captureLinesNumber, byte[] capture, byte[] sizes = default, byte[] creation_times = default, byte[] last_access_times = default, byte[] last_mod_times = default)
 		{
 			this.id = id;
 			drive_model = driveModel;
@@ -51,13 +65,20 @@ namespace ColdStorageManager.Models
 			partition_number = partitionNumber;
 			partition_size = partitionSize;
 			partition_free_space = partitionFreeSpace;
+			capture_properties = captureProperties;
 			capture_datetime = captureDatetime;
+			capture_lines_number = captureLinesNumber;
 			SetViews();
 			this.capture = capture;
+			this.sizes = sizes;
+			this.creation_times = creation_times;
+			this.last_access_times = last_access_times;
+			this.last_mod_times = last_mod_times;
 		}
 
 		public Capture(string driveModel, string driveSn, ulong driveSize, string driveNickname, string partitionLabel,
-			uint partitionNumber, ulong partitionSize, ulong partitionFreeSpace, string captureDatetime, byte[] capture)
+			uint partitionNumber, ulong partitionSize, ulong partitionFreeSpace, ushort captureProperties, string captureDatetime,
+			uint captureLinesNumber, byte[] capture, byte[] sizes = default, byte[] creation_times = default, byte[] last_access_times = default, byte[] last_mod_times = default)
 		{
 			this.id = -1;
 			drive_model = driveModel;
@@ -68,9 +89,15 @@ namespace ColdStorageManager.Models
 			partition_number =partitionNumber;
 			partition_size = partitionSize;
 			partition_free_space = partitionFreeSpace;
+			capture_properties = captureProperties;
 			capture_datetime = captureDatetime;
+			capture_lines_number = captureLinesNumber;
 			SetViews();
 			this.capture = capture;
+			this.sizes = sizes;
+			this.creation_times = creation_times;
+			this.last_access_times = last_access_times;
+			this.last_mod_times = last_mod_times;
 		}
 
 		public void SetViews()

@@ -52,6 +52,7 @@
 			<TextBlock Text="Free: "></TextBlock>
 			<TextBlock Text="{Binding UsedSpaceFormatted}"></TextBlock>
 		</StackPanel>
+
 	</Grid>
 
 	<Border x:Key="capturePhDriveEntry" Background="#f0fae6" BorderBrush="#00ff40" CornerRadius="8" BorderThickness="1" Margin="0,0,0,5" x:Shared="False">

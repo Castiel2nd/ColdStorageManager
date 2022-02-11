@@ -26,10 +26,10 @@ namespace ColdStorageManager
 	//static class for global variables
 	public static class Globals
 	{
-		public static string version = "v0.2";
-		public static MainWindow mainWindow = null;
+		public const string version = "v0.2";
+		public const string configFileName = "CSM.config";
+		public static MainWindow mainWindow;
 		public static DbManager dbManager;
-		public static string configFileName = "CSM.config";
 		public static Configuration configFile;
 		public static KeyValueConfigurationCollection settings;
 		public static List<PhysicalDrive> physicalDrives;
@@ -42,7 +42,7 @@ namespace ColdStorageManager
 		public static TextBlock statusBarTb;
 		public static TextBlock dbStatusBarTb;
 		public static Ellipse dbStatusEllipse;
-
+		public const ushort numBlobTypes = 5;
 
 		private static string[] sizes =
 		{
@@ -61,6 +61,22 @@ namespace ColdStorageManager
 			return string.Format("{0:0.00}", size) + sizes[i];
 		}
 
+		//bitmasks for capture properties
+		public const ushort SIZE = 0b1;
+		public const ushort CREATION_TIME = 0b10;
+		public const ushort LAST_ACCESS_TIME = 0b100;
+		public const ushort LAST_MODIFICATION_TIME = 0b1000;
+
+		public static (bool size, bool createTime, bool lastAccessTime, bool lastModTime) DecodeCaptureProperties(ushort captureProperties)
+		{
+			return (
+					((captureProperties & Globals.SIZE) == Globals.SIZE),
+					((captureProperties & Globals.CREATION_TIME) == Globals.CREATION_TIME),
+					((captureProperties & Globals.LAST_ACCESS_TIME) == Globals.LAST_ACCESS_TIME),
+					((captureProperties & Globals.LAST_MODIFICATION_TIME) == Globals.LAST_MODIFICATION_TIME)
+			);
+		}
+
 		public static string GetLocalizedString(string key)
 		{
 			return Application.Current.Resources[key].ToString();
@@ -77,7 +93,10 @@ namespace ColdStorageManager
 			}
 			catch (UnauthorizedAccessException e)
 			{
-				//TODO
+				if (parent != null)
+				{
+					parent.IsUnaccessible = true;
+				}
 			}
 			catch (Exception e)
 			{
@@ -260,8 +279,22 @@ namespace ColdStorageManager
 
 		private void Capture_Click(object sender, RoutedEventArgs e)
 		{
+			ushort captureProperties = 0;
+			if (sizeCb.IsChecked == true)
+				captureProperties ^= Globals.SIZE;
+			if (createTimeCb.IsChecked == true)
+				captureProperties ^= Globals.CREATION_TIME;
+			if (lastAccessCb.IsChecked == true)
+				captureProperties ^= Globals.LAST_ACCESS_TIME;
+			if (lastModCb.IsChecked == true)
+				captureProperties ^= Globals.LAST_MODIFICATION_TIME;
 			ConvertFSObservListToList();
 			ExpandFSList();
+			var cfsBytes = CFSHandler.GetCFSBytes(Globals.selectedPartition.Parent.Model, nicknameTxtBx.Text,
+				sizeCb.IsChecked == true,
+				createTimeCb.IsChecked == true,
+				lastAccessCb.IsChecked == true,
+				lastModCb.IsChecked == true);
 			Globals.dbManager.SaveCapture(new Capture(Globals.selectedPartition.Parent.Model,
 											Globals.selectedPartition.Parent.SerialNumber,
 											Globals.selectedPartition.Parent.TotalSpace,
@@ -270,8 +303,11 @@ namespace ColdStorageManager
 											Globals.selectedPartition.Index,
 											Globals.selectedPartition.TotalSpace,
 											Globals.selectedPartition.FreeSpace,
+											captureProperties,
 											DateTime.Now.ToString(),
-											CFSHandler.GetCFSBytes(Globals.selectedPartition.Parent.Model, nicknameTxtBx.Text)));
+											cfsBytes.lines,
+											cfsBytes.data
+											));
 			//CFSHandler.WriteCFS("test", driveTxtBx.Text, nicknameTxtBx.Text);
 			statusBarTb.Text = "Successfully captured " + Globals.selectedPartition.Letter + " [" +
 			                   Globals.selectedPartition.Label + "]";
@@ -343,6 +379,15 @@ namespace ColdStorageManager
 		private void SearchButton_Click(object sender, RoutedEventArgs e)
 		{
 			Search(searchTxtBox.Text);
+		}
+
+		private void DeleteBtn_Click(object sender, RoutedEventArgs e)
+		{
+			if (trvCaptures.SelectedItem is Capture capture)
+			{
+				Globals.dbManager.DeleteCapture(capture);
+				RefreshCaptures();
+			}
 		}
 	}
 

@@ -22,6 +22,13 @@
 	<System:String x:Key="capturing">Capturing</System:String>
 	<System:String x:Key="searching">Searching</System:String>
 	<System:String x:Key="search">Search</System:String>
+	<System:String x:Key="del">Delete</System:String>
+
+	<System:String x:Key="metadata_sel">Metadata to save:</System:String>
+	<System:String x:Key="size">Size</System:String>
+	<System:String x:Key="creation_time">Time of creation</System:String>
+	<System:String x:Key="access_time">Time of last access</System:String>
+	<System:String x:Key="mod_time">Time of last modification</System:String>
 
 	<System:String x:Key="save_fs_prompt">Select a partition and the desired entries you want to capture, then press Capture</System:String>
 	<System:String x:Key="search_prompt">Search in selected saves</System:String>
