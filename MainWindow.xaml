@@ -5,6 +5,7 @@
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		xmlns:local="clr-namespace:ColdStorageManager"
 		xmlns:models="clr-namespace:ColdStorageManager.Models"
+		xmlns:bindings="clr-namespace:ColdStorageManager.ConfigBindings"
 		mc:Ignorable="d"
 		Title="Cold Storage Manager v0" Height="800" Width="1280"
         >
@@ -162,7 +163,7 @@
 
 
 					<StackPanel Grid.Row="2" Grid.ColumnSpan="5" Orientation="Horizontal" HorizontalAlignment="Center">
-						<Button FontSize="26" Padding="8" Content="{DynamicResource capture}" HorizontalAlignment="Center" VerticalAlignment="Center" Click="Capture_Click"></Button>
+						<Button Style="{StaticResource bigButton}" Content="{DynamicResource capture}" Click="Capture_Click"></Button>
 					</StackPanel>
 
 					<GridSplitter Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"></GridSplitter>
@@ -243,10 +244,82 @@
 						</Grid>
 					</Grid>
 
-					<StackPanel Grid.Row="2" Grid.ColumnSpan="5" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
-						<TextBox Name="searchTxtBox" MinWidth="100" MaxWidth="500" Margin="0,0,15,0"></TextBox>
-						<Button Content="{DynamicResource search}" Click="SearchButton_Click"></Button>
-					</StackPanel>
+					<Grid Grid.Row="2" Grid.ColumnSpan="5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"></ColumnDefinition>
+							<ColumnDefinition Width="Auto"></ColumnDefinition>
+							<ColumnDefinition Width="Auto"></ColumnDefinition>
+							<ColumnDefinition Width="Auto"></ColumnDefinition>
+							<ColumnDefinition Width="*"></ColumnDefinition>
+						</Grid.ColumnDefinitions>
+						<Grid.RowDefinitions>
+							<RowDefinition Height="*"></RowDefinition>
+							<RowDefinition Height="*"></RowDefinition>
+						</Grid.RowDefinitions>
+
+						<Grid Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="70"></ColumnDefinition>
+								<ColumnDefinition Width="*"></ColumnDefinition>
+							</Grid.ColumnDefinitions>
+							<Label Content="{DynamicResource name}"></Label>
+							<TextBox Grid.Column="1" Name="searchTxtBox" MinWidth="100" Margin="0,0,15,0" HorizontalAlignment="Stretch"></TextBox>
+						</Grid>
+
+						<Grid Grid.Column="1" Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="70"></ColumnDefinition>
+								<ColumnDefinition Width="*"></ColumnDefinition>
+							</Grid.ColumnDefinitions>
+							<Label Content="{DynamicResource size}"></Label>
+							<StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+								<CheckBox Name="sizeEnable" IsChecked="{bindings:SearchSettingsBinding SizeEnabled}" Checked="SizeEnable_OnChecked" Unchecked="SizeEnable_OnUnchecked" Margin="0,0,15,0" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
+								<ComboBox Name="sizeRelCmbx" Margin="0,0,15,0">
+									<ComboBoxItem Content="&lt;" Tag="1"></ComboBoxItem>
+									<ComboBoxItem Content="&lt;=" Tag="2"></ComboBoxItem>
+									<ComboBoxItem Content="=" Tag="3"></ComboBoxItem>
+									<ComboBoxItem Content="&gt;=" Tag="4"></ComboBoxItem>
+									<ComboBoxItem Content="&gt;" Tag="5"></ComboBoxItem>
+								</ComboBox>
+								<Slider Name="sizeSlider" Minimum="0" Maximum="1024" MinWidth="200" TickFrequency="5" IsSnapToTickEnabled="True" Margin="0,0,15,0"></Slider>
+								<TextBox Name="sizeSldTxt" Text="{Binding ElementName=sizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" Width="32" Margin="0,0,15,0"></TextBox>
+								<ComboBox Name="sizeCmbx" Margin="0,0,15,0">
+									<ComboBoxItem Content="byte" Tag="1"></ComboBoxItem>
+									<ComboBoxItem Content="KB" Tag="2"></ComboBoxItem>
+									<ComboBoxItem Content="MB" Tag="3"></ComboBoxItem>
+									<ComboBoxItem Content="GB" Tag="4"></ComboBoxItem>
+									<ComboBoxItem Content="TB" Tag="5"></ComboBoxItem>
+									<ComboBoxItem Content="PB" Tag="6"></ComboBoxItem>
+									<ComboBoxItem Content="EB" Tag="7"></ComboBoxItem>
+								</ComboBox>
+							</StackPanel>
+						</Grid>
+
+						<Grid Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="110"></ColumnDefinition>
+								<ColumnDefinition Width="*"></ColumnDefinition>
+							</Grid.ColumnDefinitions>
+							<Label Content="{DynamicResource creation_time}"></Label>
+							<StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+								<CheckBox Name="creationTimeEnable" Checked="SizeEnable_OnChecked" Unchecked="SizeEnable_OnUnchecked" Margin="0,0,15,0" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
+							</StackPanel>
+						</Grid>
+
+						<Grid Grid.Column="2" Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="110"></ColumnDefinition>
+								<ColumnDefinition Width="*"></ColumnDefinition>
+							</Grid.ColumnDefinitions>
+							<Label Content="{DynamicResource access_time}"></Label>
+							<StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+								<CheckBox Name="lastAccessEnable" Checked="SizeEnable_OnChecked" Unchecked="SizeEnable_OnUnchecked" Margin="0,0,15,0" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
+								<DatePicker></DatePicker>
+							</StackPanel>
+						</Grid>
+
+						<Button Grid.Column="3" Grid.RowSpan="2" Style="{StaticResource bigButton}" Content="{DynamicResource search}" Click="SearchButton_Click"></Button>
+					</Grid>
 
 					<GridSplitter Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"></GridSplitter>
 					<GridSplitter Grid.Row="1" Grid.Column="3" HorizontalAlignment="Stretch"></GridSplitter>

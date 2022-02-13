@@ -24,15 +24,19 @@ namespace ColdStorageManager
 		{
 			using (MemoryStream ms = new MemoryStream(1000))
 			{
-				StreamWriter sw = new StreamWriter(ms);
-				WriteToStreams(sw, driveModel, nickname);
+				StreamWriter[] swArray = new StreamWriter[numBlobTypes];
+				swArray[0] = new StreamWriter(ms);
+				WriteToStreams(swArray, driveModel, nickname);
 
 				using (FileStream fs = new FileStream(fileName + fileExtension, FileMode.Create, FileAccess.Write))
 				{
 					ms.WriteTo(fs);
 				}
 
-				sw.Close();
+				foreach (var sw in swArray)
+				{
+					sw?.Close();
+				}
 			}
 
 			using (FileStream fs = new FileStream(fileName + fileExtension, FileMode.Open, FileAccess.Read))
@@ -127,9 +131,13 @@ namespace ColdStorageManager
 			bool accessTime = false, bool modTime = false)
 		{
 			List<CSMFileSystemEntry> list = Globals.fsList;
-			sw.WriteLine(fileTypeIdentifier + "#" + version);
-			sw.WriteLine(driveModel);
-			sw.WriteLine(nickname);
+			//header for each file
+			foreach (var sw in swArray)
+			{
+				sw?.WriteLine(fileTypeIdentifier + "#" + version);
+				sw?.WriteLine(driveModel);
+				sw?.WriteLine(nickname);
+			}
 			List<List<CSMFileSystemEntry>> listRefs =
 				new List<List<CSMFileSystemEntry>>();
 			List<int> indexes = new List<int>();
@@ -148,7 +156,11 @@ namespace ColdStorageManager
 						breaking = true;
 						break;
 					}
-					sw.WriteLine(dirLeaveIndicator);
+					//write the leave indicator to every file
+					foreach (var sw in swArray)
+					{
+						sw?.WriteLine(dirLeaveIndicator);
+					}
 					lines++;
 					listRefs.RemoveAt(j);
 					indexes.RemoveAt(j);
@@ -165,23 +177,27 @@ namespace ColdStorageManager
 				i++;
 				if (entry is CSMDirectory dir)
 				{
-					entryStr = entry.Name;
+					swArray[0].WriteLine(entry.Name + dirEnterIndicator);
+					swArray[1]?.WriteLine();
 					if (createTime)
 					{
-						entryStr += (dataSeparator + dir.GetCreationTime.ToString());
+						swArray[2].WriteLine(dir.GetCreationTime.ToString());
 					}
 					if (accessTime)
 					{
-						entryStr += (dataSeparator + dir.GetLastAccessTime.ToString());
+						swArray[3].WriteLine(dir.GetLastAccessTime.ToString());
 					}
 					if (modTime)
 					{
-						entryStr += (dataSeparator + dir.GetLastModificationTime.ToString());
+						swArray[4].WriteLine(dir.GetLastModificationTime.ToString());
 					}
-					sw.WriteLine(entryStr + dirEnterIndicator);
 					if (dir.IsEmpty)
 					{
-						sw.WriteLine(dirLeaveIndicator);
+						//write the leave indicator to every file
+						foreach (var sw in swArray)
+						{
+							sw?.WriteLine(dirLeaveIndicator);
+						}
 						lines++;
 					}
 					else
@@ -196,27 +212,29 @@ namespace ColdStorageManager
 				else
 				{
 					file = entry as CSMFile;
-					entryStr = entry.Name;
+					swArray[0].WriteLine(entry.Name);
 					if (size)
 					{
-						entryStr += (dataSeparator + file.Size.ToString());
+						swArray[1].WriteLine(file.Size.ToString());
 					}
 					if (createTime)
 					{
-						entryStr += (dataSeparator + file.GetCreationTime.ToString());
+						swArray[2].WriteLine(file.GetCreationTime.ToString());
 					}
 					if (accessTime)
 					{
-						entryStr += (dataSeparator + file.GetLastAccessTime.ToString());
+						swArray[3].WriteLine(file.GetLastAccessTime.ToString());
 					}
 					if (modTime)
 					{
-						entryStr += (dataSeparator + file.GetLastModificationTime.ToString());
+						swArray[4].WriteLine(file.GetLastModificationTime.ToString());
 					}
-					sw.WriteLine(entryStr);
 				}
 			}
-			sw.Flush();
+			foreach (var sw in swArray)
+			{
+				sw?.Flush();
+			}
 
 			return lines;
 		}

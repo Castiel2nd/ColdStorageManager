@@ -25,6 +25,7 @@
 	<System:String x:Key="del">Delete</System:String>
 
 	<System:String x:Key="metadata_sel">Metadata to save:</System:String>
+	<System:String x:Key="name">Name</System:String>
 	<System:String x:Key="size">Size</System:String>
 	<System:String x:Key="creation_time">Time of creation</System:String>
 	<System:String x:Key="access_time">Time of last access</System:String>

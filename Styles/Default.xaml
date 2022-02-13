@@ -30,5 +30,12 @@
 		<Setter Property="FontWeight" Value="Bold"></Setter>
 	</Style>
 
+	<Style TargetType="Button" x:Key="bigButton">
+		<Setter Property="FontSize" Value="26"></Setter>
+		<Setter Property="Padding" Value="8"></Setter>
+		<Setter Property="HorizontalAlignment" Value="Center"></Setter>
+		<Setter Property="VerticalAlignment" Value="Center"></Setter>
+	</Style>
+
 	<Thickness x:Key="CommonMargin" Left="2" Bottom="2" Right="2" Top="2"></Thickness>
 </ResourceDictionary>

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -133,6 +134,18 @@ namespace ColdStorageManager
 		{
 			{ "language","en-US" }
 		};
+
+		private Dictionary<string, Dictionary<string, string>> defaultSectionSettings =
+			new Dictionary<string, Dictionary<string, string>>()
+			{
+				{
+					"searchSettings", new Dictionary<string, string>()
+					{
+						{ "sizeEnabled", "0" }
+					}
+				}
+			};
+
 		public MainWindow()
 		{
 			LoadSettings();
@@ -158,6 +171,11 @@ namespace ColdStorageManager
 
 		}
 
+		~MainWindow()
+		{
+			Globals.configFile.Save(ConfigurationSaveMode.Modified);
+		}
+
 		private void LoadSettings()
 		{
 			var configFileMap = new ExeConfigurationFileMap();
@@ -167,15 +185,35 @@ namespace ColdStorageManager
 			{
 				var configFile = ConfigurationManager.OpenMappedExeConfiguration(configFileMap, ConfigurationUserLevel.None);
 				Globals.configFile = configFile;
-				//Console.WriteLine(configFile.FilePath);
+				//configFile.Sections.Add("general", new AppSettingsSection());
+				//AppSettingsSection sec = configFile.Sections.Get("general") as AppSettingsSection;
+				//sec.Settings.Add("hello", "test");
 
 				var settings = configFile.AppSettings.Settings;
 				Globals.settings = settings;
+				//load default settings
 				foreach(KeyValuePair<string, string> setting in defaultSettings)
 				{
 					if(settings[setting.Key] == null)
 					{
 						settings.Add(setting.Key, setting.Value);
+					}
+				}
+				//load default section settings
+				foreach (var sectionInfo in defaultSectionSettings)
+				{
+					if (configFile.Sections.Get(sectionInfo.Key) == null)
+					{
+						configFile.Sections.Add(sectionInfo.Key, new AppSettingsSection());
+					}
+
+					foreach (var setting in sectionInfo.Value)
+					{
+						AppSettingsSection section = configFile.Sections.Get(sectionInfo.Key) as AppSettingsSection;
+						if (section.Settings[setting.Key] == null)
+						{
+							section.Settings.Add(setting.Key, setting.Value);
+						}
 					}
 				}
 				configFile.Save(ConfigurationSaveMode.Modified);
@@ -306,7 +344,11 @@ namespace ColdStorageManager
 											captureProperties,
 											DateTime.Now.ToString(),
 											cfsBytes.lines,
-											cfsBytes.data
+											cfsBytes.capture,
+											cfsBytes.sizes,
+											cfsBytes.creation_times,
+											cfsBytes.last_access_times,
+											cfsBytes.last_mod_times
 											));
 			//CFSHandler.WriteCFS("test", driveTxtBx.Text, nicknameTxtBx.Text);
 			statusBarTb.Text = "Successfully captured " + Globals.selectedPartition.Letter + " [" +
@@ -388,6 +430,22 @@ namespace ColdStorageManager
 				Globals.dbManager.DeleteCapture(capture);
 				RefreshCaptures();
 			}
+		}
+
+		private void SizeEnable_OnChecked(object sender, RoutedEventArgs e)
+		{
+			sizeRelCmbx.IsEnabled = true;
+			sizeSlider.IsEnabled = true;
+			sizeSldTxt.IsEnabled = true;
+			sizeCmbx.IsEnabled = true;
+		}
+
+		private void SizeEnable_OnUnchecked(object sender, RoutedEventArgs e)
+		{
+			sizeRelCmbx.IsEnabled = false;
+			sizeSlider.IsEnabled = false;
+			sizeSldTxt.IsEnabled = false;
+			sizeCmbx.IsEnabled = false;
 		}
 	}
 

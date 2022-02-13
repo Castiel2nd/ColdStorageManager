@@ -221,6 +221,7 @@ namespace ColdStorageManager
 
 		public void ConvertChildrenToListPropagate()
 		{
+			IsExpanded = false;
 			ChildrenList = children.ToList();
 			foreach (var entry in ChildrenList)
 			{
