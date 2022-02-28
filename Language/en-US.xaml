@@ -26,10 +26,19 @@
 
 	<System:String x:Key="metadata_sel">Metadata to save:</System:String>
 	<System:String x:Key="name">Name</System:String>
+	<System:String x:Key="filename">Filename</System:String>
+	<System:String x:Key="path">Path</System:String>
 	<System:String x:Key="size">Size</System:String>
 	<System:String x:Key="creation_time">Time of creation</System:String>
 	<System:String x:Key="access_time">Time of last access</System:String>
 	<System:String x:Key="mod_time">Time of last modification</System:String>
+	<System:String x:Key="enable">Enable</System:String>
+
+	<System:String x:Key="dateRel_lt">Before</System:String>
+	<System:String x:Key="dateRel_lt_or_eq">Before or on</System:String>
+	<System:String x:Key="dateRel_eq">On</System:String>
+	<System:String x:Key="dateRel_gt_or_eq">On or after</System:String>
+	<System:String x:Key="dateRel_gt">After</System:String>
 
 	<System:String x:Key="save_fs_prompt">Select a partition and the desired entries you want to capture, then press Capture</System:String>
 	<System:String x:Key="search_prompt">Search in selected saves</System:String>
@@ -41,6 +50,7 @@
 	<System:String x:Key="db_create_suc" xml:space="preserve">Successfully created table: </System:String>
 	<System:String x:Key="db_table_found" xml:space="preserve">Found table in database: </System:String>
 	<System:String x:Key="no_captures" xml:space="preserve">You currently have no captures.&#13;Make some on the other tab, and they will show up here.</System:String>
+	<System:String x:Key="no_captures_tooltip" xml:space="preserve">Can't search if there are no captures.</System:String>
 	<System:String x:Key="ready">Ready</System:String>
 	<System:String x:Key="capture_prop">Capture properties:</System:String>
 	<System:String x:Key="captures">Saved partitions:</System:String>

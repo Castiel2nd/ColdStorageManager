@@ -135,6 +135,10 @@ namespace ColdStorageManager
 				physicalDrive.SortPartitionsByIndex();
 			}
 		}
-		
+
+		private void App_OnExit(object sender, ExitEventArgs e)
+		{
+			Globals.configFile.Save(ConfigurationSaveMode.Modified);
+		}
 	}
 }

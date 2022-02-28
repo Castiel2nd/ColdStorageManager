@@ -40,6 +40,8 @@ namespace ColdStorageManager.Models
 			}
 		}
 
+		public uint capture_files_number { get; set; }
+		public uint capture_directories_number { get; set; }
 		public byte[] capture { get; set; }
 		public byte[] sizes { get; set; }
 		public long[] sizes_prepared { get; set; }
@@ -54,7 +56,8 @@ namespace ColdStorageManager.Models
 
 		public Capture(int id, string driveModel, string driveSn, ulong driveSize, string driveNickname, string partitionLabel,
 			uint partitionNumber, ulong partitionSize, ulong partitionFreeSpace, ushort captureProperties, string captureDatetime,
-			uint captureLinesNumber, byte[] capture, byte[] sizes = default, byte[] creation_times = default, byte[] last_access_times = default, byte[] last_mod_times = default)
+			uint captureLinesNumber, uint captureFilesNumber, uint captureDirectoriesNumber,
+			byte[] capture, byte[] sizes = default, byte[] creation_times = default, byte[] last_access_times = default, byte[] last_mod_times = default)
 		{
 			this.id = id;
 			drive_model = driveModel;
@@ -69,6 +72,8 @@ namespace ColdStorageManager.Models
 			capture_datetime = captureDatetime;
 			capture_lines_number = captureLinesNumber;
 			SetViews();
+			capture_files_number = captureFilesNumber;
+			capture_directories_number = captureDirectoriesNumber;
 			this.capture = capture;
 			this.sizes = sizes;
 			this.creation_times = creation_times;
@@ -78,7 +83,8 @@ namespace ColdStorageManager.Models
 
 		public Capture(string driveModel, string driveSn, ulong driveSize, string driveNickname, string partitionLabel,
 			uint partitionNumber, ulong partitionSize, ulong partitionFreeSpace, ushort captureProperties, string captureDatetime,
-			uint captureLinesNumber, byte[] capture, byte[] sizes = default, byte[] creation_times = default, byte[] last_access_times = default, byte[] last_mod_times = default)
+			uint captureLinesNumber, uint captureFilesNumber, uint captureDirectoriesNumber,
+			byte[] capture, byte[] sizes = default, byte[] creation_times = default, byte[] last_access_times = default, byte[] last_mod_times = default)
 		{
 			this.id = -1;
 			drive_model = driveModel;
@@ -93,6 +99,8 @@ namespace ColdStorageManager.Models
 			capture_datetime = captureDatetime;
 			capture_lines_number = captureLinesNumber;
 			SetViews();
+			capture_files_number = captureFilesNumber;
+			capture_directories_number = captureDirectoriesNumber;
 			this.capture = capture;
 			this.sizes = sizes;
 			this.creation_times = creation_times;

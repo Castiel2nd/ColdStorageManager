@@ -11,6 +11,8 @@
 	capture_properties INTEGER,
 	capture_datetime TEXT,
 	capture_lines_number INTEGER,
+	capture_files_number INTEGER,
+	capture_directories_number INTEGER,
 	capture BLOB,
 	sizes BLOB,
 	creation_times BLOB,

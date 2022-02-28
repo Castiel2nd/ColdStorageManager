@@ -20,6 +20,12 @@ namespace ColdStorageManager
 		private const char dataSeparator = '|';
 		private static StringBuilder stringBuilder;
 
+		public const int LESS_THAN = 0;
+		public const int LESS_THAN_EQ = 1;
+		public const int EQUAL = 2;
+		public const int MORE_THAN_EQ = 3;
+		public const int MORE_THAN = 4;
+
 		public static bool WriteCFSToFile(string fileName, string driveModel, string nickname)
 		{
 			using (MemoryStream ms = new MemoryStream(1000))
@@ -48,11 +54,13 @@ namespace ColdStorageManager
 			return true;
 		}
 
-		public static (byte[] capture, byte[] sizes, byte[] creation_times, byte[] last_access_times, byte[] last_mod_times, uint lines)
+		public static (byte[] capture, byte[] sizes, byte[] creation_times, byte[] last_access_times, byte[] last_mod_times, uint lines,
+			uint files, uint dirs)
 			GetCFSBytes(string driveModel, string nickname, bool size = false, bool createTime  = false,
 			bool accessTime = false, bool modTime = false)
 		{
-			(byte[] capture, byte[] sizes, byte[] creation_times, byte[] last_access_times, byte[] last_mod_times, uint lines) ret;
+			(byte[] capture, byte[] sizes, byte[] creation_times, byte[] last_access_times, byte[] last_mod_times, uint lines,
+					uint files, uint dirs) ret;
 
 			MemoryStream[] msArray = new MemoryStream[numBlobTypes];
 			StreamWriter[] swArray = new StreamWriter[numBlobTypes];
@@ -77,7 +85,10 @@ namespace ColdStorageManager
 			if (modTime)
 				swArray[4] = new StreamWriter(msArray[4]);
 
-			ret.lines = WriteToStreams(swArray, driveModel, nickname, size, createTime, accessTime, modTime);
+			var entryNrs = WriteToStreams(swArray, driveModel, nickname, size, createTime, accessTime, modTime);
+			ret.lines = entryNrs.lines;
+			ret.files = entryNrs.files;
+			ret.dirs = entryNrs.dirs;
 			ret.capture = msArray[0].ToArray();
 			ret.sizes = msArray[1]?.ToArray();
 			ret.creation_times = msArray[2]?.ToArray();
@@ -97,17 +108,56 @@ namespace ColdStorageManager
 		{
 			if (capture.capture_properties != 0)
 			{
+				MemoryStream[] msArray = new MemoryStream[numBlobTypes-1];
+				StreamReader[] srArray = new StreamReader[numBlobTypes - 1];
 				var bools = Globals.DecodeCaptureProperties(capture.capture_properties);
 				bool size = bools.size;
 				bool createTime = bools.createTime;
 				bool lastAccessTime = bools.lastAccessTime;
-				bool last = bools.lastModTime;
-				uint lines = 0;
-				string line;
-				string[] splitData;
+				bool lastModTime = bools.lastModTime;
+				uint allEntries = capture.capture_files_number + capture.capture_directories_number;
+				long[] sizes_prepared = null;
+				DateTime[] creation_times_prepared = null, last_access_times_prepared = null, last_mod_times_prepared = null;
+				if (size)
+				{
+					capture.sizes_prepared = new long[allEntries];
+					sizes_prepared = capture.sizes_prepared;
+					msArray[0] = new MemoryStream(capture.sizes);
+					srArray[0] = new StreamReader(msArray[0]);
+				}
+				if (createTime)
+				{
+					capture.creation_times_prepared = new DateTime[allEntries];
+					creation_times_prepared = capture.creation_times_prepared;
+					msArray[1] = new MemoryStream(capture.creation_times);
+					srArray[1] = new StreamReader(msArray[1]);
+				}
+				if (lastAccessTime)
+				{
+					capture.last_access_times_prepared = new DateTime[allEntries];
+					last_access_times_prepared = capture.last_access_times_prepared;
+					msArray[2] = new MemoryStream(capture.last_access_times);
+					srArray[2] = new StreamReader(msArray[2]);
+				}
+				if (lastModTime)
+				{
+					capture.last_mod_times_prepared = new DateTime[allEntries];
+					last_mod_times_prepared = capture.last_mod_times_prepared;
+					msArray[3] = new MemoryStream(capture.last_mod_times);
+					srArray[3] = new StreamReader(msArray[3]);
+				}
+				uint entries = 0;
+				string line, sideString;
 				using MemoryStream ms = new MemoryStream(capture.capture);
 				using (StreamReader sr = new StreamReader(ms))
 				{
+					//read headers on all streams
+					foreach (var streamReader in srArray)
+					{
+						streamReader?.ReadLine();
+						streamReader?.ReadLine();
+						streamReader?.ReadLine();
+					}
 					sr.ReadLine();
 					sr.ReadLine();
 					sr.ReadLine();
@@ -116,18 +166,48 @@ namespace ColdStorageManager
 					{
 						line = sr.ReadLine();
 
-						if (!line.EndsWith(dirLeaveIndicator))
+						//it's a directory
+						if (line.EndsWith(dirEnterIndicator))
 						{
-
+							if (size)
+								srArray[0].ReadLine();
+							if(createTime)
+								creation_times_prepared[entries] = DateTime.Parse(srArray[1].ReadLine());
+							if(lastAccessTime)
+								last_access_times_prepared[entries] = DateTime.Parse(srArray[2].ReadLine());
+							if (lastModTime)
+								last_mod_times_prepared[entries] = DateTime.Parse(srArray[3].ReadLine());
+							entries++;
 						}
-
-						lines++;
+						else if (!line.EndsWith(dirLeaveIndicator))
+						{
+							if (size){}
+								sizes_prepared[entries] = long.Parse(srArray[0].ReadLine());
+							if (createTime)
+								creation_times_prepared[entries] = DateTime.Parse(srArray[1].ReadLine());
+							if (lastAccessTime)
+								last_access_times_prepared[entries] = DateTime.Parse(srArray[2].ReadLine());
+							if (lastModTime)
+								last_mod_times_prepared[entries] = DateTime.Parse(srArray[3].ReadLine());
+							entries++;
+						}
+						else
+						{
+							if (size) { }
+								srArray[0].ReadLine();
+							if (createTime)
+								srArray[1].ReadLine(); 
+							if (lastAccessTime)
+								srArray[2].ReadLine(); 
+							if (lastModTime)
+								srArray[3].ReadLine();
+						}
 					}
 				}
 			}
 		}
 
-		private static uint WriteToStreams(StreamWriter[] swArray, string driveModel, string nickname, bool size = false, bool createTime = false,
+		private static (uint lines, uint files, uint dirs) WriteToStreams(StreamWriter[] swArray, string driveModel, string nickname, bool size = false, bool createTime = false,
 			bool accessTime = false, bool modTime = false)
 		{
 			List<CSMFileSystemEntry> list = Globals.fsList;
@@ -144,10 +224,9 @@ namespace ColdStorageManager
 			int j = 0;
 			listRefs.Add(list); indexes.Add(0);
 			bool breaking = false;
-			uint lines = 3;
+			uint lines = 3, files = 0, dirs = 0;
 			string entryStr;
-			CSMFile file;
-			for (int i = 0; ; lines++)
+			for (int i = 0; ;)
 			{
 				while (i == listRefs[j].Count)
 				{
@@ -175,8 +254,10 @@ namespace ColdStorageManager
 				CSMFileSystemEntry entry = listRefs[j][i];
 				//Console.WriteLine("Written to sw: " + entry.Name);
 				i++;
-				if (entry is CSMDirectory dir)
+				if (entry is CSMDirectory { IsChecked: true } dir)
 				{
+					lines++;
+					dirs++;
 					swArray[0].WriteLine(entry.Name + dirEnterIndicator);
 					swArray[1]?.WriteLine();
 					if (createTime)
@@ -209,9 +290,10 @@ namespace ColdStorageManager
 						i = 0;
 					}
 				}
-				else
+				else if(entry is CSMFile { IsChecked: true } file)
 				{
-					file = entry as CSMFile;
+					lines++;
+					files++;
 					swArray[0].WriteLine(entry.Name);
 					if (size)
 					{
@@ -236,7 +318,7 @@ namespace ColdStorageManager
 				sw?.Flush();
 			}
 
-			return lines;
+			return (lines, files, dirs);
 		}
 
 		private static void StrBldrRemoveLastDir()
@@ -266,15 +348,32 @@ namespace ColdStorageManager
 			return lastIndex;
 		}
 
-		public static (List<string> files, List<string> dirs) Search(byte[] capture, string stringToSearch)
+		public static (List<SearchResultView> files, List<SearchResultView> dirs) Search(byte[] capture, ushort captureProperties, ushort searchProperties,
+			string stringToSearch,
+			 int sizeRelation, long sizeToSearch,
+			 int createTimeRelation, DateTime createTimeToSearch,
+			 int accessTimeRelation, DateTime accessTimeToSearch,
+			 int lastModTimeRelation, DateTime lastModTimeToSearch,
+			 in long[] sizesPrepared, in DateTime[] createTimesPrepared, in DateTime[] accessTimesPrepared, in DateTime[] modTimesPrepared)
 		{
-			List<string> files = new List<string>();
-			List<string> dirs = new List<string>();
+			List<SearchResultView> files = new List<SearchResultView>();
+			List<SearchResultView> dirs = new List<SearchResultView>();
 
 			if (stringBuilder == null)
 			{
 				stringBuilder = new StringBuilder();
 			}
+
+			var capturePropDecoded = Globals.DecodeCaptureProperties(captureProperties);
+			bool sizeInCapture = capturePropDecoded.size,
+				createTimeInCapture = capturePropDecoded.createTime,
+				accessTimeInCapture = capturePropDecoded.lastAccessTime,
+				modTimeInCapture = capturePropDecoded.lastModTime;
+			var searchPropDecoded = Globals.DecodeCaptureProperties(searchProperties);
+			bool searchInSize = searchPropDecoded.size,
+				searchInCreateTime = searchPropDecoded.createTime,
+				searchInAccessTime = searchPropDecoded.lastAccessTime,
+				searchInModTime = searchPropDecoded.lastModTime;
 
 			stringBuilder.Clear();
 			stringBuilder.Append(dirEnterIndicator);
@@ -285,6 +384,7 @@ namespace ColdStorageManager
 				sr.ReadLine();
 				sr.ReadLine();
 				sr.ReadLine();
+				uint arrayHelperIndex = 0;
 				string line;
 				for (; !sr.EndOfStream;)
 				{
@@ -294,10 +394,20 @@ namespace ColdStorageManager
 					{
 						stringBuilder.Append(line);
 						line.TrimEnd(dirEnterIndicator);
-						if (line.Contains(stringToSearch))
+						if (line.Contains(stringToSearch)
+						    &&
+						    (!searchInCreateTime || (!createTimeInCapture || DateRelationCondition(createTimesPrepared[arrayHelperIndex].Date, createTimeToSearch, createTimeRelation)))
+						    &&
+						    (!searchInAccessTime || (!accessTimeInCapture || DateRelationCondition(accessTimesPrepared[arrayHelperIndex].Date, accessTimeToSearch, accessTimeRelation)))
+						    &&
+						    (!searchInModTime || (!modTimeInCapture || DateRelationCondition(modTimesPrepared[arrayHelperIndex].Date, lastModTimeToSearch, lastModTimeRelation))))
 						{
-							dirs.Add(stringBuilder.ToString());
+							dirs.Add(new SearchResultView(line, stringBuilder.ToString(), 
+																-1, createTimeInCapture ? createTimesPrepared[arrayHelperIndex] : default(DateTime), 
+																accessTimeInCapture ? accessTimesPrepared[arrayHelperIndex] : default(DateTime),
+																modTimeInCapture ? modTimesPrepared[arrayHelperIndex] : default(DateTime)));
 						}
+						arrayHelperIndex++;
 					}
 					else if (line.EndsWith(dirLeaveIndicator))
 					{
@@ -305,15 +415,67 @@ namespace ColdStorageManager
 					}
 					else
 					{
-						if (line.Contains(stringToSearch))
+						if (line.Contains(stringToSearch)
+						    &&
+						    (!searchInSize || ( !sizeInCapture || SizeRelationCondition(sizesPrepared[arrayHelperIndex], sizeToSearch, sizeRelation)))
+							&&
+						    (!searchInCreateTime || (!createTimeInCapture || DateRelationCondition(createTimesPrepared[arrayHelperIndex].Date, createTimeToSearch, createTimeRelation)))
+						    &&
+						    (!searchInAccessTime || (!accessTimeInCapture || DateRelationCondition(accessTimesPrepared[arrayHelperIndex].Date, accessTimeToSearch, accessTimeRelation)))
+						    &&
+						    (!searchInModTime || (!modTimeInCapture || DateRelationCondition(modTimesPrepared[arrayHelperIndex].Date, lastModTimeToSearch, lastModTimeRelation))))
 						{
-							files.Add(stringBuilder.ToString() + line);
+							files.Add(new SearchResultView(line, stringBuilder.ToString() + line,
+								sizeInCapture ? sizesPrepared[arrayHelperIndex] : -1,
+								createTimeInCapture ? createTimesPrepared[arrayHelperIndex] : default(DateTime),
+								accessTimeInCapture ? accessTimesPrepared[arrayHelperIndex] : default(DateTime),
+								modTimeInCapture ? modTimesPrepared[arrayHelperIndex] : default(DateTime)));
 						}
+
+						arrayHelperIndex++;
 					}
 				}
 			}
 
 			return (files, dirs);
+		}
+
+		private static bool SizeRelationCondition(long size, long sizeToSearch, int relation)
+		{
+			switch (relation)
+			{
+				case LESS_THAN:
+					return size < sizeToSearch;
+				case LESS_THAN_EQ:
+					return size <= sizeToSearch;
+				case EQUAL:
+					return size == sizeToSearch;
+				case MORE_THAN_EQ:
+					return size >= sizeToSearch;
+				case MORE_THAN:
+					return size > sizeToSearch;
+				default:
+					return false;
+			}
+		}
+
+		private static bool DateRelationCondition(DateTime size, DateTime sizeToSearch, int relation)
+		{
+			switch (relation)
+			{
+				case LESS_THAN:
+					return size < sizeToSearch;
+				case LESS_THAN_EQ:
+					return size <= sizeToSearch;
+				case EQUAL:
+					return size == sizeToSearch;
+				case MORE_THAN_EQ:
+					return size >= sizeToSearch;
+				case MORE_THAN:
+					return size > sizeToSearch;
+				default:
+					return false;
+			}
 		}
 	}
 }

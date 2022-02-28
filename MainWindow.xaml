@@ -5,9 +5,9 @@
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		xmlns:local="clr-namespace:ColdStorageManager"
 		xmlns:models="clr-namespace:ColdStorageManager.Models"
-		xmlns:bindings="clr-namespace:ColdStorageManager.ConfigBindings"
 		mc:Ignorable="d"
 		Title="Cold Storage Manager v0" Height="800" Width="1280"
+		Closed="MainWindow_OnClosed"
         >
 	<DockPanel>
 		<Menu DockPanel.Dock="Top">
@@ -174,7 +174,7 @@
 			<TabItem Header="{DynamicResource searching}">
 				<Grid DockPanel.Dock="Left" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="2*" MaxWidth="500"></ColumnDefinition>
+						<ColumnDefinition Width="2*" MaxWidth="330" MinWidth="312"></ColumnDefinition>
 						<ColumnDefinition Width="5"></ColumnDefinition>
 						<ColumnDefinition Width="3*"></ColumnDefinition>
 						<ColumnDefinition Width="5"></ColumnDefinition>
@@ -228,7 +228,14 @@
 							<RowDefinition Height="*"></RowDefinition>
 						</Grid.RowDefinitions>
 						<Label Content="{DynamicResource ffile}" Style="{StaticResource h2Labels}"></Label>
-						<ListView  Name="fileListView" Grid.Row="1">
+						<ListView Grid.Row="1"  Name="fileListView" ScrollViewer.CanContentScroll="False">
+							<ListView.ItemContainerStyle>
+								<Style TargetType="ListViewItem">
+									<Setter Property="SnapsToDevicePixels" Value="True"/>
+									<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+									<Setter Property="VerticalContentAlignment" Value="Stretch"/>
+								</Style>
+							</ListView.ItemContainerStyle>
 						</ListView>
 					</Grid>
 
@@ -240,6 +247,13 @@
 						<Label Content="{DynamicResource fdir}" Style="{StaticResource h2Labels}"></Label>
 						<Grid Grid.Row="1">
 							<ListView Name="dirListView">
+								<ListView.ItemContainerStyle>
+									<Style TargetType="ListViewItem">
+										<Setter Property="SnapsToDevicePixels" Value="True"/>
+										<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+										<Setter Property="VerticalContentAlignment" Value="Stretch"/>
+									</Style>
+								</ListView.ItemContainerStyle>
 							</ListView>
 						</Grid>
 					</Grid>
@@ -247,6 +261,7 @@
 					<Grid Grid.Row="2" Grid.ColumnSpan="5">
 						<Grid.ColumnDefinitions>
 							<ColumnDefinition Width="*"></ColumnDefinition>
+							<ColumnDefinition Width="Auto"></ColumnDefinition>
 							<ColumnDefinition Width="Auto"></ColumnDefinition>
 							<ColumnDefinition Width="Auto"></ColumnDefinition>
 							<ColumnDefinition Width="Auto"></ColumnDefinition>
@@ -273,24 +288,24 @@
 							</Grid.ColumnDefinitions>
 							<Label Content="{DynamicResource size}"></Label>
 							<StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-								<CheckBox Name="sizeEnable" IsChecked="{bindings:SearchSettingsBinding SizeEnabled}" Checked="SizeEnable_OnChecked" Unchecked="SizeEnable_OnUnchecked" Margin="0,0,15,0" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
+								<CheckBox Name="sizeEnable" ToolTip="{DynamicResource enable}" Checked="SizeEnable_OnChecked" Unchecked="SizeEnable_OnUnchecked" Margin="0,0,15,0" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
 								<ComboBox Name="sizeRelCmbx" Margin="0,0,15,0">
-									<ComboBoxItem Content="&lt;" Tag="1"></ComboBoxItem>
-									<ComboBoxItem Content="&lt;=" Tag="2"></ComboBoxItem>
-									<ComboBoxItem Content="=" Tag="3"></ComboBoxItem>
-									<ComboBoxItem Content="&gt;=" Tag="4"></ComboBoxItem>
-									<ComboBoxItem Content="&gt;" Tag="5"></ComboBoxItem>
+									<ComboBoxItem Content="&lt;"></ComboBoxItem>
+									<ComboBoxItem Content="&lt;="></ComboBoxItem>
+									<ComboBoxItem Content="="></ComboBoxItem>
+									<ComboBoxItem Content="&gt;="></ComboBoxItem>
+									<ComboBoxItem Content="&gt;"></ComboBoxItem>
 								</ComboBox>
 								<Slider Name="sizeSlider" Minimum="0" Maximum="1024" MinWidth="200" TickFrequency="5" IsSnapToTickEnabled="True" Margin="0,0,15,0"></Slider>
 								<TextBox Name="sizeSldTxt" Text="{Binding ElementName=sizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" Width="32" Margin="0,0,15,0"></TextBox>
 								<ComboBox Name="sizeCmbx" Margin="0,0,15,0">
-									<ComboBoxItem Content="byte" Tag="1"></ComboBoxItem>
-									<ComboBoxItem Content="KB" Tag="2"></ComboBoxItem>
-									<ComboBoxItem Content="MB" Tag="3"></ComboBoxItem>
-									<ComboBoxItem Content="GB" Tag="4"></ComboBoxItem>
-									<ComboBoxItem Content="TB" Tag="5"></ComboBoxItem>
-									<ComboBoxItem Content="PB" Tag="6"></ComboBoxItem>
-									<ComboBoxItem Content="EB" Tag="7"></ComboBoxItem>
+									<ComboBoxItem Content="byte"></ComboBoxItem>
+									<ComboBoxItem Content="KB"></ComboBoxItem>
+									<ComboBoxItem Content="MB"></ComboBoxItem>
+									<ComboBoxItem Content="GB"></ComboBoxItem>
+									<ComboBoxItem Content="TB"></ComboBoxItem>
+									<ComboBoxItem Content="PB"></ComboBoxItem>
+									<ComboBoxItem Content="EB"></ComboBoxItem>
 								</ComboBox>
 							</StackPanel>
 						</Grid>
@@ -302,7 +317,15 @@
 							</Grid.ColumnDefinitions>
 							<Label Content="{DynamicResource creation_time}"></Label>
 							<StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-								<CheckBox Name="creationTimeEnable" Checked="SizeEnable_OnChecked" Unchecked="SizeEnable_OnUnchecked" Margin="0,0,15,0" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
+								<CheckBox Name="creationTimeEnable" ToolTip="{DynamicResource enable}" Checked="CreationTimeEnable_OnChecked" Unchecked="CreationTimeEnable_OnUnchecked" Margin="0,0,15,0" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
+								<ComboBox Name="createTimeRelCmbx" Margin="0,0,15,0">
+									<ComboBoxItem Content="{DynamicResource dateRel_lt}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_lt_or_eq}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_eq}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_gt_or_eq}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_gt}"></ComboBoxItem>
+								</ComboBox>
+								<DatePicker Name="createTimeDP" Margin="0,0,15,0"></DatePicker>
 							</StackPanel>
 						</Grid>
 
@@ -313,12 +336,38 @@
 							</Grid.ColumnDefinitions>
 							<Label Content="{DynamicResource access_time}"></Label>
 							<StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-								<CheckBox Name="lastAccessEnable" Checked="SizeEnable_OnChecked" Unchecked="SizeEnable_OnUnchecked" Margin="0,0,15,0" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
-								<DatePicker></DatePicker>
+								<CheckBox Name="lastAccessEnable" ToolTip="{DynamicResource enable}" Checked="LastAccessEnable_OnChecked" Unchecked="LastAccessEnable_OnUnchecked" Margin="0,0,15,0" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
+								<ComboBox Name="accessTimeRelCmbx" Margin="0,0,15,0">
+									<ComboBoxItem Content="{DynamicResource dateRel_lt}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_lt_or_eq}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_eq}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_gt_or_eq}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_gt}"></ComboBoxItem>
+								</ComboBox>
+								<DatePicker Name="accessTimeDP" Margin="0,0,15,0"></DatePicker>
 							</StackPanel>
 						</Grid>
 
-						<Button Grid.Column="3" Grid.RowSpan="2" Style="{StaticResource bigButton}" Content="{DynamicResource search}" Click="SearchButton_Click"></Button>
+						<Grid Grid.Column="3" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="150"></ColumnDefinition>
+								<ColumnDefinition Width="*"></ColumnDefinition>
+							</Grid.ColumnDefinitions>
+							<Label Content="{DynamicResource mod_time}"></Label>
+							<StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+								<CheckBox Name="lastModTimeEnable" ToolTip="{DynamicResource enable}" Checked="LastModTimeEnable_OnChecked" Unchecked="LastModTimeEnable_OnUnchecked" Margin="0,0,15,0" HorizontalAlignment="Center" VerticalAlignment="Center"></CheckBox>
+								<ComboBox Name="lastModTimeRelCmbx" Margin="0,0,15,0">
+									<ComboBoxItem Content="{DynamicResource dateRel_lt}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_lt_or_eq}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_eq}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_gt_or_eq}"></ComboBoxItem>
+									<ComboBoxItem Content="{DynamicResource dateRel_gt}"></ComboBoxItem>
+								</ComboBox>
+								<DatePicker Name="lastModTimeDP" Margin="0,0,15,0"></DatePicker>
+							</StackPanel>
+						</Grid>
+
+						<Button Name="searchButton" Grid.Column="4" Grid.RowSpan="2" Style="{StaticResource bigButton}" Content="{DynamicResource search}" Click="SearchButton_Click"></Button>
 					</Grid>
 
 					<GridSplitter Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"></GridSplitter>

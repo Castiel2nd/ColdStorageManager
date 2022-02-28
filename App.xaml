@@ -3,7 +3,8 @@
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:local="clr-namespace:ColdStorageManager"
 			 xmlns:System="clr-namespace:System;assembly=System.Runtime"
-			 Startup="App_OnStartup">
+			 Startup="App_OnStartup"
+			 Exit="App_OnExit">
 	<Application.Resources>
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>

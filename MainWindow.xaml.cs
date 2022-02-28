@@ -18,6 +18,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Configuration;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Windows.Interop;
 using ColdStorageManager.Models;
@@ -37,8 +38,8 @@ namespace ColdStorageManager
 		public static ObservableCollection<CaptureBase> captures;
 		public static Partition selectedPartition;
 		public static WpfObservableRangeCollection<CSMFileSystemEntry> fileDialogEntryTree;
-		public static WpfObservableRangeCollection<string> filesFound;
-		public static WpfObservableRangeCollection<string> dirsFound;
+		public static WpfObservableRangeCollection<SearchResultControl> filesFound;
+		public static WpfObservableRangeCollection<SearchResultControl> dirsFound;
 		public static List<CSMFileSystemEntry> fsList;
 		public static TextBlock statusBarTb;
 		public static TextBlock dbStatusBarTb;
@@ -68,6 +69,20 @@ namespace ColdStorageManager
 		public const ushort LAST_ACCESS_TIME = 0b100;
 		public const ushort LAST_MODIFICATION_TIME = 0b1000;
 
+		public static ushort ToProperties(bool size, bool createTime, bool accessTime, bool modTime)
+		{
+			ushort captureProperties = 0;
+			if (size)
+				captureProperties ^= Globals.SIZE;
+			if (createTime)
+				captureProperties ^= Globals.CREATION_TIME;
+			if (accessTime)
+				captureProperties ^= Globals.LAST_ACCESS_TIME;
+			if (modTime)
+				captureProperties ^= Globals.LAST_MODIFICATION_TIME;
+			return captureProperties;
+		}
+
 		public static (bool size, bool createTime, bool lastAccessTime, bool lastModTime) DecodeCaptureProperties(ushort captureProperties)
 		{
 			return (
@@ -76,6 +91,16 @@ namespace ColdStorageManager
 					((captureProperties & Globals.LAST_ACCESS_TIME) == Globals.LAST_ACCESS_TIME),
 					((captureProperties & Globals.LAST_MODIFICATION_TIME) == Globals.LAST_MODIFICATION_TIME)
 			);
+		}
+
+		public static string GetSectionSetting(string section, string key)
+		{
+			return (configFile.Sections.Get(section) as AppSettingsSection).Settings[key]?.Value;
+		}
+
+		public static void SetSectionSetting(string section, string key, string value)
+		{
+			(configFile.Sections.Get(section) as AppSettingsSection).Settings[key].Value = value;
 		}
 
 		public static string GetLocalizedString(string key)
@@ -141,7 +166,29 @@ namespace ColdStorageManager
 				{
 					"searchSettings", new Dictionary<string, string>()
 					{
-						{ "sizeEnabled", "0" }
+						{ "searchQuery", "" },
+						{ "sizeEnabled", "False" },
+						{ "sizeRelCmbx_selectedIndex", "0" },
+						{ "sizeSlider_value", "0" },
+						{ "sizeCmbx_selectedIndex", "0" },
+						{ "creationTimeEnable", "False" },
+						{ "lastAccessEnable", "False" },
+						{ "lastModTimeEnable", "False" },
+						{ "createTimeRelCmbx_selectedIndex", "0" },
+						{ "createTimeDP", "" },
+						{ "accessTimeRelCmbx_selectedIndex", "0" },
+						{ "accessTimeDP", "" },
+						{ "lastModTimeRelCmbx_selectedIndex", "0" },
+						{ "lastModTimeDP", "" }
+					}
+				},
+				{
+					"captureSettings", new Dictionary<string, string>()
+					{
+						{ "sizeCb", "False" },
+						{ "createTimeCb", "False" },
+						{ "lastAccessCb", "False" },
+						{ "lastModCb", "False" },
 					}
 				}
 			};
@@ -151,11 +198,12 @@ namespace ColdStorageManager
 			LoadSettings();
 			WindowStartupLocation = WindowStartupLocation.CenterScreen;
 			InitializeComponent();
+			LoadSettingsAfterUI();
 			Title = "Cold Storage Manager " + Globals.version;
 			trvDrives.ItemsSource = Globals.physicalDrives;
 			Globals.fileDialogEntryTree = new WpfObservableRangeCollection<CSMFileSystemEntry>();
-			Globals.filesFound = new WpfObservableRangeCollection<string>();
-			Globals.dirsFound = new WpfObservableRangeCollection<string>();
+			Globals.filesFound = new WpfObservableRangeCollection<SearchResultControl>();
+			Globals.dirsFound = new WpfObservableRangeCollection<SearchResultControl>();
 			trvFileDialog.ItemsSource = Globals.fileDialogEntryTree;
 			fileListView.ItemsSource = Globals.filesFound;
 			dirListView.ItemsSource = Globals.dirsFound;
@@ -168,19 +216,39 @@ namespace ColdStorageManager
 			trvCaptures.ItemsSource = Globals.captures;
 			RefreshCaptures();
 			Globals.mainWindow = this;
-
 		}
 
-		~MainWindow()
+		//save settings on window close
+		private void MainWindow_OnClosed(object? sender, EventArgs e)
 		{
-			Globals.configFile.Save(ConfigurationSaveMode.Modified);
+			//searchSettings
+			Globals.SetSectionSetting("searchSettings", "searchQuery", searchTxtBox.Text);
+			Globals.SetSectionSetting("searchSettings", "sizeEnabled", sizeEnable.IsChecked.ToString());
+			Globals.SetSectionSetting("searchSettings", "sizeRelCmbx_selectedIndex", sizeRelCmbx.SelectedIndex.ToString());
+			Globals.SetSectionSetting("searchSettings", "sizeSlider_value", sizeSlider.Value.ToString());
+			Globals.SetSectionSetting("searchSettings", "sizeCmbx_selectedIndex", sizeCmbx.SelectedIndex.ToString());
+			Globals.SetSectionSetting("searchSettings", "creationTimeEnable", creationTimeEnable.IsChecked.ToString());
+			Globals.SetSectionSetting("searchSettings", "createTimeRelCmbx_selectedIndex", createTimeRelCmbx.SelectedIndex.ToString());
+			Globals.SetSectionSetting("searchSettings", "createTimeDP", createTimeDP.Text);
+			Globals.SetSectionSetting("searchSettings", "lastAccessEnable", lastAccessEnable.IsChecked.ToString());
+			Globals.SetSectionSetting("searchSettings", "accessTimeRelCmbx_selectedIndex", accessTimeRelCmbx.SelectedIndex.ToString());
+			Globals.SetSectionSetting("searchSettings", "accessTimeDP", accessTimeDP.Text);
+			Globals.SetSectionSetting("searchSettings", "lastModTimeEnable", lastModTimeEnable.IsChecked.ToString());
+			Globals.SetSectionSetting("searchSettings", "lastModTimeRelCmbx_selectedIndex", lastModTimeRelCmbx.SelectedIndex.ToString());
+			Globals.SetSectionSetting("searchSettings", "lastModTimeDP", lastModTimeDP.Text);
+
+			//captureSettings
+			Globals.SetSectionSetting("captureSettings", "sizeCb", sizeCb.IsChecked.ToString());
+			Globals.SetSectionSetting("captureSettings", "createTimeCb", createTimeCb.IsChecked.ToString());
+			Globals.SetSectionSetting("captureSettings", "lastAccessCb", lastAccessCb.IsChecked.ToString());
+			Globals.SetSectionSetting("captureSettings", "lastModCb", lastModCb.IsChecked.ToString());
 		}
 
 		private void LoadSettings()
 		{
 			var configFileMap = new ExeConfigurationFileMap();
 			configFileMap.ExeConfigFilename = Globals.configFileName;
-
+			AppSettingsSection section;
 			try
 			{
 				var configFile = ConfigurationManager.OpenMappedExeConfiguration(configFileMap, ConfigurationUserLevel.None);
@@ -209,7 +277,7 @@ namespace ColdStorageManager
 
 					foreach (var setting in sectionInfo.Value)
 					{
-						AppSettingsSection section = configFile.Sections.Get(sectionInfo.Key) as AppSettingsSection;
+						section = configFile.Sections.Get(sectionInfo.Key) as AppSettingsSection;
 						if (section.Settings[setting.Key] == null)
 						{
 							section.Settings.Add(setting.Key, setting.Value);
@@ -224,13 +292,49 @@ namespace ColdStorageManager
 				Console.WriteLine("Configuration error: " + e.BareMessage);
 			}
 
+			//loading settings
 			//if set language is not the default, load it
 			if(Globals.settings["language"].Value != "en-US")
 			{
 				LoadLanguage("en-US");
 			}
 		}
-		
+
+		private void LoadSettingsAfterUI()
+		{
+			//searchSettings
+			AppSettingsSection section = Globals.configFile.Sections.Get("searchSettings") as AppSettingsSection;
+			searchTxtBox.Text = section.Settings["searchQuery"].Value;
+			sizeEnable.IsChecked = bool.Parse(section.Settings["sizeEnabled"].Value);
+			if(sizeEnable.IsChecked == false)
+				SizeEnable_OnUnchecked(null, null);
+			creationTimeEnable.IsChecked = bool.Parse(section.Settings["creationTimeEnable"].Value);
+			if (creationTimeEnable.IsChecked == false)
+				CreationTimeEnable_OnUnchecked(null, null);
+			lastAccessEnable.IsChecked = bool.Parse(section.Settings["lastAccessEnable"].Value);
+			if (lastAccessEnable.IsChecked == false)
+				LastAccessEnable_OnUnchecked(null, null);
+			lastModTimeEnable.IsChecked = bool.Parse(section.Settings["lastModTimeEnable"].Value);
+			if (lastModTimeEnable.IsChecked == false)
+				LastModTimeEnable_OnUnchecked(null, null);
+			sizeRelCmbx.SelectedIndex = Int32.Parse(section.Settings["sizeRelCmbx_selectedIndex"].Value);
+			sizeCmbx.SelectedIndex = Int32.Parse(section.Settings["sizeCmbx_selectedIndex"].Value);
+			sizeSlider.Value = Int32.Parse(section.Settings["sizeSlider_value"].Value);
+			createTimeRelCmbx.SelectedIndex = Int32.Parse(section.Settings["createTimeRelCmbx_selectedIndex"].Value);
+			createTimeDP.Text = section.Settings["createTimeDP"].Value;
+			accessTimeRelCmbx.SelectedIndex = Int32.Parse(section.Settings["accessTimeRelCmbx_selectedIndex"].Value);
+			accessTimeDP.Text = section.Settings["accessTimeDP"].Value;
+			lastModTimeRelCmbx.SelectedIndex = Int32.Parse(section.Settings["lastModTimeRelCmbx_selectedIndex"].Value);
+			lastModTimeDP.Text = section.Settings["lastModTimeDP"].Value;
+
+			//captureSettings
+			section = Globals.configFile.Sections.Get("captureSettings") as AppSettingsSection;
+			sizeCb.IsChecked = bool.Parse(section.Settings["sizeCb"].Value);
+			createTimeCb.IsChecked = bool.Parse(section.Settings["createTimeCb"].Value);
+			lastAccessCb.IsChecked = bool.Parse(section.Settings["lastAccessCb"].Value);
+			lastModCb.IsChecked = bool.Parse(section.Settings["lastModCb"].Value);
+		}
+
 		public void LoadLanguage(string prev)
 		{
 			string lang = Globals.settings["language"].Value;
@@ -317,15 +421,8 @@ namespace ColdStorageManager
 
 		private void Capture_Click(object sender, RoutedEventArgs e)
 		{
-			ushort captureProperties = 0;
-			if (sizeCb.IsChecked == true)
-				captureProperties ^= Globals.SIZE;
-			if (createTimeCb.IsChecked == true)
-				captureProperties ^= Globals.CREATION_TIME;
-			if (lastAccessCb.IsChecked == true)
-				captureProperties ^= Globals.LAST_ACCESS_TIME;
-			if (lastModCb.IsChecked == true)
-				captureProperties ^= Globals.LAST_MODIFICATION_TIME;
+			ushort captureProperties = Globals.ToProperties(sizeCb.IsChecked == true, createTimeCb.IsChecked == true,
+				lastAccessCb.IsChecked == true, lastModCb.IsChecked == true);
 			ConvertFSObservListToList();
 			ExpandFSList();
 			var cfsBytes = CFSHandler.GetCFSBytes(Globals.selectedPartition.Parent.Model, nicknameTxtBx.Text,
@@ -344,6 +441,8 @@ namespace ColdStorageManager
 											captureProperties,
 											DateTime.Now.ToString(),
 											cfsBytes.lines,
+											cfsBytes.files,
+											cfsBytes.dirs,
 											cfsBytes.capture,
 											cfsBytes.sizes,
 											cfsBytes.creation_times,
@@ -362,9 +461,12 @@ namespace ColdStorageManager
 			List<Capture> captures = Globals.dbManager.GetCaptures();
 			if (captures.Count > 0)
 			{
+				searchButton.IsEnabled = true;
+				searchButton.ToolTip = null;
 				foreach (var capture in captures)
 				{
 					capture.SetViews();
+					CFSHandler.PrepareCapture(capture);
 					bool found = false;
 					foreach (var capturePhDisk in Globals.captures)
 					{
@@ -380,6 +482,14 @@ namespace ColdStorageManager
 					{
 						CapturePhDisk phDisk =
 							new CapturePhDisk(capture.drive_model, capture.drive_sn, capture.drive_size, capture.drive_nickname);
+
+						/* Test for SearchResultCaptureView
+						var smgh = new SearchResultCaptureView(capture.drive_model, capture.drive_sn,
+							capture.drive_size);
+						smgh.SearchResults.Add(new SearchResultView("test.txtr", "E:\\Text", 2515254L, DateTime.Now, DateTime.Today, DateTime.MinValue));
+						Globals.filesFound.Add(new SearchResultControl(smgh));
+						*/
+
 						phDisk.captures.Add(capture);
 						Globals.captures.Add(phDisk);
 					}
@@ -394,6 +504,8 @@ namespace ColdStorageManager
 			else
 			{
 				Globals.captures.Add(new CapturePlaceholder(Globals.GetLocalizedString("no_captures")));
+				searchButton.IsEnabled = false;
+				searchButton.ToolTip = Globals.GetLocalizedString("no_captures_tooltip");
 			}
 		}
 
@@ -403,17 +515,57 @@ namespace ColdStorageManager
 			{
 				Globals.filesFound.Clear();
 				Globals.dirsFound.Clear();
+				List<SearchResultControl> filesFound = new List<SearchResultControl>();
+				List<SearchResultControl> dirsFound = new List<SearchResultControl>();
+
+				//preparing detailed search information
+				ushort searchProperties = Globals.ToProperties(
+					(sizeEnable.IsChecked == true) && (sizeRelCmbx.SelectedIndex != -1) &&
+					(sizeCmbx.SelectedIndex != -1),
+					(creationTimeEnable.IsChecked == true) && (createTimeRelCmbx.SelectedIndex != -1) && (createTimeDP.SelectedDate != null),
+					(lastAccessEnable.IsChecked == true) && (accessTimeRelCmbx.SelectedIndex != -1) && (accessTimeDP.SelectedDate != null),
+					 (lastModTimeEnable.IsChecked == true) && (lastModTimeRelCmbx.SelectedIndex != -1) && (lastModTimeDP.SelectedDate != null));
+				long sizeToSearch = (long)sizeSlider.Value;
+				for (int i = sizeCmbx.SelectedIndex; i > 0; i--)
+					sizeToSearch *= 1024;
+				DateTime createTimeToSearch = createTimeDP.SelectedDate ?? default;
+				DateTime accessTimeToSearch = accessTimeDP.SelectedDate ?? default;
+				DateTime lastModTimeToSearch = lastModTimeDP.SelectedDate ?? default;
+				
 				foreach (var captureGl in Globals.captures)
 				{
 					if (captureGl is CapturePhDisk capturePhDisk)
 					{
 						foreach (var capture in capturePhDisk.captures)
 						{
-							var res = CFSHandler.Search(capture.capture, stringToSearch);
-							Globals.filesFound.AddRange(res.files);
-							Globals.dirsFound.AddRange(res.dirs);
+							var res = CFSHandler.Search(capture.capture, capture.capture_properties, 
+								searchProperties,
+								stringToSearch,
+								sizeRelCmbx.SelectedIndex, sizeToSearch,
+								createTimeRelCmbx.SelectedIndex, createTimeToSearch,
+								accessTimeRelCmbx.SelectedIndex, accessTimeToSearch,
+								lastModTimeRelCmbx.SelectedIndex, lastModTimeToSearch,
+								capture.sizes_prepared, capture.creation_times_prepared, capture.last_access_times_prepared, capture.last_mod_times_prepared);
+
+							if (res.files.Count != 0)
+							{
+								filesFound.Add(new SearchResultControl(new SearchResultCaptureView(capturePhDisk, capture, res.files), true));
+							}
+							if (res.dirs.Count != 0)
+							{
+								dirsFound.Add(new SearchResultControl(new SearchResultCaptureView(capturePhDisk, capture, res.dirs), false));
+							}
 						}
 					}
+				}
+
+				if (filesFound.Count != 0)
+				{
+					Globals.filesFound.AddRange(filesFound);
+				}
+				if (dirsFound.Count != 0)
+				{
+					Globals.dirsFound.AddRange(dirsFound);
 				}
 			}
 		}
@@ -446,6 +598,42 @@ namespace ColdStorageManager
 			sizeSlider.IsEnabled = false;
 			sizeSldTxt.IsEnabled = false;
 			sizeCmbx.IsEnabled = false;
+		}
+
+		private void LastAccessEnable_OnChecked(object sender, RoutedEventArgs e)
+		{
+			accessTimeRelCmbx.IsEnabled = true;
+			accessTimeDP.IsEnabled = true;
+		}
+
+		private void LastAccessEnable_OnUnchecked(object sender, RoutedEventArgs e)
+		{
+			accessTimeRelCmbx.IsEnabled = false;
+			accessTimeDP.IsEnabled= false;
+		}
+
+		private void CreationTimeEnable_OnChecked(object sender, RoutedEventArgs e)
+		{
+			createTimeRelCmbx.IsEnabled = true;
+			createTimeDP.IsEnabled= true;
+		}
+
+		private void CreationTimeEnable_OnUnchecked(object sender, RoutedEventArgs e)
+		{
+			createTimeRelCmbx.IsEnabled = false;
+			createTimeDP.IsEnabled=false;
+		}
+
+		private void LastModTimeEnable_OnChecked(object sender, RoutedEventArgs e)
+		{
+			lastModTimeRelCmbx.IsEnabled = true;
+			lastModTimeDP.IsEnabled = true;
+		}
+
+		private void LastModTimeEnable_OnUnchecked(object sender, RoutedEventArgs e)
+		{
+			lastModTimeRelCmbx.IsEnabled = false;
+			lastModTimeDP.IsEnabled = false;
 		}
 	}
 

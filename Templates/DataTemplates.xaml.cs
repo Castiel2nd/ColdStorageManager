@@ -19,5 +19,12 @@ namespace ColdStorageManager.Templates
 				}
 			}
 		}
+
+		private void ColumnHeaderMenuItem_OnClick(object sender, RoutedEventArgs e)
+		{
+			Console.WriteLine(sender);
+			Console.WriteLine(e.Source);
+			Console.WriteLine(e.OriginalSource);
+		}
 	}
 }
