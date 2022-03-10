@@ -25,8 +25,10 @@ namespace ColdStorageManager
 	public partial class SearchResultControl : UserControl
 	{
 		private GridViewColumn[] columnReferences;
+		private SearchResultCaptureView searchResultCaptureView;
+		private bool files, initialExpanson = true;
 		public GridViewColumnCollection columns;
-		private bool isMaster, files;
+		
 		public bool preventLoopback;
 
 		public GridViewColumn[] ColumnReferences
@@ -39,6 +41,7 @@ namespace ColdStorageManager
 		public SearchResultControl(SearchResultCaptureView searchResultCaptureView, bool files)
 		{
 			this.files = files;
+			this.searchResultCaptureView = searchResultCaptureView;
 			InitializeComponent();
 			DriveNameTB.Text = searchResultCaptureView.PhDisk.drive_model;
 			DriveSnTB.Text = "["+searchResultCaptureView.PhDisk.drive_sn+"]";
@@ -153,10 +156,6 @@ namespace ColdStorageManager
 		{
 			columns.Remove(columnReferences[5]);
 			SyncDisableColumn(5);
-		}
-
-		private void Expander_OnExpanded(object sender, RoutedEventArgs e)
-		{
 		}
 
 		private void SyncColumnMovesTask(int oldIndex, int newIndex, IProgress<int> progress)
@@ -356,6 +355,36 @@ namespace ColdStorageManager
 		private void ColumnWidthChanged5(object sender, PropertyChangedEventArgs e)
 		{
 			SyncColumnWidths(sender, e, 5);
+		}
+
+		private void Expander_OnExpanded(object sender, RoutedEventArgs e)
+		{
+			if (initialExpanson)
+			{
+				initialExpanson = false;
+				return;
+			}
+			SelectCorrespondingCapture();
+		}
+
+		private void Expander_OnCollapsed(object sender, RoutedEventArgs e)
+		{
+			SelectCorrespondingCapture();
+		}
+
+		public void SelectCorrespondingCapture()
+		{
+			TreeViewItem trv = Globals.FindTviFromObjectRecursive(Globals.capturesTrv, searchResultCaptureView.Capture);
+			if (trv != null)
+			{
+				trv.IsSelected = true;
+			}
+		}
+
+		private void ResultsListView_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			SelectCorrespondingCapture();
+			e.Handled = true;
 		}
 	}
 }

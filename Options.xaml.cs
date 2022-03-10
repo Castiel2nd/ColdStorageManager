@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Text;
 using System.Windows;
 using System.IO;
+using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
@@ -43,8 +44,21 @@ namespace ColdStorageManager
 			Owner = Globals.mainWindow;
 			WindowStartupLocation = WindowStartupLocation.CenterOwner;
 			InitializeComponent();
+			LoadSettingsAfterUI();
 			GetAvalaibleLanguages();
+		}
 
+		private void LoadSettingsAfterUI()
+		{
+			// exceptions
+			AppSettingsSection section = Globals.configFile.Sections.Get("exceptions") as AppSettingsSection;
+			exceptionPathsEnableCb.IsChecked = bool.Parse(section.Settings["exceptionPathsEnableCb"].Value);
+			exceptionsLV.ItemsSource = Globals.exceptionPathsOC;
+			exceptionFileTypesCaptureEnableCb.IsChecked = bool.Parse(section.Settings["exceptionFileTypesCaptureEnableCb"].Value);
+			exceptionFileTypesCaptureTxtBx.Text = section.Settings["exceptionFileTypesCaptureTxtBx"].Value;
+			exceptionFileTypesSearchEnableCb.IsChecked = bool.Parse(section.Settings["exceptionFileTypesSearchEnableCb"].Value);
+			exceptionFileTypesSearchTxtBx.Text = section.Settings["exceptionFileTypesSearchTxtBx"].Value;
+			
 		}
 
 		private void okBtn_Click(object sender, RoutedEventArgs e)
@@ -123,6 +137,21 @@ namespace ColdStorageManager
 				GetAvalaibleLanguages();
 			}
 			
+			// exceptions
+			AppSettingsSection section = Globals.configFile.Sections.Get("exceptions") as AppSettingsSection;
+			section.Settings["exceptionPathsEnableCb"].Value = (exceptionPathsEnableCb.IsEnabled == true).ToString();
+			Globals.ExceptionPathsEnable = exceptionPathsEnableCb.IsEnabled == true;
+			Globals.ExceptionFileTypesCaptureEnable = exceptionFileTypesCaptureEnableCb.IsEnabled == true;
+			Globals.ExceptionFileTypesSearchEnable = exceptionFileTypesSearchEnableCb.IsEnabled == true;
+			section.Settings["exceptionsList"].Value = String.Join('\n', Globals.exceptionPathsOC);
+			section.Settings["exceptionFileTypesCaptureEnableCb"].Value = (exceptionFileTypesCaptureEnableCb.IsEnabled == true).ToString();
+			section.Settings["exceptionFileTypesSearchEnableCb"].Value = (exceptionFileTypesSearchEnableCb.IsEnabled == true).ToString();
+			section.Settings["exceptionFileTypesCaptureTxtBx"].Value = exceptionFileTypesCaptureTxtBx.Text;
+			section.Settings["exceptionFileTypesSearchTxtBx"].Value = exceptionFileTypesSearchTxtBx.Text;
+			Globals.exceptionFileTypesCaptureList.Clear();
+			Globals.exceptionFileTypesCaptureList.AddRange(Globals.GetFileTypesFromString(exceptionFileTypesCaptureTxtBx.Text));
+			Globals.exceptionFileTypesSearchList.Clear();
+			Globals.exceptionFileTypesSearchList.AddRange(Globals.GetFileTypesFromString(exceptionFileTypesSearchTxtBx.Text));
 
 			//saving settings
 			configFile.Save(ConfigurationSaveMode.Modified);
@@ -137,5 +166,41 @@ namespace ColdStorageManager
 			XamlWriter.Save(resourceDictionary, writer);
 		}
 
+		private void AddException_OnClick(object sender, RoutedEventArgs e)
+		{
+			string entry = addExceptionTxtBx.Text.Trim();
+			if (entry.Length != 0)
+			{
+				Globals.exceptionPathsOC.Add(entry);
+			}
+		}
+
+		private void ExceptionPathsEnableCb_OnChecked(object sender, RoutedEventArgs e)
+		{
+			exceptionPathsGB.IsEnabled = true;
+		}
+
+		private void ExceptionPathsEnableCb_OnUnchecked(object sender, RoutedEventArgs e)
+		{
+			exceptionPathsGB.IsEnabled = false;
+		}
+
+		private void DeleteException_OnClick(object sender, RoutedEventArgs e)
+		{
+			if (exceptionsLV.SelectedIndex != -1)
+			{
+				Globals.exceptionPathsOC.RemoveAt(exceptionsLV.SelectedIndex);
+			}
+		}
+
+		private void ExceptionFileTypesCaptureEnableCb_OnChecked(object sender, RoutedEventArgs e)
+		{
+			exceptionFileTypesCaptureGB.IsEnabled = true;
+		}
+
+		private void ExceptionFileTypesCaptureEnableCb_OnUnchecked(object sender, RoutedEventArgs e)
+		{
+			exceptionFileTypesCaptureGB.IsEnabled = false;
+		}
 	}
 }

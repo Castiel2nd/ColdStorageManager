@@ -9,7 +9,8 @@
              HorizontalContentAlignment="Stretch"
              VerticalContentAlignment="Stretch"
              Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=ActualWidth}"
-             MaxWidth="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=ActualWidth}" Margin="0,3,0,0"
+             MaxWidth="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=ActualWidth}"
+             Margin="0,3,0,0"
 >
 
 	<Grid Name="grid">
@@ -27,7 +28,7 @@
 		<TextBlock Grid.Column="0" Name="DriveNameTB" Margin="24,0,15,0"></TextBlock>
 		<TextBlock Grid.Column="1" Name="DriveSnTB" Margin="0,0,15,0"></TextBlock>
 		<TextBlock Grid.Column="2" Name="DriveSizeTB"></TextBlock>
-		<Expander Grid.Row="1" Grid.ColumnSpan="4" IsExpanded="True" Margin="0" Padding="0" Expanded="Expander_OnExpanded" RenderTransformOrigin="0.5,0.5">
+		<Expander Grid.Row="1" Grid.ColumnSpan="4" IsExpanded="True" Margin="0" Padding="0" Expanded="Expander_OnExpanded" Collapsed="Expander_OnCollapsed" RenderTransformOrigin="0.5,0.5">
 			<Expander.RenderTransform>
 				<TransformGroup>
 					<ScaleTransform/>
@@ -36,7 +37,7 @@
 					<TranslateTransform X="0" Y="-18"/>
 				</TransformGroup>
 			</Expander.RenderTransform>
-			<ListView Name="resultsListView" Margin="0" Padding="0" MaxHeight="500" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
+			<ListView Name="resultsListView" SelectionChanged="ResultsListView_OnSelectionChanged" Margin="0" Padding="0" MaxHeight="500" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
 				<ListView.View>
 					<GridView>
 						<GridView.ColumnHeaderContextMenu>

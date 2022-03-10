@@ -1,7 +1,9 @@
-﻿using System;
+﻿
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,7 +22,9 @@ using System.Configuration;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Windows.Interop;
+using ColdStorageManager.Annotations;
 using ColdStorageManager.Models;
 
 namespace ColdStorageManager
@@ -28,16 +32,17 @@ namespace ColdStorageManager
 	//static class for global variables
 	public static class Globals
 	{
-		public const string version = "v0.2";
-		public const string configFileName = "CSM.config";
+		//app.cs
+		public static char[] volumeGuidDelimiterArray = new char[] { '{', '}'};
+
+		public const string version = "v0.3";
 		public static MainWindow mainWindow;
 		public static DbManager dbManager;
-		public static Configuration configFile;
-		public static KeyValueConfigurationCollection settings;
 		public static List<PhysicalDrive> physicalDrives;
 		public static ObservableCollection<CaptureBase> captures;
 		public static Partition selectedPartition;
 		public static WpfObservableRangeCollection<CSMFileSystemEntry> fileDialogEntryTree;
+		public static TreeView capturesTrv;
 		public static WpfObservableRangeCollection<SearchResultControl> filesFound;
 		public static WpfObservableRangeCollection<SearchResultControl> dirsFound;
 		public static List<CSMFileSystemEntry> fsList;
@@ -45,6 +50,17 @@ namespace ColdStorageManager
 		public static TextBlock dbStatusBarTb;
 		public static Ellipse dbStatusEllipse;
 		public const ushort numBlobTypes = 5;
+
+		// options
+		public const string configFileName = "CSM.config";
+		public static Configuration configFile;
+		public static KeyValueConfigurationCollection settings;
+		public static bool ExceptionPathsEnable;
+		public static bool ExceptionFileTypesCaptureEnable;
+		public static bool ExceptionFileTypesSearchEnable;
+		public static ObservableCollection<string> exceptionPathsOC;
+		public static List<string> exceptionFileTypesCaptureList;
+		public static List<string> exceptionFileTypesSearchList;
 
 		private static string[] sizes =
 		{
@@ -146,6 +162,27 @@ namespace ColdStorageManager
 
 			return fileSystemEntries;
 		}
+
+		public static TreeViewItem FindTviFromObjectRecursive(ItemsControl ic, object o)
+		{
+			//Search for the object model in first level children (recursively)
+			TreeViewItem tvi = ic.ItemContainerGenerator.ContainerFromItem(o) as TreeViewItem;
+			if (tvi != null) return tvi;
+			//Loop through user object models
+			foreach (object i in ic.Items)
+			{
+				//Get the TreeViewItem associated with the iterated object model
+				TreeViewItem tvi2 = ic.ItemContainerGenerator.ContainerFromItem(i) as TreeViewItem;
+				tvi = FindTviFromObjectRecursive(tvi2, o);
+				if (tvi != null) return tvi;
+			}
+			return null;
+		}
+
+		public static IEnumerable<string> GetFileTypesFromString(string filetypes)
+		{
+			return filetypes.Split(',').Select(type => "." + type.Trim());
+		}
 	}
 
 	/// <summary>
@@ -179,7 +216,7 @@ namespace ColdStorageManager
 						{ "accessTimeRelCmbx_selectedIndex", "0" },
 						{ "accessTimeDP", "" },
 						{ "lastModTimeRelCmbx_selectedIndex", "0" },
-						{ "lastModTimeDP", "" }
+						{ "lastModTimeDP", "" },
 					}
 				},
 				{
@@ -189,6 +226,20 @@ namespace ColdStorageManager
 						{ "createTimeCb", "False" },
 						{ "lastAccessCb", "False" },
 						{ "lastModCb", "False" },
+					}
+				},
+				{
+					"exceptions", new Dictionary<string, string>()
+					{
+						{ "exceptionPathsEnableCb", "True" },
+						{ "exceptionsList", "\\Windows\n" +
+											"\\System Volume Information\n" +
+											"\\$RECYCLE.BIN\n" +
+											"\\$Recycle.Bin" },
+						{ "exceptionFileTypesCaptureEnableCb", "True" },
+						{ "exceptionFileTypesCaptureTxtBx", "tmp" },
+						{ "exceptionFileTypesSearchEnableCb", "False" },
+						{ "exceptionFileTypesSearchTxtBx", "" },
 					}
 				}
 			};
@@ -202,6 +253,7 @@ namespace ColdStorageManager
 			Title = "Cold Storage Manager " + Globals.version;
 			trvDrives.ItemsSource = Globals.physicalDrives;
 			Globals.fileDialogEntryTree = new WpfObservableRangeCollection<CSMFileSystemEntry>();
+			Globals.capturesTrv = trvCaptures;
 			Globals.filesFound = new WpfObservableRangeCollection<SearchResultControl>();
 			Globals.dirsFound = new WpfObservableRangeCollection<SearchResultControl>();
 			trvFileDialog.ItemsSource = Globals.fileDialogEntryTree;
@@ -219,7 +271,9 @@ namespace ColdStorageManager
 		}
 
 		//save settings on window close
+#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
 		private void MainWindow_OnClosed(object? sender, EventArgs e)
+#pragma warning restore CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
 		{
 			//searchSettings
 			Globals.SetSectionSetting("searchSettings", "searchQuery", searchTxtBox.Text);
@@ -298,6 +352,14 @@ namespace ColdStorageManager
 			{
 				LoadLanguage("en-US");
 			}
+
+			section = Globals.configFile.Sections.Get("exceptions") as AppSettingsSection;
+			Globals.ExceptionPathsEnable = bool.Parse(section.Settings["exceptionPathsEnableCb"].Value);
+			Globals.ExceptionFileTypesCaptureEnable = bool.Parse(section.Settings["exceptionFileTypesCaptureEnableCb"].Value);
+			Globals.ExceptionFileTypesSearchEnable = bool.Parse(section.Settings["exceptionFileTypesSearchEnableCb"].Value);
+			Globals.exceptionPathsOC = new ObservableCollection<string>(section.Settings["exceptionsList"].Value.Split("\n"));
+			Globals.exceptionFileTypesCaptureList = new List<string>(Globals.GetFileTypesFromString(section.Settings["exceptionFileTypesCaptureTxtBx"].Value));
+			Globals.exceptionFileTypesSearchList = new List<string>(Globals.GetFileTypesFromString(section.Settings["exceptionFileTypesSearchTxtBx"].Value));
 		}
 
 		private void LoadSettingsAfterUI()
@@ -432,12 +494,15 @@ namespace ColdStorageManager
 				lastModCb.IsChecked == true);
 			Globals.dbManager.SaveCapture(new Capture(Globals.selectedPartition.Parent.Model,
 											Globals.selectedPartition.Parent.SerialNumber,
+											Globals.selectedPartition.Parent.isNVMe,
+											Globals.selectedPartition.Parent.NVMeSerialNumberDetectionFail,
 											Globals.selectedPartition.Parent.TotalSpace,
 											nicknameTxtBx.Text,
 											Globals.selectedPartition.Label,
 											Globals.selectedPartition.Index,
 											Globals.selectedPartition.TotalSpace,
 											Globals.selectedPartition.FreeSpace,
+											Globals.selectedPartition.VolumeGUID,
 											captureProperties,
 											DateTime.Now.ToString(),
 											cfsBytes.lines,
@@ -483,13 +548,6 @@ namespace ColdStorageManager
 						CapturePhDisk phDisk =
 							new CapturePhDisk(capture.drive_model, capture.drive_sn, capture.drive_size, capture.drive_nickname);
 
-						/* Test for SearchResultCaptureView
-						var smgh = new SearchResultCaptureView(capture.drive_model, capture.drive_sn,
-							capture.drive_size);
-						smgh.SearchResults.Add(new SearchResultView("test.txtr", "E:\\Text", 2515254L, DateTime.Now, DateTime.Today, DateTime.MinValue));
-						Globals.filesFound.Add(new SearchResultControl(smgh));
-						*/
-
 						phDisk.captures.Add(capture);
 						Globals.captures.Add(phDisk);
 					}
@@ -506,6 +564,47 @@ namespace ColdStorageManager
 				Globals.captures.Add(new CapturePlaceholder(Globals.GetLocalizedString("no_captures")));
 				searchButton.IsEnabled = false;
 				searchButton.ToolTip = Globals.GetLocalizedString("no_captures_tooltip");
+			}
+
+			MatchCapturesToPartitions();
+		}
+
+		private void MatchCapturesToPartitions()
+		{
+			//resetting linked captures
+			foreach (var physicalDrive in Globals.physicalDrives)
+			{
+				foreach (var partition in physicalDrive.Partitions)
+				{
+					partition.IsCaptured = false;
+					partition.Capture = null;
+				}
+			}
+
+			//matching captures to partitions
+			foreach (var genericCapture in Globals.captures)
+			{
+				if (genericCapture is CapturePhDisk capturePhDisk)
+				{
+					foreach (var capture in capturePhDisk.captures)
+					{
+						foreach (var physicalDrive in Globals.physicalDrives)
+						{
+							foreach (var partition in physicalDrive.Partitions)
+							{
+								if (capture.volume_guid.Equals(partition.VolumeGUID) && capture.drive_model.Equals(
+									    partition.Parent.Model)
+								    && capture.drive_sn.Equals(partition.Parent
+									    .SerialNumber))
+								{
+									// Console.WriteLine("Found capture for: " + partition.Label);
+									partition.IsCaptured = true;
+									partition.Capture = capture;
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -634,6 +733,30 @@ namespace ColdStorageManager
 		{
 			lastModTimeRelCmbx.IsEnabled = false;
 			lastModTimeDP.IsEnabled = false;
+		}
+
+		private void SearchResultsListView_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			((SearchResultControl)(e.AddedItems[0]))?.SelectCorrespondingCapture();
+		}
+	}
+
+	public class VisibilityConverter : IValueConverter
+	{
+		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		{
+			if (value is bool isVisible)
+			{
+				// Console.WriteLine("VisibilityConverter: " + isVisible);
+				return isVisible ? Visibility.Visible : Visibility.Collapsed;
+			}
+
+			return null;
+		}
+
+		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		{
+			throw new NotImplementedException();
 		}
 	}
 

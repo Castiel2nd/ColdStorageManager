@@ -38,4 +38,10 @@
 	</Style>
 
 	<Thickness x:Key="CommonMargin" Left="2" Bottom="2" Right="2" Top="2"></Thickness>
+	<Thickness x:Key="OptionsMargin" Left="10" Bottom="0" Right="0" Top="10"></Thickness>
+	<Thickness x:Key="OptionsMarginAllAround" Left="10" Bottom="10" Right="10" Top="10"></Thickness>
+	<Thickness x:Key="OptionsTopMargin" Left="0" Bottom="0" Right="0" Top="10"></Thickness>
+	<Thickness x:Key="OptionsInlineMarginLarge" Left="0" Bottom="0" Right="25" Top="0"></Thickness>
+	<Thickness x:Key="OptionsInlineMarginMedium" Left="0" Bottom="0" Right="15" Top="0"></Thickness>
+	<Thickness x:Key="OptionsInlineMarginSmall" Left="0" Bottom="0" Right="9" Top="0"></Thickness>
 </ResourceDictionary>

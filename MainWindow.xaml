@@ -99,19 +99,27 @@
 						</TreeView.Resources>
 					</TreeView>
 
-					<TreeView Name="trvFileDialog" Grid.Row="1" Grid.Column="2" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
-						<TreeView.Resources>
-							<Style TargetType="{x:Type TreeViewItem}">
-								<EventSetter Event="Expanded" Handler="TrvFileDialog_OnExpanded"></EventSetter>
-							</Style>
-							<HierarchicalDataTemplate DataType="{x:Type local:CSMDirectory}" ItemsSource="{Binding Children}">
-								<ContentControl Content="{StaticResource fileDialogEntry}"></ContentControl>
-							</HierarchicalDataTemplate>
-							<DataTemplate DataType="{x:Type local:CSMFile}">
-								<ContentControl Content="{StaticResource fileDialogEntry}"></ContentControl>
-							</DataTemplate>
-						</TreeView.Resources>
-					</TreeView>
+					<Grid Grid.Row="1" Grid.Column="2">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto"></RowDefinition>
+							<RowDefinition Height="*"></RowDefinition>
+						</Grid.RowDefinitions>
+						<Label Content="{DynamicResource capture_contents}" Style="{StaticResource h2Labels}"></Label>
+						<TreeView Grid.Row="1" Name="trvFileDialog" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
+							<TreeView.Resources>
+								<Style TargetType="{x:Type TreeViewItem}">
+									<EventSetter Event="Expanded" Handler="TrvFileDialog_OnExpanded"></EventSetter>
+								</Style>
+								<HierarchicalDataTemplate DataType="{x:Type local:CSMDirectory}" ItemsSource="{Binding Children}">
+									<ContentControl Content="{StaticResource fileDialogEntry}"></ContentControl>
+								</HierarchicalDataTemplate>
+								<DataTemplate DataType="{x:Type local:CSMFile}">
+									<ContentControl Content="{StaticResource fileDialogEntry}"></ContentControl>
+								</DataTemplate>
+							</TreeView.Resources>
+						</TreeView>
+					</Grid>
+
 					<Grid Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch">
 						<Grid.RowDefinitions>
 							<RowDefinition Height="50"></RowDefinition>
@@ -228,7 +236,7 @@
 							<RowDefinition Height="*"></RowDefinition>
 						</Grid.RowDefinitions>
 						<Label Content="{DynamicResource ffile}" Style="{StaticResource h2Labels}"></Label>
-						<ListView Grid.Row="1"  Name="fileListView" ScrollViewer.CanContentScroll="False">
+						<ListView Grid.Row="1"  Name="fileListView" ScrollViewer.CanContentScroll="False" SelectionChanged="SearchResultsListView_OnSelectionChanged">
 							<ListView.ItemContainerStyle>
 								<Style TargetType="ListViewItem">
 									<Setter Property="SnapsToDevicePixels" Value="True"/>
@@ -246,7 +254,7 @@
 						</Grid.RowDefinitions>
 						<Label Content="{DynamicResource fdir}" Style="{StaticResource h2Labels}"></Label>
 						<Grid Grid.Row="1">
-							<ListView Name="dirListView">
+							<ListView Name="dirListView" SelectionChanged="SearchResultsListView_OnSelectionChanged">
 								<ListView.ItemContainerStyle>
 									<Style TargetType="ListViewItem">
 										<Setter Property="SnapsToDevicePixels" Value="True"/>

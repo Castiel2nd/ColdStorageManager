@@ -32,7 +32,8 @@ namespace ColdStorageManager
 			set
 			{
 				isChecked = value;
-				if (Parent != null)
+				//prevent the propagation of the setting of the 3rd state
+				if (Parent != null && value != null)
 				{
 					Parent.ChildChecked(value);
 				}
@@ -106,6 +107,13 @@ namespace ColdStorageManager
 			}
 			set
 			{
+				//prevent the propagation of the setting of the 3rd state
+				if (value == null)
+				{
+					isChecked = null;
+					IsCheckedChanged();
+					return;
+				}
 				isChecked = value;
 				IsCheckedChanged();
 				Parent?.ChildChecked(value);
@@ -132,6 +140,7 @@ namespace ColdStorageManager
 		public DateTime GetLastAccessTime => directoryInfo.LastAccessTime;
 		public DateTime GetLastModificationTime => directoryInfo.LastWriteTime;
 
+		private bool toPrint { get; set; }
 		public CSMDirectory(string path, CSMDirectory parent = null, bool getIcon = true)
 		{
 			Parent = parent;
@@ -159,6 +168,20 @@ namespace ColdStorageManager
 			{
 				isChecked = true;
 			}
+
+			// is this an exception?
+			if (Globals.ExceptionPathsEnable && isChecked == true)
+			{
+				foreach (var exceptionPath in Globals.exceptionPathsOC)
+				{
+					if ((exceptionPath.Length == (path.Length - 2)) && path.EndsWith(exceptionPath))
+					{
+						isChecked = false;
+						break;
+					}
+				}
+			}
+
 			if (getIcon)
 			{
 				Icon = Win32.ToImageSource(Win32.Extract(Path));
@@ -187,11 +210,7 @@ namespace ColdStorageManager
 
 		public void ChildChecked(bool? value)
 		{
-			if (value == null)
-			{
-				isChecked = null;
-			}
-			else if(value == true)
+			if(value == true)
 			{
 				checkedCount++;
 				if (checkedCount == children.Count)
@@ -214,6 +233,7 @@ namespace ColdStorageManager
 				{
 					isChecked = null;
 				}
+
 			}
 			IsCheckedChanged();
 			Parent?.ChildChecked(isChecked);
@@ -266,19 +286,21 @@ namespace ColdStorageManager
 		public DateTime GetLastAccessTime => fileInfo.LastAccessTime;
 		public DateTime GetLastModificationTime => fileInfo.LastWriteTime;
 
+		//Dummy property to prevent binding failures while scrolling fast in the file dialog TreeView. Reason unknown. Greatly improves performance(at least in debug mode).
+		public WpfObservableRangeCollection<CSMFileSystemEntry> Children
+		{
+			get
+			{
+				return null;
+			}
+		}
+
 		public CSMFile(string path, CSMDirectory parent = null, bool getIcon = true)
 		{
 			Parent = parent;
 			fileInfo = new FileInfo(path);
 			Path = path;
-			if (Parent != null)
-			{
-				isChecked = Parent.IsChecked;
-			}
-			else
-			{
-				isChecked = true;
-			}
+
 			if (getIcon)
 			{
 				Icon = Win32.ToImageSource(Win32.Extract(Path));
@@ -286,6 +308,41 @@ namespace ColdStorageManager
 
 			Size = fileInfo.Length;
 			Name = fileInfo.Name;
+
+			if (Parent != null)
+			{
+				isChecked = Parent.IsChecked;
+
+			}
+			else
+			{
+				isChecked = true;
+			}
+
+			// is this an exception?
+			if (Globals.ExceptionPathsEnable && isChecked == true)
+			{
+				foreach (var exceptionPath in Globals.exceptionPathsOC)
+				{
+					if ((exceptionPath.Length == (path.Length - 2)) && path.EndsWith(exceptionPath))
+					{
+						isChecked = false;
+						break;
+					}
+				}
+
+				if (Globals.ExceptionFileTypesCaptureEnable && isChecked == true)
+				{
+					foreach (var exceptionFileType in Globals.exceptionFileTypesCaptureList)
+					{
+						if (Name.EndsWith(exceptionFileType))
+						{
+							isChecked = false;
+							break;
+						}
+					}
+				}
+			}
 		}
 	}
 

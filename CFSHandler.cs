@@ -437,6 +437,21 @@ namespace ColdStorageManager
 				}
 			}
 
+			// handling search exceptions
+			if (Globals.ExceptionFileTypesSearchEnable)
+			{
+				for(int i = files.Count -1; i >= 0; i--)
+				{
+					foreach (var extension in Globals.exceptionFileTypesSearchList)
+					{
+						if (files[i].Name.EndsWith(extension))
+						{
+							files.RemoveAt(i);
+						}
+					}
+				}
+			}
+
 			return (files, dirs);
 		}
 

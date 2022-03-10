@@ -27,7 +27,9 @@ namespace ColdStorageManager
 		//gets info from WMI/CIM using the System.Management class
 		private void GetDriveInfo()
 		{
-			ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_DiskDrive");
+			NVMeQueries NVMeQueries = new NVMeQueries();
+
+			ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM CIM_DiskDrive");
 			if (Globals.physicalDrives != null)
 			{
 				Globals.physicalDrives.Clear();
@@ -47,6 +49,22 @@ namespace ColdStorageManager
 						(uint)baseObject["Index"]
 					);
 					//Console.WriteLine(physicalDrive);
+
+					//NVMe detection
+					if (((string)baseObject["PNPDeviceID"]).Contains("NVME", StringComparison.OrdinalIgnoreCase) || physicalDrive.Model.Contains("NVME", StringComparison.OrdinalIgnoreCase))
+					{
+						physicalDrive.isNVMe = true;
+						string sn = NVMeQueries.GetSerialNumber((int)physicalDrive.Index);
+						if (sn.Equals("NotFound"))
+						{
+							physicalDrive.NVMeSerialNumberDetectionFail = true;
+						}
+						else
+						{
+							physicalDrive.SerialNumber = sn;
+						}
+					}
+
 					Globals.physicalDrives.Add(physicalDrive);
 				}
 			}
@@ -114,6 +132,29 @@ namespace ColdStorageManager
 				}
 			}
 
+			//getting volume GUIDs
+			searcher.Query = new ObjectQuery("SELECT DriveLetter, DeviceID FROM Win32_Volume");
+			foreach (ManagementBaseObject baseObject in searcher.Get())
+			{
+				foreach (var physicalDrive in Globals.physicalDrives)
+				{
+					bool found = false;
+					foreach (var partition in physicalDrive.Partitions)
+					{
+						if (partition.Letter.Equals((string)baseObject["DriveLetter"]))
+						{
+							//example DeviceID: \\?\Volume{3802a7b6-e776-4957-8e82-b2a1a0ab0b18}\
+							partition.VolumeGUID = ((string)baseObject["DeviceID"]).Split(Globals.volumeGuidDelimiterArray)[1];
+							found = true;
+							break;
+						}
+					}
+					if (found)
+						break;
+				}
+			}
+
+			//getting volume labels
 			DriveInfo[] drives = DriveInfo.GetDrives();
 			foreach (var drive in drives)
 			{

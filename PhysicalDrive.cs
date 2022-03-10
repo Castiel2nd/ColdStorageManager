@@ -8,6 +8,8 @@ namespace ColdStorageManager
 	{
 		public string Model { get; set; }
 		public string SerialNumber { get; set; }
+		public bool isNVMe { get; set; }
+		public bool NVMeSerialNumberDetectionFail { get; set; }
 		public ulong TotalSpace { get; set; }
 		public uint Index { get; set; }
 

@@ -3,6 +3,7 @@
 					xmlns:local="clr-namespace:ColdStorageManager.Language"
 					xmlns:System="clr-namespace:System;assembly=System.Runtime">
 
+	<!-- Language information -->
 	<System:String x:Key="langCode">en-US</System:String>
 	<System:String x:Key="langName">English (United States)</System:String>
 	<System:String x:Key="en-US">English (United States)</System:String>
@@ -15,6 +16,7 @@
 	
 	<System:String x:Key="language_s">Language:</System:String>
 	
+	<!-- Buttons -->
 	<System:String x:Key="ok">OK</System:String>
 	<System:String x:Key="apply">Apply</System:String>
 	<System:String x:Key="cancel">Cancel</System:String>
@@ -23,7 +25,10 @@
 	<System:String x:Key="searching">Searching</System:String>
 	<System:String x:Key="search">Search</System:String>
 	<System:String x:Key="del">Delete</System:String>
+	<System:String x:Key="add">Add</System:String>
+	<System:String x:Key="del_selected">Delete selected</System:String>
 
+	<!-- Capture/search -->
 	<System:String x:Key="metadata_sel">Metadata to save:</System:String>
 	<System:String x:Key="name">Name</System:String>
 	<System:String x:Key="filename">Filename</System:String>
@@ -33,6 +38,16 @@
 	<System:String x:Key="access_time">Time of last access</System:String>
 	<System:String x:Key="mod_time">Time of last modification</System:String>
 	<System:String x:Key="enable">Enable</System:String>
+
+	<System:String x:Key="general_cat">General</System:String>
+	<System:String x:Key="lang_cat">Language</System:String>
+	<System:String x:Key="exceptions_capture_cat">Exceptions (capture)</System:String>
+	<System:String x:Key="paths">Paths</System:String>
+	<System:String x:Key="file_types">File types</System:String>
+	<System:String x:Key="file_type_desc">Format: simple comma separated list, without dots. (e.g. "exe, txt, png", without quotation marks)</System:String>
+	<System:String x:Key="exceptions_capture_desc">The following paths/file types will be excluded from captures if found on the volume selected for capture. This can be manually overridden in the "Capture contents selection" section in the main window.</System:String>
+	<System:String x:Key="exceptions_search_desc">The following file types will not show up in search results.</System:String>
+	<System:String x:Key="exceptions_search_cat">Exceptions (search)</System:String>
 
 	<System:String x:Key="dateRel_lt">Before</System:String>
 	<System:String x:Key="dateRel_lt_or_eq">Before or on</System:String>
@@ -52,6 +67,7 @@
 	<System:String x:Key="no_captures" xml:space="preserve">You currently have no captures.&#13;Make some on the other tab, and they will show up here.</System:String>
 	<System:String x:Key="no_captures_tooltip" xml:space="preserve">Can't search if there are no captures.</System:String>
 	<System:String x:Key="ready">Ready</System:String>
+	<System:String x:Key="capture_contents">Capture contents selection:</System:String>
 	<System:String x:Key="capture_prop">Capture properties:</System:String>
 	<System:String x:Key="captures">Saved partitions:</System:String>
 	<System:String x:Key="fdir">Found directories:</System:String>
@@ -62,6 +78,5 @@
 	<System:String x:Key="selected_drive">Selected drive:</System:String>
 	<System:String x:Key="sn_selected_drive">Serial number of selected drive:</System:String>
 	<System:String x:Key="nickname">Drive nickname:</System:String>
-	<System:String x:Key="incl_serialnumber">Include serial number in drive name</System:String>
 	
 </ResourceDictionary>
