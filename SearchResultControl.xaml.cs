@@ -16,6 +16,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using ColdStorageManager.Models;
+using static ColdStorageManager.Globals;
 
 namespace ColdStorageManager
 {
@@ -29,7 +30,7 @@ namespace ColdStorageManager
 		private bool files, initialExpanson = true;
 		public GridViewColumnCollection columns;
 		
-		public bool preventLoopback;
+		public bool preventLoopback, init = true;
 
 		public GridViewColumn[] ColumnReferences
 		{
@@ -54,6 +55,32 @@ namespace ColdStorageManager
 				columnReferences[i] = columns[i];
 			}
 
+			//loading gridViewColumn settings
+			//order
+			columns.Clear();
+			if (files)
+			{
+				foreach (var columnIndex in fileResultsColumnsOrder)
+				{
+					columns.Add(columnReferences[columnIndex]);	
+				}
+				for (int i = 0; i < columnReferences.Length; i++)
+				{
+					columnReferences[i].Width = fileResultsColumnWidths[i];
+				}
+			}
+			else
+			{
+				foreach (var columnIndex in dirResultsColumnsOrder)
+				{
+					columns.Add(columnReferences[columnIndex]);
+				}
+				for (int i = 0; i < columnReferences.Length; i++)
+				{
+					columnReferences[i].Width = dirResultsColumnWidths[i];
+				}
+			}
+
 			columns.CollectionChanged += SyncColumnMoves;
 			((INotifyPropertyChanged)columnReferences[0]).PropertyChanged += ColumnWidthChanged0;
 			((INotifyPropertyChanged)columnReferences[1]).PropertyChanged += ColumnWidthChanged1;
@@ -63,99 +90,100 @@ namespace ColdStorageManager
 			((INotifyPropertyChanged)columnReferences[5]).PropertyChanged += ColumnWidthChanged5;
 		}
 
-		public void SetColumnWidths(double first, double second, double third, double fourth, double fifth,
-			double sixth)
-		{
-			columnReferences[0].Width = first;
-			columnReferences[1].Width = second;
-			columnReferences[2].Width = third;
-			columnReferences[3].Width = fourth;
-			columnReferences[4].Width = fifth;
-			columnReferences[5].Width = sixth;
-		}
-
 		private void InsertColumn(int index)
 		{
-			if (columns?.Count <= index)
-			{
-				columns.Add(columnReferences[index]);
-			}
-			else
-			{
-				columns?.Insert(index, columnReferences[index]);
-			}
+			columns?.Add(columnReferences[index]);
 		}
 
 		private void fileNameMenuItem_OnChecked(object sender, RoutedEventArgs e)
 		{
-			InsertColumn(0);
-			SyncEnableColumn(0);
+			InsertColumnOnCheck(0);
 		}
 
 		private void fileNameMenuItem_OnUnchecked(object sender, RoutedEventArgs e)
 		{
-			columns.Remove(columnReferences[0]);
-			SyncDisableColumn(0);
+			RemoveColumnOnUncheck(0);
 		}
 
 		private void pathMenuItem_OnChecked(object sender, RoutedEventArgs e)
 		{
-			InsertColumn(1);
-			SyncEnableColumn(1);
+			InsertColumnOnCheck(1);
 		}
 
 		private void pathMenuItem_OnUnchecked(object sender, RoutedEventArgs e)
 		{
-			columns.Remove(columnReferences[1]);
-			SyncDisableColumn(1);
+			RemoveColumnOnUncheck(1);
 		}
 
 		private void sizeMenuItem_OnChecked(object sender, RoutedEventArgs e)
 		{
-			InsertColumn(2);
-			SyncEnableColumn(2);
+			InsertColumnOnCheck(2);
 		}
 
 		private void sizeMenuItem_OnUnchecked(object sender, RoutedEventArgs e)
 		{
-			columns.Remove(columnReferences[2]);
-			SyncDisableColumn(2);
+			RemoveColumnOnUncheck(2);
 		}
 
 		private void creation_timeMenuItem_OnChecked(object sender, RoutedEventArgs e)
 		{
-			InsertColumn(3);
-			SyncEnableColumn(3);
+			InsertColumnOnCheck(3);
 		}
 
 		private void creation_timeMenuItem_OnUnchecked(object sender, RoutedEventArgs e)
 		{
-			columns.Remove(columnReferences[3]);
-			SyncDisableColumn(3);
+			RemoveColumnOnUncheck(3);
 		}
 
 		private void access_timeMenuItem_OnChecked(object sender, RoutedEventArgs e)
 		{
-			InsertColumn(4);
-			SyncEnableColumn(4);
+			InsertColumnOnCheck(4);
 		}
 
 		private void access_timeMenuItem_OnUnchecked(object sender, RoutedEventArgs e)
 		{
-			columns.Remove(columnReferences[4]);
-			SyncDisableColumn(4);
+			RemoveColumnOnUncheck(4);
 		}
 
 		private void mod_timeMenuItem_OnChecked(object sender, RoutedEventArgs e)
 		{
-			InsertColumn(5);
-			SyncEnableColumn(5);
+			InsertColumnOnCheck(5);
 		}
 
 		private void mod_timeMenuItem_OnUnchecked(object sender, RoutedEventArgs e)
 		{
-			columns.Remove(columnReferences[5]);
-			SyncDisableColumn(5);
+			RemoveColumnOnUncheck(5);
+		}
+
+		private void InsertColumnOnCheck(int index)
+		{
+			if (!init)
+			{
+				InsertColumn(index);
+				SyncEnableColumn(index);
+				if (files)
+				{
+					fileResultsColumnsOrder.Add(index);
+				}
+				else
+				{
+					dirResultsColumnsOrder.Add(index);
+				}
+			}
+		}
+
+		private void RemoveColumnOnUncheck(int index)
+		{
+			columns.Remove(columnReferences[index]);
+			SyncDisableColumn(index);
+			if (files)
+			{
+				fileResultsColumnsOrder.Remove(index);
+			}
+			else
+			{
+				dirResultsColumnsOrder.Remove(index);
+			}
 		}
 
 		private void SyncColumnMovesTask(int oldIndex, int newIndex, IProgress<int> progress)
@@ -198,6 +226,7 @@ namespace ColdStorageManager
 						}
 					});
 					Task.Run(() => SyncColumnMovesTask(e.OldStartingIndex, e.NewStartingIndex, progressIndicator));
+					MoveItemInList<int>(e.OldStartingIndex, e.NewStartingIndex, files ? fileResultsColumnsOrder : dirResultsColumnsOrder);
 				}
 			}
 		}
@@ -304,15 +333,18 @@ namespace ColdStorageManager
 		{
 			if (e.PropertyName == "ActualWidth")
 			{
+				double newWidth = ((GridViewColumn)sender).ActualWidth;
 				if (files)
 				{
 					foreach (var entry in Globals.filesFound)
 					{
 						if (entry != this)
 						{
-							entry.ColumnReferences[index].Width = ((GridViewColumn)sender).ActualWidth;
+							entry.ColumnReferences[index].Width = newWidth;
 						}
 					}
+
+					fileResultsColumnWidths[index] = newWidth;
 				}
 				else
 				{
@@ -320,9 +352,11 @@ namespace ColdStorageManager
 					{
 						if (entry != this)
 						{
-							entry.ColumnReferences[index].Width = ((GridViewColumn)sender).ActualWidth;
+							entry.ColumnReferences[index].Width = newWidth;
 						}
 					}
+
+					dirResultsColumnWidths[index] = newWidth;
 				}
 			}
 		}

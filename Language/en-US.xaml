@@ -9,13 +9,13 @@
 	<System:String x:Key="en-US">English (United States)</System:String>
 	<System:String x:Key="hu-HU">Hungarian</System:String>
 	
+	<!-- Menus -->
 	<System:String x:Key="file">File</System:String>
+	<System:String x:Key="mysql_connect">MySQL/MariaDB Connections</System:String>
 	<System:String x:Key="options">Options</System:String>
 	<System:String x:Key="help">Help</System:String>
 	<System:String x:Key="about">About</System:String>
-	
-	<System:String x:Key="language_s">Language:</System:String>
-	
+
 	<!-- Buttons -->
 	<System:String x:Key="ok">OK</System:String>
 	<System:String x:Key="apply">Apply</System:String>
@@ -25,8 +25,16 @@
 	<System:String x:Key="searching">Searching</System:String>
 	<System:String x:Key="search">Search</System:String>
 	<System:String x:Key="del">Delete</System:String>
+	<System:String x:Key="reset">Reset</System:String>
 	<System:String x:Key="add">Add</System:String>
 	<System:String x:Key="del_selected">Delete selected</System:String>
+	<System:String x:Key="save_and_connect">Save and connect</System:String>
+	<System:String x:Key="save">Save</System:String>
+	<System:String x:Key="test_connect">Test</System:String>
+
+	<!-- Tooltips -->
+	<System:String x:Key="del_capture_tooltip">Delete selected capture(s)</System:String>
+
 
 	<!-- Capture/search -->
 	<System:String x:Key="metadata_sel">Metadata to save:</System:String>
@@ -38,9 +46,19 @@
 	<System:String x:Key="access_time">Time of last access</System:String>
 	<System:String x:Key="mod_time">Time of last modification</System:String>
 	<System:String x:Key="enable">Enable</System:String>
+	<System:String x:Key="capture_connection_select">Connection selection:</System:String>
 
+	<!-- Options general tab -->
 	<System:String x:Key="general_cat">General</System:String>
+	<System:String x:Key="window_startup_location">Window startup location:</System:String>
+	<System:String x:Key="center">Center of screen</System:String>
+	<System:String x:Key="remember_location">Remember location</System:String>
+
+	<!-- Options language tab -->
 	<System:String x:Key="lang_cat">Language</System:String>
+	<System:String x:Key="language_s">Language:</System:String>
+
+	<!-- Options exceptions tabs -->
 	<System:String x:Key="exceptions_capture_cat">Exceptions (capture)</System:String>
 	<System:String x:Key="paths">Paths</System:String>
 	<System:String x:Key="file_types">File types</System:String>
@@ -48,6 +66,31 @@
 	<System:String x:Key="exceptions_capture_desc">The following paths/file types will be excluded from captures if found on the volume selected for capture. This can be manually overridden in the "Capture contents selection" section in the main window.</System:String>
 	<System:String x:Key="exceptions_search_desc">The following file types will not show up in search results.</System:String>
 	<System:String x:Key="exceptions_search_cat">Exceptions (search)</System:String>
+
+	<!-- MySQLConnectWindow -->
+	<System:String x:Key="mysql_connect_window_title">MySQL/MariaDB Connections</System:String>
+	<System:String x:Key="conn_profile">Saved connections:</System:String>
+	<System:String x:Key="database">Database:</System:String>
+	<System:String x:Key="host_loc">Host(url/ip):</System:String>
+	<System:String x:Key="port">Port:</System:String>
+	<System:String x:Key="connection_name">Connection name:</System:String>
+	<System:String x:Key="username">Username:</System:String>
+	<System:String x:Key="password">Password:</System:String>
+	<System:String x:Key="error_empty_fields_title">Error: Empty fields</System:String>
+	<System:String x:Key="error_empty_fields">The following fields shouldn't be empty:</System:String>
+	<System:String x:Key="error_wrong_port_format_or_value_title">Error: Wrong port format</System:String>
+	<System:String x:Key="error_wrong_port_format_or_value">Wrong port format: port should be an integer between 0 and 65535.</System:String>
+	<System:String x:Key="error_wrong_port_format_or_value_pt2">Default for MySQL is 3306.</System:String>
+
+	<!-- DbManagers -->
+	<System:String x:Key="error_connection_title">Error connecting to database</System:String>
+	<System:String x:Key="error_connection" xml:space="preserve">There was an error connecting to </System:String>
+	<System:String x:Key="success_connection_title">Successfully connected to database</System:String>
+	<System:String x:Key="success_connection" xml:space="preserve">Successfully connected to </System:String>
+
+	<!-- Generic error messages -->
+	<System:String x:Key="error_multiple_title">There were multiple errors</System:String>
+	<System:String x:Key="description">Description:</System:String>
 
 	<System:String x:Key="dateRel_lt">Before</System:String>
 	<System:String x:Key="dateRel_lt_or_eq">Before or on</System:String>
@@ -67,11 +110,15 @@
 	<System:String x:Key="no_captures" xml:space="preserve">You currently have no captures.&#13;Make some on the other tab, and they will show up here.</System:String>
 	<System:String x:Key="no_captures_tooltip" xml:space="preserve">Can't search if there are no captures.</System:String>
 	<System:String x:Key="ready">Ready</System:String>
+
+	<!-- hx titles -->
 	<System:String x:Key="capture_contents">Capture contents selection:</System:String>
 	<System:String x:Key="capture_prop">Capture properties:</System:String>
 	<System:String x:Key="captures">Saved partitions:</System:String>
 	<System:String x:Key="fdir">Found directories:</System:String>
 	<System:String x:Key="ffile">Found files:</System:String>
+	<System:String x:Key="storage_found">Storage drives found:</System:String>
+
 	<System:String x:Key="part_no" xml:space="preserve">Partition Nr.: </System:String>
 	<System:String x:Key="label" xml:space="preserve">Label: </System:String>
 	<System:String x:Key="capture_datetime" xml:space="preserve">Time of capture: </System:String>

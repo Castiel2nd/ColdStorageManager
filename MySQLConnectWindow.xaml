@@ -1,0 +1,71 @@
+﻿<Window x:Class="ColdStorageManager.MySQLConnectWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ColdStorageManager"
+        mc:Ignorable="d"
+        Title="{DynamicResource mysql_connect_window_title}" Height="230" Width="550"
+        >
+
+	<DockPanel Margin="0,0,0,0">
+		<DockPanel.Resources>
+			<ResourceDictionary Source="Styles/CommonLinearUIStylesSetter.xaml"></ResourceDictionary>
+		</DockPanel.Resources>
+		<Grid DockPanel.Dock="Top">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*"></ColumnDefinition>
+				<ColumnDefinition Width="*"></ColumnDefinition>
+			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"></RowDefinition>
+				<RowDefinition Height="Auto"></RowDefinition>
+				<RowDefinition Height="Auto"></RowDefinition>
+				<RowDefinition Height="Auto"></RowDefinition>
+			</Grid.RowDefinitions>
+			<DockPanel >
+				<TextBlock Text="{DynamicResource conn_profile}"></TextBlock>
+				<ComboBox Name="connProfileCmbx" HorizontalAlignment="Right" MinWidth="80" Margin="0,0,15,0" SelectionChanged="ConnProfileCmbx_OnSelectionChanged"></ComboBox>
+			</DockPanel>
+			<DockPanel Grid.Column="1">
+				<TextBlock Text="{DynamicResource connection_name}"></TextBlock>
+				<TextBox Name="connNameTxtbox" HorizontalAlignment="Stretch"></TextBox>
+			</DockPanel>
+
+			<DockPanel  Grid.Row="1">
+				<TextBlock Text="{DynamicResource host_loc}"></TextBlock>
+				<TextBox Name="hostnameTxtbox" Text="localhost" HorizontalAlignment="Stretch" ></TextBox>
+			</DockPanel>
+			<DockPanel  Grid.Row="1" Grid.Column="1">
+				<TextBlock Text="{DynamicResource port}"></TextBlock>
+				<TextBox Name="portTxtbox" Text="3306" HorizontalAlignment="Stretch" ></TextBox>
+			</DockPanel>
+
+			<DockPanel Grid.Row="2">
+				<TextBlock Text="{DynamicResource database}"></TextBlock>
+				<TextBox Name="dbNameTxtbox" HorizontalAlignment="Stretch"></TextBox>
+			</DockPanel>
+
+			<DockPanel Grid.Row="3" Grid.Column="0" VerticalAlignment="Center">
+				<TextBlock Text="{DynamicResource username}" HorizontalAlignment="Left"></TextBlock>
+				<TextBox Name="usernameTxtbox" HorizontalAlignment="Stretch"></TextBox>
+			</DockPanel>
+			<DockPanel Grid.Row="3" Grid.Column="1">
+				<TextBlock Text="{DynamicResource password}"></TextBlock>
+				<PasswordBox Name="passwordBox"></PasswordBox>
+			</DockPanel>
+		</Grid>
+
+		<DockPanel DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" Margin="10,10,15,10">
+			<Label DockPanel.Dock="Left" Foreground="Crimson" Name="errorDisplay"></Label>
+			<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="0,0,0,0" HorizontalAlignment="Right">
+				<Button Content="{DynamicResource save_and_connect}" Click="SaveAndConnect_OnClick"></Button>
+				<Button Content="{DynamicResource save}" Click="Save_OnClick"></Button>
+				<Button Content="{DynamicResource test_connect}" Click="Test_OnClick"></Button>
+				<Button Content="{DynamicResource del}" Click="Delete_OnClick"></Button>
+				<Button Content="{DynamicResource reset}" Click="Reset_OnClick"></Button>
+				<Button Content="{DynamicResource cancel}" Click="Cancel_OnClick"></Button>
+			</StackPanel>
+		</DockPanel>
+	</DockPanel>
+</Window>

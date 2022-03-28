@@ -26,6 +26,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Interop;
 using ColdStorageManager.Annotations;
 using ColdStorageManager.Models;
+using static ColdStorageManager.Globals;
 
 namespace ColdStorageManager
 {
@@ -35,17 +36,31 @@ namespace ColdStorageManager
 		//app.cs
 		public static char[] volumeGuidDelimiterArray = new char[] { '{', '}'};
 
+		public const string LineSeparator = "\n";
+
 		public const string version = "v0.3";
+		public static string startupWindowLocation;
+		public static double[] startupWindowLocationCoords;
 		public static MainWindow mainWindow;
-		public static DbManager dbManager;
+
+		public static SQLiteDbManager dbManager;
+		public static List<MySQLDbConnectionProfile> mySqlDbConnectionProfiles = new List<MySQLDbConnectionProfile>();
+
 		public static List<PhysicalDrive> physicalDrives;
+		public static TreeView capturesTrv;
 		public static ObservableCollection<CaptureBase> captures;
 		public static Partition selectedPartition;
+
 		public static WpfObservableRangeCollection<CSMFileSystemEntry> fileDialogEntryTree;
-		public static TreeView capturesTrv;
-		public static WpfObservableRangeCollection<SearchResultControl> filesFound;
-		public static WpfObservableRangeCollection<SearchResultControl> dirsFound;
 		public static List<CSMFileSystemEntry> fsList;
+
+		public static WpfObservableRangeCollection<SearchResultControl> filesFound;
+		public static List<int> fileResultsColumnsOrder;
+		public static List<double> fileResultsColumnWidths;
+		public static WpfObservableRangeCollection<SearchResultControl> dirsFound;
+		public static List<int> dirResultsColumnsOrder;
+		public static List<double> dirResultsColumnWidths;
+		
 		public static TextBlock statusBarTb;
 		public static TextBlock dbStatusBarTb;
 		public static Ellipse dbStatusEllipse;
@@ -114,9 +129,19 @@ namespace ColdStorageManager
 			return (configFile.Sections.Get(section) as AppSettingsSection).Settings[key]?.Value;
 		}
 
+		public static AppSettingsSection GetSection(string sectionName)
+		{
+			return configFile.Sections.Get(sectionName) as AppSettingsSection;
+		}
+
 		public static void SetSectionSetting(string section, string key, string value)
 		{
 			(configFile.Sections.Get(section) as AppSettingsSection).Settings[key].Value = value;
+		}
+
+		public static void SetNewSectionSetting(string section, string key, string value)
+		{
+			(configFile.Sections.Get(section) as AppSettingsSection).Settings.Add(key, value);
 		}
 
 		public static string GetLocalizedString(string key)
@@ -183,6 +208,53 @@ namespace ColdStorageManager
 		{
 			return filetypes.Split(',').Select(type => "." + type.Trim());
 		}
+
+		public static void MoveItemInList<T>(int oldIndex, int newIndex, List<T> list)
+		{
+			T item = list[oldIndex];
+			list.RemoveAt(oldIndex);
+			list.Insert(newIndex, item);
+		}
+
+		public static void DisplayInfoMessageBox(string windowTitle, string localizedDesc)
+		{
+			DisplayInfoMessageBoxWithOwner(windowTitle, localizedDesc, mainWindow);
+		}
+
+		public static void DisplayInfoMessageBoxWithOwner(string windowTitle, string localizedDesc, Window owner)
+		{
+			MessageBox.Show(owner, localizedDesc,
+				windowTitle, MessageBoxButton.OK, MessageBoxImage.Information,
+				MessageBoxResult.OK);
+		}
+
+		public static void DisplayErrorMessageBoxWithDescription(string windowTitle, string localizedDesc, string exceptionMessage)
+		{
+			DisplayErrorMessageBoxWithDescriptionWithOwner(windowTitle, localizedDesc, exceptionMessage, mainWindow);
+		}
+
+		public static void DisplayErrorMessageBoxWithDescriptionWithOwner(string windowTitle, string localizedDesc, string exceptionMessage, Window owner)
+		{
+			MessageBox.Show(owner, localizedDesc + LineSeparator + LineSeparator
+			                                     + GetLocalizedString("description") + LineSeparator + LineSeparator
+			                                     + exceptionMessage,
+				windowTitle, MessageBoxButton.OK, MessageBoxImage.Error,
+				MessageBoxResult.OK);
+		}
+
+		public static void SaveMySQLDbConnectionProfilesToMem()
+		{
+			GetSection("mysqlConnectionProfiles").Settings.Clear();
+			foreach (var mySqlDbConnectionProfile in mySqlDbConnectionProfiles)
+			{
+				SetNewSectionSetting("mysqlConnectionProfiles", mySqlDbConnectionProfile.ProfileName, mySqlDbConnectionProfile.ToString());
+			}
+		}
+
+		public static void WriteConfigFileToDisk()
+		{
+			configFile.Save(ConfigurationSaveMode.Modified);
+		}
 	}
 
 	/// <summary>
@@ -194,7 +266,10 @@ namespace ColdStorageManager
 
 		private Dictionary<string, string> defaultSettings = new Dictionary<string, string>()
 		{
-			{ "language","en-US" }
+			{ "language","en-US" },
+			{ "startupWindowState","normal" },
+			{ "startupWindowLocation","remember" },
+			{ "startupWindowLocationCoords","0,0" },
 		};
 
 		private Dictionary<string, Dictionary<string, string>> defaultSectionSettings =
@@ -217,15 +292,20 @@ namespace ColdStorageManager
 						{ "accessTimeDP", "" },
 						{ "lastModTimeRelCmbx_selectedIndex", "0" },
 						{ "lastModTimeDP", "" },
+						// 0=filename, 1=path, 2=size, 3=creation_time, 4=access_time, 5=mod_time
+						{ "fileResultsColumnsOrder", "0,1,2,3,4,5" },
+						{ "dirResultsColumnsOrder", "0,1,2,3,4,5" },
+						{ "fileResultsColumnWidths", "70,100,60,70,70,70" },
+						{ "dirResultsColumnWidths", "70,100,60,70,70,70" },
 					}
 				},
 				{
 					"captureSettings", new Dictionary<string, string>()
 					{
-						{ "sizeCb", "False" },
-						{ "createTimeCb", "False" },
-						{ "lastAccessCb", "False" },
-						{ "lastModCb", "False" },
+						{ "capPropSizeCb", "False" },
+						{ "capPropCreateTimeCb", "False" },
+						{ "capPropLastAccessCb", "False" },
+						{ "capPropLastModCb", "False" },
 					}
 				},
 				{
@@ -241,16 +321,23 @@ namespace ColdStorageManager
 						{ "exceptionFileTypesSearchEnableCb", "False" },
 						{ "exceptionFileTypesSearchTxtBx", "" },
 					}
+				},
+				{
+					"mysqlConnectionProfiles", new Dictionary<string, string>()
+					{
+						
+					}
 				}
 			};
+
+		private bool captureConnSelectionChangedEnabled = false;
 
 		public MainWindow()
 		{
 			LoadSettings();
-			WindowStartupLocation = WindowStartupLocation.CenterScreen;
+			Title = "Cold Storage Manager " + Globals.version;
 			InitializeComponent();
 			LoadSettingsAfterUI();
-			Title = "Cold Storage Manager " + Globals.version;
 			trvDrives.ItemsSource = Globals.physicalDrives;
 			Globals.fileDialogEntryTree = new WpfObservableRangeCollection<CSMFileSystemEntry>();
 			Globals.capturesTrv = trvCaptures;
@@ -263,7 +350,7 @@ namespace ColdStorageManager
 			Globals.dbStatusBarTb = dbStatusBarTb;
 			Globals.dbStatusEllipse = dbStatusEllipse;
 			statusBarTb.Text = Application.Current.Resources["ready"].ToString();
-			Globals.dbManager = new DbManager();
+			Globals.dbManager = new SQLiteDbManager();
 			Globals.captures = new ObservableCollection<CaptureBase>();
 			trvCaptures.ItemsSource = Globals.captures;
 			RefreshCaptures();
@@ -275,6 +362,25 @@ namespace ColdStorageManager
 		private void MainWindow_OnClosed(object? sender, EventArgs e)
 #pragma warning restore CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
 		{
+			// general
+			if (Globals.startupWindowLocation.Equals("remember"))
+			{
+				Globals.startupWindowLocationCoords[0] = Left;
+				Globals.startupWindowLocationCoords[1] = Top;
+				Globals.settings["startupWindowLocationCoords"].Value =
+					string.Join(',', Globals.startupWindowLocationCoords);
+				switch (WindowState)
+				{
+					case WindowState.Maximized:
+						Globals.settings["startupWindowState"].Value = "maximized";
+						break;
+					case WindowState.Normal:
+						Globals.settings["startupWindowState"].Value = "normal";
+						break;
+				}
+			}
+			
+
 			//searchSettings
 			Globals.SetSectionSetting("searchSettings", "searchQuery", searchTxtBox.Text);
 			Globals.SetSectionSetting("searchSettings", "sizeEnabled", sizeEnable.IsChecked.ToString());
@@ -290,12 +396,19 @@ namespace ColdStorageManager
 			Globals.SetSectionSetting("searchSettings", "lastModTimeEnable", lastModTimeEnable.IsChecked.ToString());
 			Globals.SetSectionSetting("searchSettings", "lastModTimeRelCmbx_selectedIndex", lastModTimeRelCmbx.SelectedIndex.ToString());
 			Globals.SetSectionSetting("searchSettings", "lastModTimeDP", lastModTimeDP.Text);
+			Globals.SetSectionSetting("searchSettings", "fileResultsColumnsOrder", string.Join(',', Globals.fileResultsColumnsOrder));
+			Globals.SetSectionSetting("searchSettings", "fileResultsColumnWidths", string.Join(',', Globals.fileResultsColumnWidths));
+			Globals.SetSectionSetting("searchSettings", "dirResultsColumnsOrder", string.Join(',', Globals.dirResultsColumnsOrder));
+			Globals.SetSectionSetting("searchSettings", "dirResultsColumnWidths", string.Join(',', Globals.dirResultsColumnWidths));
 
 			//captureSettings
-			Globals.SetSectionSetting("captureSettings", "sizeCb", sizeCb.IsChecked.ToString());
-			Globals.SetSectionSetting("captureSettings", "createTimeCb", createTimeCb.IsChecked.ToString());
-			Globals.SetSectionSetting("captureSettings", "lastAccessCb", lastAccessCb.IsChecked.ToString());
-			Globals.SetSectionSetting("captureSettings", "lastModCb", lastModCb.IsChecked.ToString());
+			Globals.SetSectionSetting("captureSettings", "capPropSizeCb", capPropSizeCb.IsChecked.ToString());
+			Globals.SetSectionSetting("captureSettings", "capPropCreateTimeCb", capPropCreateTimeCb.IsChecked.ToString());
+			Globals.SetSectionSetting("captureSettings", "capPropLastAccessCb", capPropLastAccessCb.IsChecked.ToString());
+			Globals.SetSectionSetting("captureSettings", "capPropLastModCb", capPropLastModCb.IsChecked.ToString());
+
+			//mysqlConnectionProfiles
+			SaveMySQLDbConnectionProfilesToMem();
 		}
 
 		private void LoadSettings()
@@ -353,6 +466,24 @@ namespace ColdStorageManager
 				LoadLanguage("en-US");
 			}
 
+			//defaultSettings other than language
+			Globals.startupWindowLocation = Globals.settings["startupWindowLocation"].Value;
+			Globals.startupWindowLocationCoords =
+				Globals.settings["startupWindowLocationCoords"].Value.Split(',').Select(double.Parse).ToArray();
+			if ((Globals.startupWindowLocationCoords.All(d => d == 0)) || Globals.startupWindowLocation.Equals("center"))
+			{
+				WindowStartupLocation = WindowStartupLocation.CenterScreen;
+			}else if (Globals.startupWindowLocation.Equals("remember"))
+			{
+				Left = Globals.startupWindowLocationCoords[0];
+				Top = Globals.startupWindowLocationCoords[1];
+				if (Globals.settings["startupWindowState"].Value.Equals("maximized"))
+				{
+					WindowState = WindowState.Maximized;
+				}
+			}
+
+			//exceptions
 			section = Globals.configFile.Sections.Get("exceptions") as AppSettingsSection;
 			Globals.ExceptionPathsEnable = bool.Parse(section.Settings["exceptionPathsEnableCb"].Value);
 			Globals.ExceptionFileTypesCaptureEnable = bool.Parse(section.Settings["exceptionFileTypesCaptureEnableCb"].Value);
@@ -360,6 +491,24 @@ namespace ColdStorageManager
 			Globals.exceptionPathsOC = new ObservableCollection<string>(section.Settings["exceptionsList"].Value.Split("\n"));
 			Globals.exceptionFileTypesCaptureList = new List<string>(Globals.GetFileTypesFromString(section.Settings["exceptionFileTypesCaptureTxtBx"].Value));
 			Globals.exceptionFileTypesSearchList = new List<string>(Globals.GetFileTypesFromString(section.Settings["exceptionFileTypesSearchTxtBx"].Value));
+
+			// searchSettings
+			section = Globals.configFile.Sections.Get("searchSettings") as AppSettingsSection;
+			Globals.fileResultsColumnsOrder =
+				new List<int>(section.Settings["fileResultsColumnsOrder"].Value.Split(",").Select(int.Parse));
+			Globals.fileResultsColumnWidths =
+				new List<double>(section.Settings["fileResultsColumnWidths"].Value.Split(",").Select(double.Parse));
+			Globals.dirResultsColumnsOrder =
+				new List<int>(section.Settings["dirResultsColumnsOrder"].Value.Split(",").Select(int.Parse));
+			Globals.dirResultsColumnWidths =
+				new List<double>(section.Settings["dirResultsColumnWidths"].Value.Split(",").Select(double.Parse));
+
+			//mysqlConnectionProfiles
+			section = Globals.configFile.Sections.Get("mysqlConnectionProfiles") as AppSettingsSection;
+			foreach (var profileName in section.Settings.AllKeys)
+			{
+				mySqlDbConnectionProfiles.Add(new MySQLDbConnectionProfile(profileName, section.Settings[profileName].Value));
+			}
 		}
 
 		private void LoadSettingsAfterUI()
@@ -390,11 +539,16 @@ namespace ColdStorageManager
 			lastModTimeDP.Text = section.Settings["lastModTimeDP"].Value;
 
 			//captureSettings
-			section = Globals.configFile.Sections.Get("captureSettings") as AppSettingsSection;
-			sizeCb.IsChecked = bool.Parse(section.Settings["sizeCb"].Value);
-			createTimeCb.IsChecked = bool.Parse(section.Settings["createTimeCb"].Value);
-			lastAccessCb.IsChecked = bool.Parse(section.Settings["lastAccessCb"].Value);
-			lastModCb.IsChecked = bool.Parse(section.Settings["lastModCb"].Value);
+			LoadCaptureSettings();
+		}
+
+		public void LoadCaptureSettings()
+		{
+			AppSettingsSection section = Globals.configFile.Sections.Get("captureSettings") as AppSettingsSection;
+			capPropSizeCb.IsChecked = bool.Parse(section.Settings["capPropSizeCb"].Value);
+			capPropCreateTimeCb.IsChecked = bool.Parse(section.Settings["capPropCreateTimeCb"].Value);
+			capPropLastAccessCb.IsChecked = bool.Parse(section.Settings["capPropLastAccessCb"].Value);
+			capPropLastModCb.IsChecked = bool.Parse(section.Settings["capPropLastModCb"].Value);
 		}
 
 		public void LoadLanguage(string prev)
@@ -434,6 +588,21 @@ namespace ColdStorageManager
 				driveSnTxtBx.Text = selected.Parent.SerialNumber;
 				Globals.fileDialogEntryTree.Clear();
 				Globals.fileDialogEntryTree.AddRange(Globals.GetFileSystemEntries(selected.Letter+"\\"));
+
+				if (selected.IsCaptured)
+				{
+					var capProps = Globals.DecodeCaptureProperties(selected.Capture.capture_properties);
+					capPropSizeCb.IsChecked = capProps.size;
+					capPropCreateTimeCb.IsChecked = capProps.createTime;
+					capPropLastAccessCb.IsChecked = capProps.lastAccessTime;
+					capPropLastModCb.IsChecked = capProps.lastModTime;
+					nicknameTxtBx.Text = selected.Capture.drive_nickname;
+				}
+				else
+				{
+					LoadCaptureSettings();
+					nicknameTxtBx.Text = "";
+				}
 			}
 		}
 
@@ -483,37 +652,50 @@ namespace ColdStorageManager
 
 		private void Capture_Click(object sender, RoutedEventArgs e)
 		{
-			ushort captureProperties = Globals.ToProperties(sizeCb.IsChecked == true, createTimeCb.IsChecked == true,
-				lastAccessCb.IsChecked == true, lastModCb.IsChecked == true);
+			ushort captureProperties = Globals.ToProperties(capPropSizeCb.IsChecked == true, capPropCreateTimeCb.IsChecked == true,
+				capPropLastAccessCb.IsChecked == true, capPropLastModCb.IsChecked == true);
 			ConvertFSObservListToList();
 			ExpandFSList();
 			var cfsBytes = CFSHandler.GetCFSBytes(Globals.selectedPartition.Parent.Model, nicknameTxtBx.Text,
-				sizeCb.IsChecked == true,
-				createTimeCb.IsChecked == true,
-				lastAccessCb.IsChecked == true,
-				lastModCb.IsChecked == true);
-			Globals.dbManager.SaveCapture(new Capture(Globals.selectedPartition.Parent.Model,
-											Globals.selectedPartition.Parent.SerialNumber,
-											Globals.selectedPartition.Parent.isNVMe,
-											Globals.selectedPartition.Parent.NVMeSerialNumberDetectionFail,
-											Globals.selectedPartition.Parent.TotalSpace,
-											nicknameTxtBx.Text,
-											Globals.selectedPartition.Label,
-											Globals.selectedPartition.Index,
-											Globals.selectedPartition.TotalSpace,
-											Globals.selectedPartition.FreeSpace,
-											Globals.selectedPartition.VolumeGUID,
-											captureProperties,
-											DateTime.Now.ToString(),
-											cfsBytes.lines,
-											cfsBytes.files,
-											cfsBytes.dirs,
-											cfsBytes.capture,
-											cfsBytes.sizes,
-											cfsBytes.creation_times,
-											cfsBytes.last_access_times,
-											cfsBytes.last_mod_times
-											));
+				capPropSizeCb.IsChecked == true,
+				capPropCreateTimeCb.IsChecked == true,
+				capPropLastAccessCb.IsChecked == true,
+				capPropLastModCb.IsChecked == true);
+
+			Capture newCapture = new Capture(Globals.selectedPartition.Parent.Model,
+				Globals.selectedPartition.Parent.SerialNumber,
+				Globals.selectedPartition.Parent.isNVMe,
+				Globals.selectedPartition.Parent.NVMeSerialNumberDetectionFail,
+				Globals.selectedPartition.Parent.TotalSpace,
+				nicknameTxtBx.Text,
+				Globals.selectedPartition.Label,
+				Globals.selectedPartition.Index,
+				Globals.selectedPartition.TotalSpace,
+				Globals.selectedPartition.FreeSpace,
+				Globals.selectedPartition.VolumeGUID,
+				captureProperties,
+				DateTime.Now.ToString(),
+				cfsBytes.lines,
+				cfsBytes.files,
+				cfsBytes.dirs,
+				cfsBytes.capture,
+				cfsBytes.sizes,
+				cfsBytes.creation_times,
+				cfsBytes.last_access_times,
+				cfsBytes.last_mod_times
+			);
+
+			if (Globals.selectedPartition.IsCaptured)
+			{
+				newCapture.id = Globals.selectedPartition.Capture.id;
+				Globals.dbManager.UpdateCaptureById(newCapture);
+			}
+			else
+			{
+				Globals.dbManager.SaveCapture(newCapture);
+			}
+
+
 			//CFSHandler.WriteCFS("test", driveTxtBx.Text, nicknameTxtBx.Text);
 			statusBarTb.Text = "Successfully captured " + Globals.selectedPartition.Letter + " [" +
 			                   Globals.selectedPartition.Label + "]";
@@ -535,7 +717,8 @@ namespace ColdStorageManager
 					bool found = false;
 					foreach (var capturePhDisk in Globals.captures)
 					{
-						if (capturePhDisk.drive_nickname == capture.drive_nickname && capturePhDisk.drive_sn == capture.drive_sn)
+						if (capturePhDisk.drive_nickname == capture.drive_nickname &&
+						    capturePhDisk.drive_sn == capture.drive_sn)
 						{
 							found = true;
 							((CapturePhDisk)capturePhDisk).captures.Add(capture);
@@ -546,7 +729,8 @@ namespace ColdStorageManager
 					if (!found)
 					{
 						CapturePhDisk phDisk =
-							new CapturePhDisk(capture.drive_model, capture.drive_sn, capture.drive_size, capture.drive_nickname);
+							new CapturePhDisk(capture.drive_model, capture.drive_sn, capture.drive_size,
+								capture.drive_nickname);
 
 						phDisk.captures.Add(capture);
 						Globals.captures.Add(phDisk);
@@ -556,7 +740,8 @@ namespace ColdStorageManager
 				//sort captures per drive per partition number
 				foreach (var capturePhDisk in Globals.captures)
 				{
-					((CapturePhDisk)capturePhDisk).captures.Sort((Capture cap1, Capture cap2) => cap1.partition_number.CompareTo(cap2.partition_number));
+					((CapturePhDisk)capturePhDisk).captures.Sort((Capture cap1, Capture cap2) =>
+						cap1.partition_number.CompareTo(cap2.partition_number));
 				}
 			}
 			else
@@ -738,6 +923,11 @@ namespace ColdStorageManager
 		private void SearchResultsListView_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
 			((SearchResultControl)(e.AddedItems[0]))?.SelectCorrespondingCapture();
+		}
+
+		private void MySQLMenuItem_Click(object sender, RoutedEventArgs e)
+		{
+			new MySQLConnectWindow(this);
 		}
 	}
 

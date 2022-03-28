@@ -14,6 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Markup;
 using System.Xml;
+using static ColdStorageManager.Globals;
 
 namespace ColdStorageManager
 {
@@ -50,6 +51,20 @@ namespace ColdStorageManager
 
 		private void LoadSettingsAfterUI()
 		{
+			// general
+			switch (startupWindowLocation)
+			{
+				case ("center"):
+					cmbWindowStartupLocation.SelectedIndex = 0;
+					break;
+				case ("remember"):
+					cmbWindowStartupLocation.SelectedIndex = 1;
+					break;
+				default:
+					cmbWindowStartupLocation.SelectedIndex = -1;
+					break;
+			}
+
 			// exceptions
 			AppSettingsSection section = Globals.configFile.Sections.Get("exceptions") as AppSettingsSection;
 			exceptionPathsEnableCb.IsChecked = bool.Parse(section.Settings["exceptionPathsEnableCb"].Value);
@@ -125,6 +140,21 @@ namespace ColdStorageManager
 		{
 			var settings = Globals.settings;
 			var configFile = Globals.configFile;
+
+			// general
+			switch (cmbWindowStartupLocation.SelectedIndex)
+			{
+				case (0):
+					startupWindowLocation = "center";
+					break;
+				case (1):
+					startupWindowLocation = "remember";
+					break;
+				default:
+					startupWindowLocation = "remember";
+					break;
+			}
+			settings["startupWindowLocation"].Value = startupWindowLocation;
 
 			//language
 			string selectedLang = cmbLang.SelectedValue.ToString();

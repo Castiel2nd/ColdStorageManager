@@ -50,7 +50,7 @@ namespace ColdStorageManager
 			set
 			{
 				capture = value;
-				OnPropertyChanged("Capture.capture_datetime");
+				OnPropertyChanged(nameof(Capture));
 			}
 		}
 

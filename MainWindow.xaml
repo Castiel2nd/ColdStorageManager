@@ -6,12 +6,13 @@
 		xmlns:local="clr-namespace:ColdStorageManager"
 		xmlns:models="clr-namespace:ColdStorageManager.Models"
 		mc:Ignorable="d"
-		Title="Cold Storage Manager v0" Height="800" Width="1280"
+		Title="Cold Storage Manager v0" Height="850" Width="1280"
 		Closed="MainWindow_OnClosed"
         >
 	<DockPanel>
 		<Menu DockPanel.Dock="Top">
 			<MenuItem Header="{DynamicResource file}">
+				<MenuItem Header="{DynamicResource mysql_connect}" Click="MySQLMenuItem_Click"></MenuItem>
 				<MenuItem Header="{DynamicResource options}" Click="OptionsMenu_Click"></MenuItem>
 			</MenuItem>
 			<MenuItem Header="{DynamicResource help}">
@@ -83,21 +84,28 @@
 						<RowDefinition Height="70"></RowDefinition>
 					</Grid.RowDefinitions>
 					<Label Grid.ColumnSpan="5" FontSize="27" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Content="{DynamicResource save_fs_prompt}"></Label>
-					<TreeView Name="trvDrives" Grid.Row="1" Height="Auto" SelectedItemChanged="PartitionSelected">
-						<TreeView.ItemContainerStyle>
-							<Style TargetType="{x:Type TreeViewItem}">
-								<Setter Property="IsExpanded" Value="True"></Setter>
-							</Style>
-						</TreeView.ItemContainerStyle>
-						<TreeView.Resources>
-							<HierarchicalDataTemplate DataType="{x:Type local:PhysicalDrive}" ItemsSource="{Binding Partitions}">
-								<ContentControl Content="{StaticResource physicalDriveEntry}"></ContentControl>
-							</HierarchicalDataTemplate>
-							<DataTemplate DataType="{x:Type local:Partition}">
-								<ContentControl Content="{StaticResource partitionEntry}"></ContentControl>
-							</DataTemplate>
-						</TreeView.Resources>
-					</TreeView>
+					<Grid Grid.Row="1" Grid.Column="0">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto"></RowDefinition>
+							<RowDefinition Height="*"></RowDefinition>
+						</Grid.RowDefinitions>
+						<Label Content="{DynamicResource storage_found}" Style="{StaticResource h2Labels}"></Label>
+						<TreeView Name="trvDrives" Grid.Row="1" Height="Auto" SelectedItemChanged="PartitionSelected">
+							<TreeView.ItemContainerStyle>
+								<Style TargetType="{x:Type TreeViewItem}">
+									<Setter Property="IsExpanded" Value="True"></Setter>
+								</Style>
+							</TreeView.ItemContainerStyle>
+							<TreeView.Resources>
+								<HierarchicalDataTemplate DataType="{x:Type local:PhysicalDrive}" ItemsSource="{Binding Partitions}">
+									<ContentControl Content="{StaticResource physicalDriveEntry}"></ContentControl>
+								</HierarchicalDataTemplate>
+								<DataTemplate DataType="{x:Type local:Partition}">
+									<ContentControl Content="{StaticResource partitionEntry}"></ContentControl>
+								</DataTemplate>
+							</TreeView.Resources>
+						</TreeView>
+					</Grid>
 
 					<Grid Grid.Row="1" Grid.Column="2">
 						<Grid.RowDefinitions>
@@ -143,19 +151,19 @@
 							<GroupBox Header="{DynamicResource metadata_sel}">
 								<StackPanel>
 									<StackPanel Orientation="Horizontal">
-										<CheckBox Name="sizeCb" VerticalAlignment="Center"></CheckBox>
+										<CheckBox Name="capPropSizeCb" VerticalAlignment="Center"></CheckBox>
 										<Label Content="{DynamicResource size}"></Label>
 									</StackPanel>
 									<StackPanel Orientation="Horizontal">
-										<CheckBox Name="createTimeCb" VerticalAlignment="Center"></CheckBox>
+										<CheckBox Name="capPropCreateTimeCb" VerticalAlignment="Center"></CheckBox>
 										<Label Content="{DynamicResource creation_time}"></Label>
 									</StackPanel>
 									<StackPanel Orientation="Horizontal">
-										<CheckBox Name="lastAccessCb" VerticalAlignment="Center"></CheckBox>
+										<CheckBox Name="capPropLastAccessCb" VerticalAlignment="Center"></CheckBox>
 										<Label Content="{DynamicResource access_time}"></Label>
 									</StackPanel>
 									<StackPanel Orientation="Horizontal">
-										<CheckBox Name="lastModCb" VerticalAlignment="Center"></CheckBox>
+										<CheckBox Name="capPropLastModCb" VerticalAlignment="Center"></CheckBox>
 										<Label Content="{DynamicResource mod_time}"></Label>
 									</StackPanel>
 								</StackPanel>
@@ -192,8 +200,15 @@
 						<RowDefinition Height="70"></RowDefinition>
 						<RowDefinition Height="*"></RowDefinition>
 						<RowDefinition Height="70"></RowDefinition>
+						<RowDefinition Height="70"></RowDefinition>
 					</Grid.RowDefinitions>
 					<Label Grid.ColumnSpan="5" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource h1Labels}"  Content="{DynamicResource search_prompt}"></Label>
+
+					<StackPanel Orientation="Horizontal">
+						<Label Content="{DynamicResource capture_connection_select}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0,0,0,0"></Label>
+						<ComboBox Name="captureConnCmbx" Margin="15,0,0,0" VerticalAlignment="Bottom"></ComboBox>
+					</StackPanel>
+
 
 					<Grid Grid.Row="1">
 						<Grid.RowDefinitions>
@@ -207,7 +222,7 @@
 								<ColumnDefinition Width="Auto"></ColumnDefinition>
 							</Grid.ColumnDefinitions>
 							<Label Content="{DynamicResource captures}" Style="{StaticResource h2Labels}"></Label>
-							<Button Grid.Column="2" Content="{DynamicResource del}" HorizontalAlignment="Center" VerticalAlignment="Center" Click="DeleteBtn_Click" Margin="0,0,5,0"></Button>
+							<Button Grid.Column="2" Content="{DynamicResource del}" ToolTip="{DynamicResource del_capture_tooltip}" HorizontalAlignment="Center" VerticalAlignment="Center" Click="DeleteBtn_Click" Margin="0,0,5,0"></Button>
 						</Grid>
 						
 						<TreeView Name="trvCaptures" Height="Auto" SelectedItemChanged="PartitionSelected" Grid.Row="1">
@@ -374,9 +389,9 @@
 								<DatePicker Name="lastModTimeDP" Margin="0,0,15,0"></DatePicker>
 							</StackPanel>
 						</Grid>
-
-						<Button Name="searchButton" Grid.Column="4" Grid.RowSpan="2" Style="{StaticResource bigButton}" Content="{DynamicResource search}" Click="SearchButton_Click"></Button>
 					</Grid>
+
+					<Button Name="searchButton" Grid.ColumnSpan="5" Grid.Row="4" Style="{StaticResource bigButton}" Content="{DynamicResource search}" Click="SearchButton_Click"></Button>
 
 					<GridSplitter Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"></GridSplitter>
 					<GridSplitter Grid.Row="1" Grid.Column="3" HorizontalAlignment="Stretch"></GridSplitter>

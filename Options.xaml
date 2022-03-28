@@ -10,24 +10,7 @@
 >
 	<DockPanel LastChildFill="True">
 		<DockPanel.Resources>
-			<Style TargetType="Label">
-				<Setter Property="Margin" Value="{StaticResource OptionsInlineMarginLarge}"></Setter>
-			</Style>
-			<Style TargetType="CheckBox">
-				<Setter Property="Margin" Value="{StaticResource OptionsInlineMarginSmall}"></Setter>
-			</Style>
-			<Style TargetType="GroupBox">
-				<Setter Property="Margin" Value="{StaticResource OptionsTopMargin}"></Setter>
-			</Style>
-			<Style TargetType="ListView">
-				<Setter Property="Margin" Value="{StaticResource OptionsTopMargin}"></Setter>
-			</Style>
-			<Style TargetType="Button">
-				<Setter Property="Margin" Value="{StaticResource OptionsInlineMarginMedium}"></Setter>
-			</Style>
-			<Style TargetType="TextBox">
-				<Setter Property="Margin" Value="{StaticResource OptionsInlineMarginMedium}"></Setter>
-			</Style>
+			<ResourceDictionary Source="Styles/CommonLinearUIStylesSetter.xaml"></ResourceDictionary>
 		</DockPanel.Resources>
 		<StackPanel DockPanel.Dock="Bottom" Height="80" VerticalAlignment="Bottom">
 			<Grid Height="80" Width="800">
@@ -51,12 +34,12 @@
 			<TabItem Header="{DynamicResource general_cat}" MinWidth="100">
 				<ScrollViewer>
 					<StackPanel Orientation="Vertical" Margin="0">
-						<StackPanel.Resources>
-							<Style TargetType="StackPanel">
-								<Setter Property="Margin" Value="{StaticResource OptionsMargin}"></Setter>
-							</Style>
-						</StackPanel.Resources>
 						<StackPanel Orientation="Horizontal" >
+							<Label Content="{DynamicResource window_startup_location}" VerticalAlignment="Top"></Label>
+							<ComboBox Name="cmbWindowStartupLocation" SelectedValuePath="Tag" SelectedIndex="1">
+								<ComboBoxItem Content="{DynamicResource center}"></ComboBoxItem>
+								<ComboBoxItem Content="{DynamicResource remember_location}"></ComboBoxItem>
+							</ComboBox>
 						</StackPanel>
 					</StackPanel>
 				</ScrollViewer>
@@ -64,17 +47,9 @@
 			<TabItem Header="{DynamicResource lang_cat}" MinWidth="100">
 				<ScrollViewer>
 					<StackPanel Orientation="Vertical" Margin="0">
-						<StackPanel.Resources>
-							<Style TargetType="StackPanel">
-								<Setter Property="Margin" Value="{StaticResource OptionsMargin}"></Setter>
-							</Style>
-						</StackPanel.Resources>
 						<StackPanel Orientation="Horizontal">
-							<StackPanel.Resources>
-
-							</StackPanel.Resources>
 							<Label Content="{DynamicResource language_s}" VerticalAlignment="Top"></Label>
-							<ComboBox Name="cmbLang" SelectedValuePath="Tag" MinWidth="200" MinHeight="25"></ComboBox>
+							<ComboBox Name="cmbLang" SelectedValuePath="Tag"></ComboBox>
 						</StackPanel>
 					</StackPanel>
 				</ScrollViewer>
@@ -82,11 +57,6 @@
 			<TabItem Header="{DynamicResource exceptions_capture_cat}" MinWidth="100">
 				<ScrollViewer>
 					<StackPanel Orientation="Vertical" Margin="0">
-						<StackPanel.Resources>
-							<Style TargetType="StackPanel">
-								<Setter Property="Margin" Value="{StaticResource OptionsMargin}"></Setter>
-							</Style>
-						</StackPanel.Resources>
 						<TextBlock TextWrapping="WrapWithOverflow" Text="{DynamicResource exceptions_capture_desc}" Margin="{StaticResource OptionsMargin}"></TextBlock>
 						<StackPanel Orientation="Horizontal">
 							<CheckBox Name="exceptionPathsEnableCb" Checked="ExceptionPathsEnableCb_OnChecked" Unchecked="ExceptionPathsEnableCb_OnUnchecked"></CheckBox>
@@ -119,11 +89,6 @@
 			<TabItem Header="{DynamicResource exceptions_search_cat}" MinWidth="100">
 				<ScrollViewer>
 					<StackPanel Orientation="Vertical" Margin="0">
-						<StackPanel.Resources>
-							<Style TargetType="StackPanel">
-								<Setter Property="Margin" Value="{StaticResource OptionsMargin}"></Setter>
-							</Style>
-						</StackPanel.Resources>
 						<TextBlock TextWrapping="WrapWithOverflow" Text="{DynamicResource exceptions_search_desc}" Margin="{StaticResource OptionsMargin}"></TextBlock>
 						<StackPanel Orientation="Horizontal">
 							<CheckBox Name="exceptionFileTypesSearchEnableCb"></CheckBox>
