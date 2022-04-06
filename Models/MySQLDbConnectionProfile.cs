@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using ColdStorageManager.DBManagers;
 
 namespace ColdStorageManager.Models
 {
@@ -14,6 +15,9 @@ namespace ColdStorageManager.Models
 		public string DatabaseName { get; set; }
 		public string UID { get; set; }
 		public string Password { get; set; }
+		public string HostWithPort { get; set; }
+		public string PathToDb { get; set; }
+		public string PathToTable { get; set; }
 
 		// source: https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/statements-expressions-operators/how-to-define-value-equality-for-a-type
 		
@@ -56,6 +60,8 @@ namespace ColdStorageManager.Models
 			DatabaseName = databaseName;
 			UID = uid;
 			Password = password;
+
+			SetDisplayStrings();
 		}
 
         public MySQLDbConnectionProfile(string profileName, string serializedForm)
@@ -68,6 +74,15 @@ namespace ColdStorageManager.Models
 	        DatabaseName = attributes[2].Split(ValueSeparator)[1];
 	        UID = attributes[3].Split(ValueSeparator)[1];
 	        Password = ((attributes[4].Split(ValueSeparator)[1]).Equals(EmptyPwValue) ? "" : (attributes[4].Split(ValueSeparator)[1]));
+
+			SetDisplayStrings();
+        }
+
+        private void SetDisplayStrings()
+        {
+	        HostWithPort = $"{Host}:{Port}";
+	        PathToDb = $"{HostWithPort}/{DatabaseName}";
+	        PathToTable = $"{PathToDb}/{IDbManager.DbCapturesTableName}";
         }
 
 		public override string ToString()

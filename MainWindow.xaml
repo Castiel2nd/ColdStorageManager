@@ -32,14 +32,30 @@
 				</ItemsPanelTemplate>
 			</StatusBar.ItemsPanel>
 			<StatusBarItem>
-				<TextBlock Name="statusBarTb" Text="{DynamicResource loading}"></TextBlock>
+				<StackPanel Orientation="Horizontal">
+					<Button Name="statusBtn" Click="StatusBtn_OnClick">
+						<TextBlock Name="statusBarTb" Text="{DynamicResource loading}"></TextBlock>
+					</Button>
+					<Popup Name="logPopup" PlacementTarget="{Binding ElementName=statusBtn}" Placement="Top" StaysOpen="False">
+						<Border CornerRadius="10">
+							<local:LogPanel x:Name="logPanel"></local:LogPanel>
+						</Border>
+					</Popup>
+				</StackPanel>
 			</StatusBarItem>
 			<StatusBarItem Grid.Column="2">
 				<StackPanel Orientation="Horizontal">
 					<Ellipse Name="dbStatusEllipse" Width="12" Height="12" Margin="0,2,10,2" Fill="DarkGray"></Ellipse>
-					<TextBlock Name="dbStatusBarTb" Text="{DynamicResource dbInit}"></TextBlock>
+					<Button Name="dbStatusBtn" Click="DbStatusBtn_OnClick">
+						<TextBlock Name="dbStatusBarTb" Text="{DynamicResource dbInit}"></TextBlock>
+					</Button>
+					<Popup Name="dbLogPopup" PlacementTarget="{Binding ElementName=dbStatusBtn}" Placement="Top" StaysOpen="False">
+						<Border CornerRadius="10">
+							<local:LogPanel x:Name="dbLogPanel"></local:LogPanel>
+						</Border>
+					</Popup>
 				</StackPanel>
-				
+
 			</StatusBarItem>
 		</StatusBar>
 
@@ -204,10 +220,28 @@
 					</Grid.RowDefinitions>
 					<Label Grid.ColumnSpan="5" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource h1Labels}"  Content="{DynamicResource search_prompt}"></Label>
 
-					<StackPanel Orientation="Horizontal">
-						<Label Content="{DynamicResource capture_connection_select}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0,0,0,0"></Label>
-						<ComboBox Name="captureConnCmbx" Margin="15,0,0,0" VerticalAlignment="Bottom"></ComboBox>
-					</StackPanel>
+					<Grid>
+						<Grid.RowDefinitions>
+							<RowDefinition Height="*"></RowDefinition>
+							<RowDefinition Height="*"></RowDefinition>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"></ColumnDefinition>
+							<ColumnDefinition Width="Auto"></ColumnDefinition>
+						</Grid.ColumnDefinitions>
+						<StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+							<Label Content="{DynamicResource copy_all}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0,0,0,0"></Label>
+							<ComboBox Name="copyFromCmbx" Margin="15,0,0,0" VerticalAlignment="Bottom" SelectionChanged="CopyFromCmbx_OnSelectionChanged"></ComboBox>
+							<Label Content="=>" VerticalAlignment="Bottom" Margin="20,0,20,0" FontWeight="Bold" FontSize="15"></Label>
+							<ComboBox Name="copyToCmbx"  VerticalAlignment="Bottom" SelectionChanged="CopyToCmbx_OnSelectionChanged"></ComboBox>
+						</StackPanel>
+						<Button Grid.Column="1" Content="{DynamicResource copy_all_btn}" Click="CopyAllBtn_OnClick" VerticalAlignment="Center"  HorizontalAlignment="Right" Margin="0,0,5,0"></Button>
+						<StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Center">
+							<Label Content="{DynamicResource capture_connection_select}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0,0,0,0"></Label>
+							<ComboBox Name="captureConnCmbx" Margin="15,0,0,0" VerticalAlignment="Bottom" SelectionChanged="CaptureConnCmbx_OnSelectionChanged"></ComboBox>
+						</StackPanel>
+					</Grid>
+
 
 
 					<Grid Grid.Row="1">
@@ -222,9 +256,12 @@
 								<ColumnDefinition Width="Auto"></ColumnDefinition>
 							</Grid.ColumnDefinitions>
 							<Label Content="{DynamicResource captures}" Style="{StaticResource h2Labels}"></Label>
-							<Button Grid.Column="2" Content="{DynamicResource del}" ToolTip="{DynamicResource del_capture_tooltip}" HorizontalAlignment="Center" VerticalAlignment="Center" Click="DeleteBtn_Click" Margin="0,0,5,0"></Button>
+							<StackPanel Grid.Column="2" Orientation="Horizontal">
+								<Button Content="{DynamicResource del}" ToolTip="{DynamicResource del_capture_tooltip}" HorizontalAlignment="Center" VerticalAlignment="Center" Click="DeleteBtn_Click" Margin="0,0,5,0"></Button>
+								<Button Content="{DynamicResource del_all}" ToolTip="{DynamicResource del_capture_tooltip}" HorizontalAlignment="Center" VerticalAlignment="Center" Click="DelAllBtn_OnClick" Margin="0,0,5,0"></Button>
+							</StackPanel>
 						</Grid>
-						
+
 						<TreeView Name="trvCaptures" Height="Auto" SelectedItemChanged="PartitionSelected" Grid.Row="1">
 							<TreeView.ItemContainerStyle>
 								<Style TargetType="{x:Type TreeViewItem}">

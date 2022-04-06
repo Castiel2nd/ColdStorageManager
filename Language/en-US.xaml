@@ -25,18 +25,23 @@
 	<System:String x:Key="searching">Searching</System:String>
 	<System:String x:Key="search">Search</System:String>
 	<System:String x:Key="del">Delete</System:String>
+	<System:String x:Key="del_all">Delete All</System:String>
 	<System:String x:Key="reset">Reset</System:String>
 	<System:String x:Key="add">Add</System:String>
 	<System:String x:Key="del_selected">Delete selected</System:String>
 	<System:String x:Key="save_and_connect">Save and connect</System:String>
 	<System:String x:Key="save">Save</System:String>
 	<System:String x:Key="test_connect">Test</System:String>
+	<System:String x:Key="copy_all_btn">Copy All</System:String>
 
 	<!-- Tooltips -->
 	<System:String x:Key="del_capture_tooltip">Delete selected capture(s)</System:String>
 
 
 	<!-- Capture/search -->
+	<System:String x:Key="save_fs_prompt">Select a partition and the desired entries you want to capture, then press Capture</System:String>
+	<System:String x:Key="search_prompt">Search in selected saves</System:String>
+	<System:String x:Key="loading">Loading...</System:String>
 	<System:String x:Key="metadata_sel">Metadata to save:</System:String>
 	<System:String x:Key="name">Name</System:String>
 	<System:String x:Key="filename">Filename</System:String>
@@ -47,6 +52,15 @@
 	<System:String x:Key="mod_time">Time of last modification</System:String>
 	<System:String x:Key="enable">Enable</System:String>
 	<System:String x:Key="capture_connection_select">Connection selection:</System:String>
+	<System:String x:Key="local">Local</System:String>
+	<System:String x:Key="no_captures_placeholder" xml:space="preserve">You currently have no captures.&#13;Make some on the other tab, and they will show up here.</System:String>
+	<System:String x:Key="could_not_connect_placeholder" xml:space="preserve">Couldn't connect to local database.</System:String>
+	<System:String x:Key="no_captures_tooltip" xml:space="preserve">Can't search if there are no captures.</System:String>
+	<System:String x:Key="capture_successful" xml:space="preserve">Successfully captured </System:String>
+	<System:String x:Key="copy_all" xml:space="preserve">Copy all: </System:String>
+	<System:String x:Key="del_all_warning" xml:space="preserve">All captures will be deleted from</System:String>
+	<System:String x:Key="del_all_title" xml:space="preserve">Delete all?</System:String>
+	<System:String x:Key="sure" xml:space="preserve">Are you sure?</System:String>
 
 	<!-- Options general tab -->
 	<System:String x:Key="general_cat">General</System:String>
@@ -87,6 +101,27 @@
 	<System:String x:Key="error_connection" xml:space="preserve">There was an error connecting to </System:String>
 	<System:String x:Key="success_connection_title">Successfully connected to database</System:String>
 	<System:String x:Key="success_connection" xml:space="preserve">Successfully connected to </System:String>
+	<System:String x:Key="dbInit">Initializing database</System:String>
+	<System:String x:Key="db_dir_create_suc" xml:space="preserve">Successfully created db. directory: </System:String>
+	<System:String x:Key="db_file_create_suc" xml:space="preserve">Successfully created db. file: </System:String>
+	<System:String x:Key="db_connect_suc" xml:space="preserve">Successfully connected to db.: </System:String>
+	<System:String x:Key="db_connect_closed" xml:space="preserve">Closed connection to:</System:String>
+	<System:String x:Key="db_connect_already_closed" xml:space="preserve">Tried to close already closed connection:</System:String>
+	<System:String x:Key="db_table_create_suc" xml:space="preserve">Successfully created table: </System:String>
+	<System:String x:Key="db_table_create_fail" xml:space="preserve">Failed to create table: </System:String>
+	<System:String x:Key="db_table_create_fail_title" xml:space="preserve">Table creation failed</System:String>
+	<System:String x:Key="db_table_found" xml:space="preserve">Found table '</System:String>
+	<System:String x:Key="db_table_found2" xml:space="preserve">' in database: </System:String>
+	<System:String x:Key="db_delete_suc" xml:space="preserve">Successfully deleted a capture from:</System:String>
+	<System:String x:Key="db_delete_fail" xml:space="preserve">Failed to delete a capture from:</System:String>
+	<System:String x:Key="db_update_suc" xml:space="preserve">Successfully updated a capture in:</System:String>
+	<System:String x:Key="db_update_fail" xml:space="preserve">Failed to update a capture in:</System:String>
+	<System:String x:Key="db_save_suc" xml:space="preserve">Successfully saved a capture to:</System:String>
+	<System:String x:Key="db_save_fail" xml:space="preserve">Failed to save a capture to:</System:String>
+	<System:String x:Key="db_list_suc" xml:space="preserve">Successfully loaded captures from:</System:String>
+	<System:String x:Key="db_list_fail" xml:space="preserve">Failed to load captures from:</System:String>
+	<System:String x:Key="db_manager_not_found" xml:space="preserve">Failed to find DbManager.(This shouldn't normally happen)</System:String>
+
 
 	<!-- Generic error messages -->
 	<System:String x:Key="error_multiple_title">There were multiple errors</System:String>
@@ -98,17 +133,7 @@
 	<System:String x:Key="dateRel_gt_or_eq">On or after</System:String>
 	<System:String x:Key="dateRel_gt">After</System:String>
 
-	<System:String x:Key="save_fs_prompt">Select a partition and the desired entries you want to capture, then press Capture</System:String>
-	<System:String x:Key="search_prompt">Search in selected saves</System:String>
-	<System:String x:Key="loading">Loading...</System:String>
-	<System:String x:Key="dbInit">Initializing database</System:String>
-	<System:String x:Key="db_dir_create_suc" xml:space="preserve">Successfully created db. directory: </System:String>
-	<System:String x:Key="db_file_create_suc" xml:space="preserve">Successfully created db. file: </System:String>
-	<System:String x:Key="db_connect_suc" xml:space="preserve">Successfully connected to db.: </System:String>
-	<System:String x:Key="db_create_suc" xml:space="preserve">Successfully created table: </System:String>
-	<System:String x:Key="db_table_found" xml:space="preserve">Found table in database: </System:String>
-	<System:String x:Key="no_captures" xml:space="preserve">You currently have no captures.&#13;Make some on the other tab, and they will show up here.</System:String>
-	<System:String x:Key="no_captures_tooltip" xml:space="preserve">Can't search if there are no captures.</System:String>
+	<!-- Generic status messages -->
 	<System:String x:Key="ready">Ready</System:String>
 
 	<!-- hx titles -->

@@ -10,14 +10,17 @@ using System.Windows.Media;
 using ColdStorageManager.DBManagers;
 using ColdStorageManager.Models;
 using Dapper;
+using static ColdStorageManager.Globals;
+using static ColdStorageManager.Logger;
 
 namespace ColdStorageManager
 {
 	public class SQLiteDbManager : IDbManager
 	{
-		const string dbPath = "Database/";
-		const string dbCapturesFile = "Captures.sqlite";
-		const string dbCapturesTableName = "Captures";
+		private const string dbDirName = "Database";
+		private const string dbPath = dbDirName + "/";
+		private const string dbCapturesFile = "Captures.sqlite";
+		private const string dbCapturesFilePath = dbPath + dbCapturesFile;
 
 		private static string[] dbCapturesColumns = new string[]
 		{
@@ -57,22 +60,37 @@ namespace ColdStorageManager
 		SQLiteConnection dbConnection;
 		SQLiteCommand command;
 		string sqlCommand;
-		string dbCapturesFilePath;
+		
 		public bool IsConnectionSuccessful = false;
+
+		public bool IsConnected
+		{
+			get
+			{
+				if (dbConnection == null)
+				{
+					return false;
+				}
+				return dbConnection.State != ConnectionState.Closed && dbConnection.State != ConnectionState.Broken;
+			}
+		}
 
 		public SQLiteDbManager()
 		{
-			dbCapturesFilePath = dbPath + dbCapturesFile;
 			if (!Directory.Exists(dbPath))
 			{
 				Directory.CreateDirectory(dbPath);
-				Globals.dbStatusBarTb.Text = Application.Current.Resources["db_dir_create_suc"] + dbPath;
+				LogDbAction(
+					$"{GetLocalizedString("db_dir_create_suc")}{dbPath}",
+					$"Successfully created db. directory:{dbPath}.");
 			}
 
 			if (!File.Exists(dbCapturesFilePath))
 			{
 				SQLiteConnection.CreateFile(dbCapturesFilePath);
-				Globals.dbStatusBarTb.Text = Application.Current.Resources["db_file_create_suc"] + dbCapturesFilePath;
+				LogDbAction(
+					$"{GetLocalizedString("db_file_create_suc")}{dbCapturesFilePath}",
+					$"Successfully created db. file:{dbCapturesFilePath}.");
 			}
 
 			//constructing sql commands
@@ -83,22 +101,26 @@ namespace ColdStorageManager
 
 			dbConnection = new SQLiteConnection("Data Source=" + dbCapturesFilePath+ ";Version=3;");
 			dbConnection.Open();
-			Globals.dbStatusEllipse.Fill = new SolidColorBrush(Color.FromRgb(0,255,0));
-			Globals.dbStatusBarTb.Text = Application.Current.Resources["db_connect_suc"] + dbCapturesFilePath;
+			Logger.dbStatusEllipse.Fill = new SolidColorBrush(Color.FromRgb(0,255,0));
+			LogDbAction($"{GetLocalizedString("db_connect_suc")}{dbCapturesFilePath}",
+				$"Successfully connected to db.:{dbCapturesFilePath}.");
 			IsConnectionSuccessful = true;
 			command = dbConnection.CreateCommand();
-			CreateTableIfNotFound(dbCapturesTableName);
+			CreateTableIfNotFound(IDbManager.DbCapturesTableName);
 		}
 
 		~SQLiteDbManager()
 		{
-			dbConnection.Close();
+			if (dbConnection.State != ConnectionState.Closed)
+			{
+				CloseConnection();
+			}
 		}
 
 		private void ConstructCreateSQLCommand()
 		{
 			stringBuilder.Clear();
-			stringBuilder.Append("CREATE TABLE '").Append(dbCapturesTableName).Append("'(");
+			stringBuilder.Append("CREATE TABLE '").Append(IDbManager.DbCapturesTableName).Append("'(");
 			int i;
 			for (i = 0; i < dbCapturesColumns.Length-1; i++)
 			{
@@ -111,14 +133,14 @@ namespace ColdStorageManager
 
 		private void ConstructAddCaptureSQLCommand()
 		{
-			AddCaptureSQLCommand = "insert into " + dbCapturesTableName + " (" + String.Join(", ", dbCapturesColumnsWithoutId) +
+			AddCaptureSQLCommand = "insert into " + IDbManager.DbCapturesTableName + " (" + String.Join(", ", dbCapturesColumnsWithoutId) +
 			                       ") values (@" + String.Join(", @", dbCapturesColumnsWithoutId) + ")";
 		}
 
 		private void ConstructUpdateCaptureSQLCommand()
 		{
 			stringBuilder.Clear();
-			stringBuilder.Append("update ").Append(dbCapturesTableName).Append(" set ");
+			stringBuilder.Append("update ").Append(IDbManager.DbCapturesTableName).Append(" set ");
 			int i;
 			for (i = 0; i < dbCapturesColumnsWithoutId.Length-1; i++)
 			{
@@ -135,24 +157,102 @@ namespace ColdStorageManager
 
 		public List<Capture> GetCaptures()
 		{
-			var output = dbConnection.Query<Capture>("select * from " + dbCapturesTableName, new DynamicParameters());
-			return output.ToList();
+			IEnumerable<Capture> ret = null;
+
+			try
+			{
+				ret = dbConnection.Query<Capture>("select * from " + IDbManager.DbCapturesTableName, new DynamicParameters());
+
+				LogDbAction($"{GetLocalizedString("db_list_suc")} {IDbManager.DbCapturesTableName}",
+					$"Successfully loaded captures from: {dbCapturesFilePath}.");
+
+			}
+			catch (Exception e)
+			{
+				LogDbAction($"{GetLocalizedString("db_list_fail")} {IDbManager.DbCapturesTableName}",
+					$"Failed to load captures from: {dbCapturesFilePath}.{LineSeparator}" +
+					$"{e.Message}",
+					ERROR);
+
+			}
+
+			return ret.ToList();
 		}
 
 		public void SaveCapture(Capture capture)
 		{
-			dbConnection.Execute(AddCaptureSQLCommand, capture);
+			try
+			{
+				dbConnection.Execute(AddCaptureSQLCommand, capture);
+
+				LogDbAction($"{GetLocalizedString("db_save_suc")} {IDbManager.DbCapturesTableName}",
+					$"Successfully saved a capture to: {dbCapturesFilePath}.{LineSeparator}" +
+					$"({nameof(capture.drive_model)} = {capture.drive_model}, {nameof(capture.drive_sn)} = {capture.drive_sn})");
+
+			}
+			catch (Exception e)
+			{
+				LogDbAction($"{GetLocalizedString("db_save_fail")} {IDbManager.DbCapturesTableName}",
+					$"Failed to save a capture to: {dbCapturesFilePath}.{LineSeparator}" +
+					$"({nameof(capture.drive_model)} = {capture.drive_model}, {nameof(capture.drive_sn)} = {capture.drive_sn}){LineSeparator}" +
+					$"{e.Message}",
+					ERROR);
+
+			}
 		}
 
 		public void UpdateCaptureById(Capture capture)
 		{
-			dbConnection.Execute(UpdateCaptureSQLCommand, capture);
+			try
+			{
+				dbConnection.Execute(UpdateCaptureSQLCommand, capture);
+
+				LogDbAction($"{GetLocalizedString("db_update_suc")} {IDbManager.DbCapturesTableName}",
+					$"Successfully updated a capture in: {dbCapturesFilePath}. (id = {capture.id})");
+
+			}
+			catch (Exception e)
+			{
+				LogDbAction($"{GetLocalizedString("db_update_fail")} {IDbManager.DbCapturesTableName}",
+					$"Failed to update a capture in: {dbCapturesFilePath}. (id = {capture.id}){LineSeparator}" +
+					$"{e.Message}",
+					ERROR);
+
+			}
 		}
 
 		public void DeleteCapture(Capture capture)
 		{
-			dbConnection.Execute("delete from " + dbCapturesTableName +
-			                     " where drive_model = @drive_model and drive_sn = @drive_sn", capture);
+			try
+			{
+				dbConnection.Execute("delete from " + IDbManager.DbCapturesTableName +
+									 " where drive_model = @drive_model and drive_sn = @drive_sn and volume_guid = @volume_guid", capture);
+
+				LogDbAction($"{GetLocalizedString("db_delete_suc")} {IDbManager.DbCapturesTableName}",
+					$"Successfully deleted a capture from: {dbCapturesFilePath}. (id = {capture.id})");
+
+			}
+			catch (Exception e)
+			{
+				LogDbAction($"{GetLocalizedString("db_delete_fail")} {IDbManager.DbCapturesTableName}",
+					$"Failed to delete a capture from: {dbCapturesFilePath}. (id = {capture.id}){LineSeparator}" +
+					$"{e.Message}",
+					ERROR);
+
+			}
+		}
+
+		public void CloseConnection()
+		{
+			dbConnection.Close();
+
+			LogDbAction($"{GetLocalizedString("db_connect_closed")} {IDbManager.DbCapturesTableName}",
+				$"Closed connection to: {dbCapturesFilePath}.");
+		}
+
+		public bool ConnectAndCreateTableIfNotFound()
+		{
+			return IsConnected;
 		}
 
 		private void CreateTableIfNotFound(string tableName)
@@ -163,28 +263,33 @@ namespace ColdStorageManager
 				try
 				{
 					int res = command.ExecuteNonQuery();
-					Globals.dbStatusBarTb.Text = Application.Current.Resources["db_create_suc"] + dbCapturesTableName;
+					LogDbAction(
+						$"{GetLocalizedString("db_table_create_suc")}{dbCapturesFilePath}\\{IDbManager.DbCapturesTableName}",
+						$"Successfully created table:{dbCapturesFilePath}\\{IDbManager.DbCapturesTableName}.");
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine(e.Message);
-					Console.WriteLine(e.StackTrace);
-					Console.WriteLine(e.Data.ToString());
+					LogDbActionWithMsgBox($"{GetLocalizedString("db_table_create_fail")} ",
+						$"Failed to create table: {dbCapturesFilePath}/{IDbManager.DbCapturesTableName}.",
+						GetLocalizedString("db_table_create_fail_title"), MessageBoxImage.Error, e.Message);
+
 				}
 			}
 			else
 			{
-				Globals.dbStatusBarTb.Text = Application.Current.Resources["db_table_found"] + dbCapturesTableName;
+				LogDbAction(
+					$"{GetLocalizedString("db_table_found")}{IDbManager.DbCapturesTableName}{GetLocalizedString("db_table_found2")}{dbCapturesFilePath}",
+					$"Found table '{IDbManager.DbCapturesTableName}' in database:{dbCapturesFilePath}.");
 			}
 		}
 
 		private bool checkIfTableExists(string tableName)
 		{
-			command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='" + dbCapturesTableName +
+			command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='" + IDbManager.DbCapturesTableName +
 			                      "'";
 			var res = command.ExecuteScalar();
 
-			return res != null && res.ToString() == dbCapturesTableName;
+			return res != null && res.ToString() == IDbManager.DbCapturesTableName;
 		}
 	}
 }

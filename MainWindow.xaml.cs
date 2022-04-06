@@ -23,10 +23,16 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Security.RightsManagement;
+using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using ColdStorageManager.Annotations;
+using ColdStorageManager.DBManagers;
 using ColdStorageManager.Models;
+using MySql.Data.MySqlClient;
 using static ColdStorageManager.Globals;
+using static ColdStorageManager.Logger;
+using Point = System.Drawing.Point;
 
 namespace ColdStorageManager
 {
@@ -43,28 +49,50 @@ namespace ColdStorageManager
 		public static double[] startupWindowLocationCoords;
 		public static MainWindow mainWindow;
 
-		public static SQLiteDbManager dbManager;
+		public static IDbManager selectedDbManager = null;
+		public static MySQLDbManager activeMySQLDbManager;
+		public static SQLiteDbManager localSqLiteDbManager;
 		public static List<MySQLDbConnectionProfile> mySqlDbConnectionProfiles = new List<MySQLDbConnectionProfile>();
 
 		public static List<PhysicalDrive> physicalDrives;
 		public static TreeView capturesTrv;
-		public static ObservableCollection<CaptureBase> captures;
+		public static WpfObservableRangeCollection<CaptureBase> capturesDisplay = new WpfObservableRangeCollection<CaptureBase>();
+		public static List<Capture> capturesList = new List<Capture>();
+
+		public static double remoteCaptureCacheTTL = 60; //how long the remote captures can be cached for
+		//these lists are used for caching and to facilitate copying between connections
+		public static List<CaptureBase> localCapturesDisplayCache;
+		public static List<CaptureBase> remoteCapturesDisplayCache;
+		public static List<Capture> localCapturesCache;
+		public static List<Capture> remoteCapturesCache;
+		public static DateTime remoteCapturesCacheDateTime;
+		public static string remoteCapturesCacheSource; //where are the remote captures from
+		public static List<string> allConnectionNames = new List<string>();
+		public static ObservableCollection<string> copyFromList = new ObservableCollection<string>();
+		public static ObservableCollection<string> copyToList = new ObservableCollection<string>();
+		public static ObservableCollection<string> captureConnList = new ObservableCollection<string>();
+		public static bool copyFromListEventsEnabled = true;
+		public static bool copyToListEventsEnabled = true;
+
 		public static Partition selectedPartition;
 
-		public static WpfObservableRangeCollection<CSMFileSystemEntry> fileDialogEntryTree;
+		public static WpfObservableRangeCollection<CSMFileSystemEntry> fileDialogEntryTree = new WpfObservableRangeCollection<CSMFileSystemEntry>();
 		public static List<CSMFileSystemEntry> fsList;
 
-		public static WpfObservableRangeCollection<SearchResultControl> filesFound;
+		public static WpfObservableRangeCollection<SearchResultControl> filesFound = new WpfObservableRangeCollection<SearchResultControl>();
 		public static List<int> fileResultsColumnsOrder;
 		public static List<double> fileResultsColumnWidths;
-		public static WpfObservableRangeCollection<SearchResultControl> dirsFound;
+		public static WpfObservableRangeCollection<SearchResultControl> dirsFound = new WpfObservableRangeCollection<SearchResultControl>();
 		public static List<int> dirResultsColumnsOrder;
 		public static List<double> dirResultsColumnWidths;
 		
-		public static TextBlock statusBarTb;
-		public static TextBlock dbStatusBarTb;
-		public static Ellipse dbStatusEllipse;
+		
 		public const ushort numBlobTypes = 5;
+
+		//Log stuff
+		public static LogHolder logHolder = new LogHolder();
+		public static LogPanel dbLogPanel;
+		public static LogPanel logPanel;
 
 		// options
 		public const string configFileName = "CSM.config";
@@ -216,6 +244,11 @@ namespace ColdStorageManager
 			list.Insert(newIndex, item);
 		}
 
+		public static System.Windows.Point GetPositionRelativeTo(Control controlToGetThePositionOf, Control relativeToThis)
+		{
+			return controlToGetThePositionOf.TransformToAncestor(relativeToThis).Transform(new System.Windows.Point(0, 0));
+		}
+
 		public static void DisplayInfoMessageBox(string windowTitle, string localizedDesc)
 		{
 			DisplayInfoMessageBoxWithOwner(windowTitle, localizedDesc, mainWindow);
@@ -251,6 +284,55 @@ namespace ColdStorageManager
 			}
 		}
 
+		public static MySQLDbConnectionProfile GetMySqlDbConnectionProfileByName(string profileName)
+		{
+			foreach (var profile in mySqlDbConnectionProfiles)
+			{
+				if (profile.ProfileName.Equals(profileName))
+				{
+					return profile;
+				}	
+			}
+
+			return null;
+		}
+
+		public static IDbManager GetDbManagerFromConnectionName(string connName)
+		{
+			if (connName.Equals(GetLocalizedString("local")))
+			{
+				return localSqLiteDbManager;
+			}
+			else if(activeMySQLDbManager != null && activeMySQLDbManager.Profile.ProfileName.Equals(connName))
+			{
+				return activeMySQLDbManager;
+			}
+			else
+			{
+				return new MySQLDbManager(GetMySqlDbConnectionProfileByName(connName));
+			}
+		}
+
+		//return wether the cache could be used
+		public static bool UseLocalCapturesCache()
+		{
+			if (localCapturesDisplayCache != null && localCapturesDisplayCache.Count > 0)
+			{
+				capturesDisplay.Clear();
+				capturesDisplay.AddRange(localCapturesDisplayCache);
+				capturesList.Clear();
+				capturesList.AddRange(localCapturesCache);
+				return true;
+			}
+
+			return false;
+		}
+
+		public static void InvalidateRemoteCapturesCache()
+		{
+			remoteCapturesCacheSource = "";
+		}
+
 		public static void WriteConfigFileToDisk()
 		{
 			configFile.Save(ConfigurationSaveMode.Modified);
@@ -278,6 +360,7 @@ namespace ColdStorageManager
 				{
 					"searchSettings", new Dictionary<string, string>()
 					{
+						{ "selectedCaptureConnection", "local" },
 						{ "searchQuery", "" },
 						{ "sizeEnabled", "False" },
 						{ "sizeRelCmbx_selectedIndex", "0" },
@@ -335,26 +418,66 @@ namespace ColdStorageManager
 		public MainWindow()
 		{
 			LoadSettings();
-			Title = "Cold Storage Manager " + Globals.version;
+			InitVars();
+
 			InitializeComponent();
+			
+			InitVarsAfterUI();
 			LoadSettingsAfterUI();
-			trvDrives.ItemsSource = Globals.physicalDrives;
-			Globals.fileDialogEntryTree = new WpfObservableRangeCollection<CSMFileSystemEntry>();
+
+			RefreshCapturesWithFallback("local", 0, true);
+		}
+
+		private void InitVars()
+		{
+			Title = $"Cold Storage Manager {version}";
+
+			Globals.mainWindow = this;
+		}
+
+		private void InitVarsAfterUI()
+		{
 			Globals.capturesTrv = trvCaptures;
-			Globals.filesFound = new WpfObservableRangeCollection<SearchResultControl>();
-			Globals.dirsFound = new WpfObservableRangeCollection<SearchResultControl>();
+
+			//setup logpanels
+			Globals.dbLogPanel = dbLogPanel;
+			dbLogPanel.SetBorder(true, true, false);
+			dbLogPanel.SetRefresher(RefreshDbLogPopupOffsets);
+			Binding dbLogBinding = new Binding(nameof(logHolder.databaseLog));
+			dbLogBinding.Source = logHolder;
+			dbLogBinding.Mode = BindingMode.OneWay;
+			dbLogPanel.BindDisplayData(dbLogBinding);
+			Globals.logPanel = logPanel;
+			logPanel.SetBorder(false, true, true);
+			logPanel.SetRefresher(RefreshLogPopupOffsets);
+			Binding logBinding = new Binding(nameof(logHolder.log));
+			logBinding.Source = logHolder;
+			logBinding.Mode = BindingMode.OneWay;
+			logPanel.BindDisplayData(logBinding);
+
+			//setup status displays
+			Binding statusBinding = new Binding(nameof(logHolder.Status));
+			statusBinding.Source = logHolder;
+			statusBinding.Mode = BindingMode.OneWay;
+			statusBarTb.SetBinding(TextBlock.TextProperty, statusBinding);
+			Binding dbStatusBinding = new Binding(nameof(logHolder.DbStatus));
+			dbStatusBinding.Source = logHolder;
+			dbStatusBinding.Mode = BindingMode.OneWay;
+			dbStatusBarTb.SetBinding(TextBlock.TextProperty, dbStatusBinding);
+
+			trvDrives.ItemsSource = Globals.physicalDrives;
 			trvFileDialog.ItemsSource = Globals.fileDialogEntryTree;
 			fileListView.ItemsSource = Globals.filesFound;
 			dirListView.ItemsSource = Globals.dirsFound;
-			Globals.statusBarTb = statusBarTb;
-			Globals.dbStatusBarTb = dbStatusBarTb;
-			Globals.dbStatusEllipse = dbStatusEllipse;
-			statusBarTb.Text = Application.Current.Resources["ready"].ToString();
-			Globals.dbManager = new SQLiteDbManager();
-			Globals.captures = new ObservableCollection<CaptureBase>();
-			trvCaptures.ItemsSource = Globals.captures;
-			RefreshCaptures();
-			Globals.mainWindow = this;
+			trvCaptures.ItemsSource = Globals.capturesDisplay;
+
+			Logger.statusBarTb = statusBarTb;
+			Logger.dbStatusBarTb = dbStatusBarTb;
+			Logger.dbStatusEllipse = dbStatusEllipse;
+
+			Globals.localSqLiteDbManager = new SQLiteDbManager();
+
+			LogAction(GetLocalizedString("ready"), "Init complete");
 		}
 
 		//save settings on window close
@@ -509,6 +632,7 @@ namespace ColdStorageManager
 			{
 				mySqlDbConnectionProfiles.Add(new MySQLDbConnectionProfile(profileName, section.Settings[profileName].Value));
 			}
+
 		}
 
 		private void LoadSettingsAfterUI()
@@ -537,6 +661,12 @@ namespace ColdStorageManager
 			accessTimeDP.Text = section.Settings["accessTimeDP"].Value;
 			lastModTimeRelCmbx.SelectedIndex = Int32.Parse(section.Settings["lastModTimeRelCmbx_selectedIndex"].Value);
 			lastModTimeDP.Text = section.Settings["lastModTimeDP"].Value;
+			RefreshCaptureConnectionsCmbx(true);
+			SetSelectedDbManager();
+
+			//copy all cmbx options setup
+			copyFromCmbx.ItemsSource = copyFromList;
+			copyToCmbx.ItemsSource = copyToList;
 
 			//captureSettings
 			LoadCaptureSettings();
@@ -549,6 +679,111 @@ namespace ColdStorageManager
 			capPropCreateTimeCb.IsChecked = bool.Parse(section.Settings["capPropCreateTimeCb"].Value);
 			capPropLastAccessCb.IsChecked = bool.Parse(section.Settings["capPropLastAccessCb"].Value);
 			capPropLastModCb.IsChecked = bool.Parse(section.Settings["capPropLastModCb"].Value);
+		}
+
+		public void RemoveDisplayConnectionName(string connName)
+		{
+			copyFromListEventsEnabled = false;
+			copyToListEventsEnabled = false;
+
+			allConnectionNames.Remove(connName);
+			copyFromList.Remove(connName);
+			copyToList.Remove(connName);
+			captureConnList.Remove(connName);
+
+			copyFromListEventsEnabled = true;
+			copyToListEventsEnabled = true;
+		}
+
+		public void AddDisplayConnectionName(string connName)
+		{
+			allConnectionNames.Add(connName);
+			copyFromList.Add(connName);
+			copyToList.Add(connName);
+			captureConnList.Add(connName);
+		}
+
+		private void RefreshCaptureConnectionsCmbx(bool init = false)
+		{
+			captureConnSelectionChangedEnabled = false;
+
+			int selectedIndex = captureConnCmbx.SelectedIndex;
+			string selectedName = "";
+
+			// if we're in the initialization phase, the previous selected name should come from the configuration
+			if (init)
+			{
+				selectedName = GetSectionSetting("searchSettings", "selectedCaptureConnection");
+			}
+
+			if (selectedIndex != -1)
+			{
+				selectedName = captureConnCmbx.SelectedItem.ToString();
+			}
+
+			captureConnCmbx.ItemsSource = captureConnList;
+			AddDisplayConnectionName(GetLocalizedString("local"));
+
+			foreach (var mySqlDbConnectionProfile in mySqlDbConnectionProfiles)
+			{
+				AddDisplayConnectionName(mySqlDbConnectionProfile.ProfileName);
+				if (selectedName.Equals(mySqlDbConnectionProfile.ProfileName))
+				{
+					captureConnCmbx.SelectedItem = selectedName;
+				}
+			}
+
+			if (captureConnCmbx.SelectedIndex == -1)
+			{
+				captureConnCmbx.SelectedIndex = 0;
+			}
+
+			captureConnSelectionChangedEnabled = true;
+		}
+
+		// sets the 'selectedDbManager' and potentially 'activeMySQLDbManager' as indicated by the 'selectedCaptureConnection' setting in the local configuration
+		// assumes 'localSqLiteDbManager' has been initialized
+		// only the variable is being set, no connection is initiated
+		private void SetSelectedDbManager()
+		{
+			string connectionName = GetSectionSetting("searchSettings", "selectedCaptureConnection");
+			if (connectionName.Equals("local"))
+			{
+				selectedDbManager = localSqLiteDbManager;
+			}
+			else
+			{
+				// if the old MySQLDbManager can be used, do so
+				if (activeMySQLDbManager != null && activeMySQLDbManager.Profile.ProfileName.Equals(connectionName))
+				{
+					selectedDbManager = activeMySQLDbManager;
+					return;
+				}
+				else if(selectedDbManager is MySQLDbManager) //if changing from mysql to another mysql connection, first close the old one.
+				{
+					selectedDbManager.CloseConnection();
+					selectedDbManager = null;
+					activeMySQLDbManager = null;
+				}
+
+				var dbMgr = GetDbManagerFromConnectionName(connectionName);
+
+				//fallback to SQLite if profile not found due to possible configuration corruption
+				if (dbMgr == null)
+				{
+					selectedDbManager = localSqLiteDbManager;
+					captureConnSelectionChangedEnabled = false;
+					captureConnCmbx.SelectedIndex = 0;
+					captureConnSelectionChangedEnabled = true;
+
+					LogAction(GetLocalizedString("db_manager_not_found"), $"Failed to find DbManager: {connectionName}. Possible memory corruption.", ERROR);
+				}
+				else
+				{
+					selectedDbManager = dbMgr;
+					activeMySQLDbManager = (MySQLDbManager)dbMgr;
+				}
+			}
 		}
 
 		public void LoadLanguage(string prev)
@@ -688,24 +923,30 @@ namespace ColdStorageManager
 			if (Globals.selectedPartition.IsCaptured)
 			{
 				newCapture.id = Globals.selectedPartition.Capture.id;
-				Globals.dbManager.UpdateCaptureById(newCapture);
+				Globals.selectedDbManager.UpdateCaptureById(newCapture);
 			}
 			else
 			{
-				Globals.dbManager.SaveCapture(newCapture);
+				Globals.selectedDbManager.SaveCapture(newCapture);
 			}
 
 
 			//CFSHandler.WriteCFS("test", driveTxtBx.Text, nicknameTxtBx.Text);
-			statusBarTb.Text = "Successfully captured " + Globals.selectedPartition.Letter + " [" +
-			                   Globals.selectedPartition.Label + "]";
+			LogAction(GetLocalizedString("capture_successful") + Globals.selectedPartition.Letter + " [" +
+			                 Globals.selectedPartition.Label + "]", $"Successfully captured {Globals.selectedPartition.Letter} [{Globals.selectedPartition.Label}]");
+
+			if (selectedDbManager is MySQLDbManager)
+			{
+				InvalidateRemoteCapturesCache();
+			}
+
 			RefreshCaptures();
 		}
 
-		private void RefreshCaptures()
+		private List<CaptureBase> GetCapturesDisplayListFromCapturesList(List<Capture> captures)
 		{
-			Globals.captures.Clear();
-			List<Capture> captures = Globals.dbManager.GetCaptures();
+			List<CaptureBase> capturesDisplayList = new List<CaptureBase>();
+
 			if (captures.Count > 0)
 			{
 				searchButton.IsEnabled = true;
@@ -715,7 +956,7 @@ namespace ColdStorageManager
 					capture.SetViews();
 					CFSHandler.PrepareCapture(capture);
 					bool found = false;
-					foreach (var capturePhDisk in Globals.captures)
+					foreach (var capturePhDisk in capturesDisplayList)
 					{
 						if (capturePhDisk.drive_nickname == capture.drive_nickname &&
 						    capturePhDisk.drive_sn == capture.drive_sn)
@@ -733,12 +974,12 @@ namespace ColdStorageManager
 								capture.drive_nickname);
 
 						phDisk.captures.Add(capture);
-						Globals.captures.Add(phDisk);
+						capturesDisplayList.Add(phDisk);
 					}
 				}
 
 				//sort captures per drive per partition number
-				foreach (var capturePhDisk in Globals.captures)
+				foreach (var capturePhDisk in capturesDisplayList)
 				{
 					((CapturePhDisk)capturePhDisk).captures.Sort((Capture cap1, Capture cap2) =>
 						cap1.partition_number.CompareTo(cap2.partition_number));
@@ -746,15 +987,143 @@ namespace ColdStorageManager
 			}
 			else
 			{
-				Globals.captures.Add(new CapturePlaceholder(Globals.GetLocalizedString("no_captures")));
+				capturesDisplayList.Add(new CapturePlaceholder(Globals.GetLocalizedString("no_captures_placeholder")));
 				searchButton.IsEnabled = false;
 				searchButton.ToolTip = Globals.GetLocalizedString("no_captures_tooltip");
 			}
 
-			MatchCapturesToPartitions();
+			return capturesDisplayList;
 		}
 
-		private void MatchCapturesToPartitions()
+		//wrapper for RefreshCaptures that checks it's return value and falls back on a specified connection if necessary
+		private void RefreshCapturesWithFallback(string configNameOfFallbackConnection = "local", int indexOfFallbackConnection = 0, bool repeatRefresh = false)
+		{
+			if (!RefreshCaptures())
+			{
+				//if fallback conn is the same as the one already attempted and is not the local, then fall back to the local
+				if (selectedDbManager == GetDbManagerFromConnectionName(configNameOfFallbackConnection) && !(selectedDbManager is SQLiteDbManager))
+				{
+					SetSectionSetting("searchSettings", "selectedCaptureConnection", "local");
+					SetSelectedDbManager();
+
+					captureConnSelectionChangedEnabled = false;
+					captureConnCmbx.SelectedIndex = 0;
+					captureConnSelectionChangedEnabled = true;
+
+					if (!RefreshCaptures()) // if the local fails too, display error
+					{
+						captureConnSelectionChangedEnabled = false;
+						captureConnCmbx.SelectedIndex = -1;
+						captureConnSelectionChangedEnabled = true;
+						capturesDisplay.Add(new CapturePlaceholder(GetLocalizedString("could_not_connect_placeholder")));
+					}
+					return;
+				}
+				else if (selectedDbManager == GetDbManagerFromConnectionName(configNameOfFallbackConnection)) //if fallback conn is the same as the one already attempted and is local, display error
+				{
+					captureConnSelectionChangedEnabled = false;
+					captureConnCmbx.SelectedIndex = -1;
+					captureConnSelectionChangedEnabled = true;
+					capturesDisplay.Add(new CapturePlaceholder(GetLocalizedString("could_not_connect_placeholder")));
+					return;
+				}
+
+				SetSectionSetting("searchSettings", "selectedCaptureConnection", configNameOfFallbackConnection);
+				SetSelectedDbManager();
+
+				captureConnSelectionChangedEnabled = false;
+				captureConnCmbx.SelectedIndex = indexOfFallbackConnection;
+				captureConnSelectionChangedEnabled = true;
+
+				if (repeatRefresh && !RefreshCaptures())
+				{
+					if (indexOfFallbackConnection == 0)
+					{
+						captureConnSelectionChangedEnabled = false;
+						captureConnCmbx.SelectedIndex = -1;
+						captureConnSelectionChangedEnabled = true;
+						capturesDisplay.Add(new CapturePlaceholder(GetLocalizedString("could_not_connect_placeholder")));
+					}
+					else
+					{
+						SetSectionSetting("searchSettings", "selectedCaptureConnection", "local");
+						SetSelectedDbManager();
+
+						captureConnSelectionChangedEnabled = false;
+						captureConnCmbx.SelectedIndex = 0;
+						captureConnSelectionChangedEnabled = true;
+
+						if (!RefreshCaptures())
+						{
+							captureConnSelectionChangedEnabled = false;
+							captureConnCmbx.SelectedIndex = -1;
+							captureConnSelectionChangedEnabled = true;
+							capturesDisplay.Add(new CapturePlaceholder(GetLocalizedString("could_not_connect_placeholder")));
+						}
+					}
+				}
+				else //if repeated retry isn't allowed, display error msg after 2 failed attempts
+				{
+					captureConnSelectionChangedEnabled = false;
+					captureConnCmbx.SelectedIndex = -1;
+					captureConnSelectionChangedEnabled = true;
+					capturesDisplay.Add(new CapturePlaceholder(GetLocalizedString("could_not_connect_placeholder")));
+				}
+			}
+		}
+
+		//returns whether it could get the captures
+		private bool RefreshCaptures()
+		{
+			//connect if not already connected
+			if (selectedDbManager is MySQLDbManager mySqlDbManager)
+			{
+				if (!mySqlDbManager.IsConnected)
+				{
+					if (!mySqlDbManager.ConnectAndCreateTableIfNotFound())
+					{
+						//do nothing if connection failed
+						return false;
+					}
+				}
+
+				//if the cache is alive, use it
+				if (mySqlDbManager.Profile.ProfileName.Equals(remoteCapturesCacheSource) &&
+				    (DateTime.Now - remoteCapturesCacheDateTime).TotalSeconds < remoteCaptureCacheTTL)
+				{
+					capturesDisplay.Clear();
+					capturesDisplay.AddRange(remoteCapturesDisplayCache);
+					capturesList.Clear();
+					capturesList.AddRange(remoteCapturesCache);
+					return true;
+				}
+			}
+
+			List<Capture> captures = Globals.selectedDbManager.GetCaptures();
+			List<CaptureBase> capturesDisplayList = GetCapturesDisplayListFromCapturesList(captures);
+			if (selectedDbManager is SQLiteDbManager)
+			{
+				localCapturesDisplayCache = capturesDisplayList;
+				localCapturesCache = captures;
+			}
+			else
+			{
+				remoteCapturesDisplayCache = capturesDisplayList;
+				remoteCapturesCache = captures;
+				remoteCapturesCacheSource = ((MySQLDbManager)selectedDbManager).Profile.ProfileName;
+				remoteCapturesCacheDateTime = DateTime.Now;
+			}
+
+			MatchCapturesDisplayListToPartitions(capturesDisplayList);
+			capturesDisplay.Clear();
+			capturesDisplay.AddRange(capturesDisplayList);
+			capturesList.Clear();
+			capturesList.AddRange(captures);
+
+			return true;
+		}
+
+		private void MatchCapturesDisplayListToPartitions(List<CaptureBase> capturesDisplayList)
 		{
 			//resetting linked captures
 			foreach (var physicalDrive in Globals.physicalDrives)
@@ -767,7 +1136,7 @@ namespace ColdStorageManager
 			}
 
 			//matching captures to partitions
-			foreach (var genericCapture in Globals.captures)
+			foreach (var genericCapture in capturesDisplayList)
 			{
 				if (genericCapture is CapturePhDisk capturePhDisk)
 				{
@@ -816,7 +1185,7 @@ namespace ColdStorageManager
 				DateTime accessTimeToSearch = accessTimeDP.SelectedDate ?? default;
 				DateTime lastModTimeToSearch = lastModTimeDP.SelectedDate ?? default;
 				
-				foreach (var captureGl in Globals.captures)
+				foreach (var captureGl in Globals.capturesDisplay)
 				{
 					if (captureGl is CapturePhDisk capturePhDisk)
 					{
@@ -857,15 +1226,6 @@ namespace ColdStorageManager
 		private void SearchButton_Click(object sender, RoutedEventArgs e)
 		{
 			Search(searchTxtBox.Text);
-		}
-
-		private void DeleteBtn_Click(object sender, RoutedEventArgs e)
-		{
-			if (trvCaptures.SelectedItem is Capture capture)
-			{
-				Globals.dbManager.DeleteCapture(capture);
-				RefreshCaptures();
-			}
 		}
 
 		private void SizeEnable_OnChecked(object sender, RoutedEventArgs e)
@@ -928,6 +1288,207 @@ namespace ColdStorageManager
 		private void MySQLMenuItem_Click(object sender, RoutedEventArgs e)
 		{
 			new MySQLConnectWindow(this);
+		}
+
+		private void CaptureConnCmbx_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			if (captureConnSelectionChangedEnabled)
+			{
+				string previousSelectedConnection = GetSectionSetting("searchSettings", "selectedCaptureConnection");
+				if (captureConnCmbx.SelectedIndex == 0)
+				{
+					SetSectionSetting("searchSettings", "selectedCaptureConnection", "local");
+					SetSelectedDbManager();
+
+					if (UseLocalCapturesCache())
+					{
+						return;
+					}
+				}
+				else if (captureConnCmbx.SelectedIndex == -1)
+				{
+					captureConnCmbx.SelectedIndex = 0;
+					return;
+				}
+				else
+				{
+					SetSectionSetting("searchSettings", "selectedCaptureConnection", e.AddedItems[0].ToString());
+					SetSelectedDbManager();
+				}
+
+				
+
+				//if refreshing failed for some reason, fall back to previous connection
+				if (e.RemovedItems.Count > 0)
+				{
+					RefreshCapturesWithFallback(previousSelectedConnection, captureConnCmbx.Items.IndexOf(e.RemovedItems[0]));
+				}
+				else // if there was nothing selected, try local as fallback
+				{
+					RefreshCapturesWithFallback("local", 0);
+				}	
+			}
+		}
+
+		public void RefreshDbLogPopupOffsets()
+		{
+			System.Windows.Point dbStatusBtnPosition = GetPositionRelativeTo(dbStatusBtn, mainWindow);
+			System.Windows.Point mainStatusBarPosition = GetPositionRelativeTo(mainStatusBar, mainWindow);
+
+			dbLogPopup.HorizontalOffset = (mainWindow.ActualWidth - dbStatusBtnPosition.X) - dbLogPanel.Width - 17;
+			dbLogPopup.VerticalOffset = mainStatusBarPosition.Y - dbStatusBtnPosition.Y - 1;
+		}
+
+		public void RefreshLogPopupOffsets()
+		{
+			System.Windows.Point statusBtnPosition = GetPositionRelativeTo(statusBtn, mainWindow);
+			System.Windows.Point mainStatusBarPosition = GetPositionRelativeTo(mainStatusBar, mainWindow);
+
+			logPopup.HorizontalOffset =  - statusBtnPosition.X;
+			logPopup.VerticalOffset = mainStatusBarPosition.Y - statusBtnPosition.Y - 1;
+		}
+
+		private void DbStatusBtn_OnClick(object sender, RoutedEventArgs e)
+		{
+			RefreshDbLogPopupOffsets();
+			dbLogPopup.IsOpen = true;
+		}
+
+		private void StatusBtn_OnClick(object sender, RoutedEventArgs e)
+		{
+			RefreshLogPopupOffsets();
+			logPopup.IsOpen = true;
+		}
+
+		private void CopyAllBtn_OnClick(object sender, RoutedEventArgs e)
+		{
+			if (copyFromCmbx.SelectedValue != null && copyToCmbx.SelectedValue != null)
+			{
+				if (!copyFromCmbx.SelectedValue.ToString().Equals(copyToCmbx.SelectedValue.ToString()))
+				{
+					IDbManager from, to;
+
+					from = GetDbManagerFromConnectionName(copyFromCmbx.SelectedValue.ToString());
+					to = GetDbManagerFromConnectionName(copyToCmbx.SelectedValue.ToString());
+
+					if (!from.IsConnected)
+					{
+						if (!from.ConnectAndCreateTableIfNotFound())
+						{
+							return;
+						}
+					}
+
+					if (!to.IsConnected)
+					{
+						Console.WriteLine("to");
+						if (!to.ConnectAndCreateTableIfNotFound())
+						{
+							return;
+						}
+					}
+
+					//both connected
+					var captures = from.GetCaptures();
+					foreach (var capture in captures)
+					{
+						to.SaveCapture(capture);
+					}
+
+					if (to == selectedDbManager)
+					{
+						if (selectedDbManager is MySQLDbManager)
+						{
+							InvalidateRemoteCapturesCache();
+						}
+
+						RefreshCapturesWithFallback("local", 0, true);
+					}
+				}
+				else
+				{
+					LogActionSameMsg("Copy From and To cannot be the same!!", WARNING);
+				}
+			}
+			else
+			{
+				LogActionSameMsg("You must select a connection for From and To as well!!", WARNING);
+			}
+		}
+
+		private void CopyFromCmbx_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			if (copyFromListEventsEnabled)
+			{
+				if (e.RemovedItems.Count > 0 && e.AddedItems[0].ToString().Equals(copyToCmbx.SelectedValue))
+				{
+					copyToListEventsEnabled = false;
+					copyToCmbx.SelectedValue = e.RemovedItems[0].ToString();
+					copyToListEventsEnabled = true;
+				}else if (e.AddedItems[0].ToString().Equals(copyToCmbx.SelectedValue))
+				{
+					copyToListEventsEnabled = false;
+					copyToCmbx.SelectedIndex = -1;
+					copyToListEventsEnabled = true;
+				}
+			}
+		}
+
+		private void CopyToCmbx_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			if (copyToListEventsEnabled)
+			{
+				if (e.RemovedItems.Count > 0 && e.AddedItems[0].ToString().Equals(copyFromCmbx.SelectedValue))
+				{
+					copyFromListEventsEnabled = false;
+					copyFromCmbx.SelectedValue = e.RemovedItems[0].ToString();
+					copyFromListEventsEnabled = true;
+				}else if (e.AddedItems[0].ToString().Equals(copyFromCmbx.SelectedValue))
+				{
+					copyFromListEventsEnabled = false;
+					copyFromCmbx.SelectedIndex = -1;
+					copyFromListEventsEnabled = true;
+				}
+			}
+		}
+
+		private void DeleteBtn_Click(object sender, RoutedEventArgs e)
+		{
+			if (trvCaptures.SelectedItem is Capture capture)
+			{
+				Globals.selectedDbManager.DeleteCapture(capture);
+				
+				if (selectedDbManager is MySQLDbManager)
+				{
+					InvalidateRemoteCapturesCache();
+				}
+
+				RefreshCaptures();
+			}
+		}
+
+		private void DelAllBtn_OnClick(object sender, RoutedEventArgs e)
+		{
+			if (MessageBox.Show(this,
+				    $"{GetLocalizedString("del_all_warning")} {captureConnCmbx.SelectedValue.ToString()}.{LineSeparator}" +
+				    $"{GetLocalizedString("sure")}", GetLocalizedString("del_all_title"), MessageBoxButton.YesNo,
+				    MessageBoxImage.Exclamation, MessageBoxResult.No) == MessageBoxResult.Yes)
+			{
+				// InvalidateRemoteCapturesCache();
+				// RefreshCaptures();
+
+				foreach (var capture in capturesList)
+				{
+					selectedDbManager.DeleteCapture(capture);
+				}
+
+				if (selectedDbManager is MySQLDbManager)
+				{
+					InvalidateRemoteCapturesCache();
+				}
+
+				RefreshCapturesWithFallback();
+			}
 		}
 	}
 

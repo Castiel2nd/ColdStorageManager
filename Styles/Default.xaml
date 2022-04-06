@@ -189,4 +189,5 @@
 	<sys:Double x:Key="OptionsCmboxMinWidth">150</sys:Double>
 	<sys:Double x:Key="TxtboxMinWidth">100</sys:Double>
 	<sys:Double x:Key="OptionsCmboxMinHeight">25</sys:Double>
+	<sys:Double x:Key="LogPanelPopupBorderSize">3</sys:Double>
 </ResourceDictionary>

@@ -5,8 +5,12 @@ using ColdStorageManager.Models;
 
 namespace ColdStorageManager.DBManagers
 {
-	internal interface IDbManager
+	public interface IDbManager
 	{
+		public const string DbCapturesTableName = "Captures";
+
+		public bool IsConnected { get; }
+
 		public List<Capture> GetCaptures();
 
 		public void SaveCapture(Capture capture);
@@ -16,5 +20,7 @@ namespace ColdStorageManager.DBManagers
 
 		public void DeleteCapture(Capture capture);
 
+		public void CloseConnection();
+		public bool ConnectAndCreateTableIfNotFound();
 	}
 }

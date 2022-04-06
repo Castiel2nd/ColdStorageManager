@@ -22,6 +22,7 @@ namespace ColdStorageManager
 	public partial class MySQLConnectWindow : Window
 	{
 		private MySQLDbConnectionProfile selectedProfile;
+		private string prevSelectedProfileName;
 		private MainWindow parent;
 		private bool selectionChangedEnabled = true;
 
@@ -44,6 +45,7 @@ namespace ColdStorageManager
 		private void SetProfileList()
 		{
 			selectionChangedEnabled = false;
+
 			connProfileCmbx.Items.Clear();
 			foreach (var profile in mySqlDbConnectionProfiles)
 			{
@@ -128,6 +130,7 @@ namespace ColdStorageManager
 				if (connProfileCmbx.SelectedIndex == -1)
 				{
 					mySqlDbConnectionProfiles.Add(profile);
+					mainWindow.AddDisplayConnectionName(profile.ProfileName);
 				}
 				else if (profile.ProfileName.Equals(mySqlDbConnectionProfiles[connProfileCmbx.SelectedIndex].ProfileName))
 				{
@@ -144,6 +147,7 @@ namespace ColdStorageManager
 				else
 				{
 					mySqlDbConnectionProfiles.Add(profile);
+					mainWindow.AddDisplayConnectionName(profile.ProfileName);
 				}
 				SetProfileList();
 				connProfileCmbx.SelectedIndex = mySqlDbConnectionProfiles.IndexOf(profile);
@@ -174,9 +178,37 @@ namespace ColdStorageManager
 		{
 			if (connProfileCmbx.SelectedIndex != -1)
 			{
+				if (activeMySQLDbManager != null &&
+				    activeMySQLDbManager.Profile.Equals(mySqlDbConnectionProfiles[connProfileCmbx.SelectedIndex]))
+				{
+					if (activeMySQLDbManager.IsConnected)
+					{
+						activeMySQLDbManager.CloseConnection();
+					}
+
+					activeMySQLDbManager = null;
+				}
+
+				int selectedIndex = connProfileCmbx.SelectedIndex;
+				mainWindow.RemoveDisplayConnectionName(mySqlDbConnectionProfiles[connProfileCmbx.SelectedIndex].ProfileName);
 				mySqlDbConnectionProfiles.RemoveAt(connProfileCmbx.SelectedIndex);
 				selectedProfile = null;
 				SetProfileList();
+
+				SaveMySQLDbConnectionProfilesToMem();
+				WriteConfigFileToDisk();
+
+				if (connProfileCmbx.Items.Count > 0 && selectedIndex + 1 <= connProfileCmbx.Items.Count)
+				{
+					connProfileCmbx.SelectedIndex = selectedIndex;
+				}else if (connProfileCmbx.Items.Count > 0)
+				{
+					connProfileCmbx.SelectedIndex = connProfileCmbx.Items.Count - 1;
+				}
+				else
+				{
+					Reset_OnClick(null, null);
+				}
 			}
 		}
 
@@ -217,7 +249,8 @@ namespace ColdStorageManager
 		private void Test_OnClick(object sender, RoutedEventArgs e)
 		{
 			var profile = CreateConnectionProfile();
-			new MySQLDbManager(profile, true, this);
+			var testDbManager = new MySQLDbManager(profile);
+			testDbManager.TestConnection();
 		}
 	}
 }
