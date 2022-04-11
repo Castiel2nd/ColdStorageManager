@@ -8,7 +8,7 @@
 		Title="{DynamicResource options}" Height="450" Width="800" HorizontalContentAlignment="Left"
         ShowInTaskbar="False"
 >
-	<DockPanel LastChildFill="True">
+	<DockPanel LastChildFill="True" Margin="0,0,0,0">
 		<DockPanel.Resources>
 			<ResourceDictionary Source="Styles/CommonLinearUIStylesSetter.xaml"></ResourceDictionary>
 		</DockPanel.Resources>
@@ -24,9 +24,9 @@
 				<Grid.RowDefinitions>
 					<RowDefinition/>
 				</Grid.RowDefinitions>
-				<Button x:Name="okBtn" Grid.Column="1" Content="{DynamicResource ResourceKey=ok}" HorizontalAlignment="Center" VerticalAlignment="Center" Height="25" Padding="5,3,5,5" Click="okBtn_Click" />
-				<Button x:Name="applyBtn" Grid.Column="2" Content="{DynamicResource ResourceKey=apply}" HorizontalAlignment="Center" VerticalAlignment="Center" Height="25" Padding="5,3,5,5" Click="applyBtn_Click" />
-				<Button x:Name="cancelBtn" Grid.Column="3" Content="{DynamicResource ResourceKey=cancel}" HorizontalAlignment="Center" VerticalAlignment="Center" Height="25" Padding="5,3,5,5" IsCancel="True" Click="cancelBtn_Click"/>
+				<Button x:Name="okBtn" Grid.Column="1" Content="{DynamicResource ResourceKey=ok}" HorizontalAlignment="Center" VerticalAlignment="Center" Height="25"  Click="okBtn_Click" />
+				<Button x:Name="applyBtn" Grid.Column="2" Content="{DynamicResource ResourceKey=apply}" HorizontalAlignment="Center" VerticalAlignment="Center" Height="25"  Click="applyBtn_Click" />
+				<Button x:Name="cancelBtn" Grid.Column="3" Content="{DynamicResource ResourceKey=cancel}" HorizontalAlignment="Center" VerticalAlignment="Center" Height="25"  IsCancel="True" Click="cancelBtn_Click"/>
 			</Grid>
 		</StackPanel>
 

@@ -7,6 +7,10 @@ namespace ColdStorageManager.DBManagers
 {
 	public interface IDbManager
 	{
+		// constants for table column types
+		public const int TEXT = 0;
+		public const int INTEGER = 1;
+
 		public const string DbCapturesTableName = "Captures";
 
 		public bool IsConnected { get; }
@@ -19,8 +23,11 @@ namespace ColdStorageManager.DBManagers
 		public void UpdateCaptureById(Capture capture);
 
 		public void DeleteCapture(Capture capture);
+		public bool DeleteAllCaptures();
 
 		public void CloseConnection();
-		public bool ConnectAndCreateTableIfNotFound();
+		public bool ConnectAndCreateTable();
+
+		public bool CreateTable(string tableName, List<ColumnInfo> columns);
 	}
 }

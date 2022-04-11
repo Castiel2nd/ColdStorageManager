@@ -36,309 +36,6 @@ using Point = System.Drawing.Point;
 
 namespace ColdStorageManager
 {
-	//static class for global variables
-	public static class Globals
-	{
-		//app.cs
-		public static char[] volumeGuidDelimiterArray = new char[] { '{', '}'};
-
-		public const string LineSeparator = "\n";
-
-		public const string version = "v0.3";
-		public static string startupWindowLocation;
-		public static double[] startupWindowLocationCoords;
-		public static MainWindow mainWindow;
-
-		public static IDbManager selectedDbManager = null;
-		public static MySQLDbManager activeMySQLDbManager;
-		public static SQLiteDbManager localSqLiteDbManager;
-		public static List<MySQLDbConnectionProfile> mySqlDbConnectionProfiles = new List<MySQLDbConnectionProfile>();
-
-		public static List<PhysicalDrive> physicalDrives;
-		public static TreeView capturesTrv;
-		public static WpfObservableRangeCollection<CaptureBase> capturesDisplay = new WpfObservableRangeCollection<CaptureBase>();
-		public static List<Capture> capturesList = new List<Capture>();
-
-		public static double remoteCaptureCacheTTL = 60; //how long the remote captures can be cached for
-		//these lists are used for caching and to facilitate copying between connections
-		public static List<CaptureBase> localCapturesDisplayCache;
-		public static List<CaptureBase> remoteCapturesDisplayCache;
-		public static List<Capture> localCapturesCache;
-		public static List<Capture> remoteCapturesCache;
-		public static DateTime remoteCapturesCacheDateTime;
-		public static string remoteCapturesCacheSource; //where are the remote captures from
-		public static List<string> allConnectionNames = new List<string>();
-		public static ObservableCollection<string> copyFromList = new ObservableCollection<string>();
-		public static ObservableCollection<string> copyToList = new ObservableCollection<string>();
-		public static ObservableCollection<string> captureConnList = new ObservableCollection<string>();
-		public static bool copyFromListEventsEnabled = true;
-		public static bool copyToListEventsEnabled = true;
-
-		public static Partition selectedPartition;
-
-		public static WpfObservableRangeCollection<CSMFileSystemEntry> fileDialogEntryTree = new WpfObservableRangeCollection<CSMFileSystemEntry>();
-		public static List<CSMFileSystemEntry> fsList;
-
-		public static WpfObservableRangeCollection<SearchResultControl> filesFound = new WpfObservableRangeCollection<SearchResultControl>();
-		public static List<int> fileResultsColumnsOrder;
-		public static List<double> fileResultsColumnWidths;
-		public static WpfObservableRangeCollection<SearchResultControl> dirsFound = new WpfObservableRangeCollection<SearchResultControl>();
-		public static List<int> dirResultsColumnsOrder;
-		public static List<double> dirResultsColumnWidths;
-		
-		
-		public const ushort numBlobTypes = 5;
-
-		//Log stuff
-		public static LogHolder logHolder = new LogHolder();
-		public static LogPanel dbLogPanel;
-		public static LogPanel logPanel;
-
-		// options
-		public const string configFileName = "CSM.config";
-		public static Configuration configFile;
-		public static KeyValueConfigurationCollection settings;
-		public static bool ExceptionPathsEnable;
-		public static bool ExceptionFileTypesCaptureEnable;
-		public static bool ExceptionFileTypesSearchEnable;
-		public static ObservableCollection<string> exceptionPathsOC;
-		public static List<string> exceptionFileTypesCaptureList;
-		public static List<string> exceptionFileTypesSearchList;
-
-		private static string[] sizes =
-		{
-			" B", " KB", " MB", " GB", " TB", " PB", " EB"
-		};
-		public static string GetFormattedSize(in ulong inSize)
-		{
-			double size = (double)inSize;
-			int i;
-			for (i = 0; size >= 1024F; i++)
-			{
-				//Console.WriteLine(size);
-				size /= 1024;
-			}
-
-			return string.Format("{0:0.00}", size) + sizes[i];
-		}
-
-		//bitmasks for capture properties
-		public const ushort SIZE = 0b1;
-		public const ushort CREATION_TIME = 0b10;
-		public const ushort LAST_ACCESS_TIME = 0b100;
-		public const ushort LAST_MODIFICATION_TIME = 0b1000;
-
-		public static ushort ToProperties(bool size, bool createTime, bool accessTime, bool modTime)
-		{
-			ushort captureProperties = 0;
-			if (size)
-				captureProperties ^= Globals.SIZE;
-			if (createTime)
-				captureProperties ^= Globals.CREATION_TIME;
-			if (accessTime)
-				captureProperties ^= Globals.LAST_ACCESS_TIME;
-			if (modTime)
-				captureProperties ^= Globals.LAST_MODIFICATION_TIME;
-			return captureProperties;
-		}
-
-		public static (bool size, bool createTime, bool lastAccessTime, bool lastModTime) DecodeCaptureProperties(ushort captureProperties)
-		{
-			return (
-					((captureProperties & Globals.SIZE) == Globals.SIZE),
-					((captureProperties & Globals.CREATION_TIME) == Globals.CREATION_TIME),
-					((captureProperties & Globals.LAST_ACCESS_TIME) == Globals.LAST_ACCESS_TIME),
-					((captureProperties & Globals.LAST_MODIFICATION_TIME) == Globals.LAST_MODIFICATION_TIME)
-			);
-		}
-
-		public static string GetSectionSetting(string section, string key)
-		{
-			return (configFile.Sections.Get(section) as AppSettingsSection).Settings[key]?.Value;
-		}
-
-		public static AppSettingsSection GetSection(string sectionName)
-		{
-			return configFile.Sections.Get(sectionName) as AppSettingsSection;
-		}
-
-		public static void SetSectionSetting(string section, string key, string value)
-		{
-			(configFile.Sections.Get(section) as AppSettingsSection).Settings[key].Value = value;
-		}
-
-		public static void SetNewSectionSetting(string section, string key, string value)
-		{
-			(configFile.Sections.Get(section) as AppSettingsSection).Settings.Add(key, value);
-		}
-
-		public static string GetLocalizedString(string key)
-		{
-			return Application.Current.Resources[key].ToString();
-		}
-
-		public static List<CSMFileSystemEntry> GetFileSystemEntries(in string path, in CSMDirectory parent = null, in bool getIcon = true)
-		{
-			List<CSMFileSystemEntry> fileSystemEntries = new List<CSMFileSystemEntry>();
-
-			string[] dirs = null;
-			try
-			{
-				dirs = Directory.GetDirectories(path);
-			}
-			catch (UnauthorizedAccessException e)
-			{
-				if (parent != null)
-				{
-					parent.IsUnaccessible = true;
-				}
-			}
-			catch (Exception e)
-			{
-				//TODO
-			}
-
-			if (dirs == null)
-			{
-				return fileSystemEntries;
-			}
-
-			foreach (string dir in dirs)
-			{
-				fileSystemEntries.Add(new CSMDirectory(dir, parent, getIcon));
-			}
-
-			foreach (string file in Directory.GetFiles(path))
-			{
-				fileSystemEntries.Add(new CSMFile(file, parent, getIcon));
-			}
-
-			return fileSystemEntries;
-		}
-
-		public static TreeViewItem FindTviFromObjectRecursive(ItemsControl ic, object o)
-		{
-			//Search for the object model in first level children (recursively)
-			TreeViewItem tvi = ic.ItemContainerGenerator.ContainerFromItem(o) as TreeViewItem;
-			if (tvi != null) return tvi;
-			//Loop through user object models
-			foreach (object i in ic.Items)
-			{
-				//Get the TreeViewItem associated with the iterated object model
-				TreeViewItem tvi2 = ic.ItemContainerGenerator.ContainerFromItem(i) as TreeViewItem;
-				tvi = FindTviFromObjectRecursive(tvi2, o);
-				if (tvi != null) return tvi;
-			}
-			return null;
-		}
-
-		public static IEnumerable<string> GetFileTypesFromString(string filetypes)
-		{
-			return filetypes.Split(',').Select(type => "." + type.Trim());
-		}
-
-		public static void MoveItemInList<T>(int oldIndex, int newIndex, List<T> list)
-		{
-			T item = list[oldIndex];
-			list.RemoveAt(oldIndex);
-			list.Insert(newIndex, item);
-		}
-
-		public static System.Windows.Point GetPositionRelativeTo(Control controlToGetThePositionOf, Control relativeToThis)
-		{
-			return controlToGetThePositionOf.TransformToAncestor(relativeToThis).Transform(new System.Windows.Point(0, 0));
-		}
-
-		public static void DisplayInfoMessageBox(string windowTitle, string localizedDesc)
-		{
-			DisplayInfoMessageBoxWithOwner(windowTitle, localizedDesc, mainWindow);
-		}
-
-		public static void DisplayInfoMessageBoxWithOwner(string windowTitle, string localizedDesc, Window owner)
-		{
-			MessageBox.Show(owner, localizedDesc,
-				windowTitle, MessageBoxButton.OK, MessageBoxImage.Information,
-				MessageBoxResult.OK);
-		}
-
-		public static void DisplayErrorMessageBoxWithDescription(string windowTitle, string localizedDesc, string exceptionMessage)
-		{
-			DisplayErrorMessageBoxWithDescriptionWithOwner(windowTitle, localizedDesc, exceptionMessage, mainWindow);
-		}
-
-		public static void DisplayErrorMessageBoxWithDescriptionWithOwner(string windowTitle, string localizedDesc, string exceptionMessage, Window owner)
-		{
-			MessageBox.Show(owner, localizedDesc + LineSeparator + LineSeparator
-			                                     + GetLocalizedString("description") + LineSeparator + LineSeparator
-			                                     + exceptionMessage,
-				windowTitle, MessageBoxButton.OK, MessageBoxImage.Error,
-				MessageBoxResult.OK);
-		}
-
-		public static void SaveMySQLDbConnectionProfilesToMem()
-		{
-			GetSection("mysqlConnectionProfiles").Settings.Clear();
-			foreach (var mySqlDbConnectionProfile in mySqlDbConnectionProfiles)
-			{
-				SetNewSectionSetting("mysqlConnectionProfiles", mySqlDbConnectionProfile.ProfileName, mySqlDbConnectionProfile.ToString());
-			}
-		}
-
-		public static MySQLDbConnectionProfile GetMySqlDbConnectionProfileByName(string profileName)
-		{
-			foreach (var profile in mySqlDbConnectionProfiles)
-			{
-				if (profile.ProfileName.Equals(profileName))
-				{
-					return profile;
-				}	
-			}
-
-			return null;
-		}
-
-		public static IDbManager GetDbManagerFromConnectionName(string connName)
-		{
-			if (connName.Equals(GetLocalizedString("local")))
-			{
-				return localSqLiteDbManager;
-			}
-			else if(activeMySQLDbManager != null && activeMySQLDbManager.Profile.ProfileName.Equals(connName))
-			{
-				return activeMySQLDbManager;
-			}
-			else
-			{
-				return new MySQLDbManager(GetMySqlDbConnectionProfileByName(connName));
-			}
-		}
-
-		//return wether the cache could be used
-		public static bool UseLocalCapturesCache()
-		{
-			if (localCapturesDisplayCache != null && localCapturesDisplayCache.Count > 0)
-			{
-				capturesDisplay.Clear();
-				capturesDisplay.AddRange(localCapturesDisplayCache);
-				capturesList.Clear();
-				capturesList.AddRange(localCapturesCache);
-				return true;
-			}
-
-			return false;
-		}
-
-		public static void InvalidateRemoteCapturesCache()
-		{
-			remoteCapturesCacheSource = "";
-		}
-
-		public static void WriteConfigFileToDisk()
-		{
-			configFile.Save(ConfigurationSaveMode.Modified);
-		}
-	}
-
 	/// <summary>
 	/// Interaction logic for MainWindow.xaml
 	/// </summary>
@@ -406,33 +103,139 @@ namespace ColdStorageManager
 					}
 				},
 				{
-					"mysqlConnectionProfiles", new Dictionary<string, string>()
-					{
-						
-					}
+					"mysqlConnectionProfiles", new Dictionary<string, string>() {}
 				}
 			};
 
 		private bool captureConnSelectionChangedEnabled = false;
 
+		private void LoadSettingsBeforeUI()
+		{
+			var configFileMap = new ExeConfigurationFileMap();
+			configFileMap.ExeConfigFilename = Globals.configFileName;
+			AppSettingsSection section;
+			try
+			{
+				var configFile = ConfigurationManager.OpenMappedExeConfiguration(configFileMap, ConfigurationUserLevel.None);
+				Globals.configFile = configFile;
+				//configFile.Sections.Add("general", new AppSettingsSection());
+				//AppSettingsSection sec = configFile.Sections.Get("general") as AppSettingsSection;
+				//sec.Settings.Add("hello", "test");
+
+				var settings = configFile.AppSettings.Settings;
+				Globals.settings = settings;
+				//load default settings
+				foreach (KeyValuePair<string, string> setting in defaultSettings)
+				{
+					if (settings[setting.Key] == null)
+					{
+						settings.Add(setting.Key, setting.Value);
+					}
+				}
+				//load default section settings
+				foreach (var sectionInfo in defaultSectionSettings)
+				{
+					if (configFile.Sections.Get(sectionInfo.Key) == null)
+					{
+						configFile.Sections.Add(sectionInfo.Key, new AppSettingsSection());
+					}
+
+					foreach (var setting in sectionInfo.Value)
+					{
+						section = configFile.Sections.Get(sectionInfo.Key) as AppSettingsSection;
+						if (section.Settings[setting.Key] == null)
+						{
+							section.Settings.Add(setting.Key, setting.Value);
+						}
+					}
+				}
+				configFile.Save(ConfigurationSaveMode.Modified);
+				ConfigurationManager.RefreshSection(configFile.AppSettings.SectionInformation.Name);
+			}
+			catch (ConfigurationErrorsException e)
+			{
+				Console.WriteLine("Configuration error: " + e.BareMessage);
+			}
+
+			//loading settings
+			//if set language is not the default, load it
+			if (Globals.settings["language"].Value != "en-US")
+			{
+				LoadLanguage("en-US");
+			}
+
+			//defaultSettings other than language
+			Globals.startupWindowLocation = Globals.settings["startupWindowLocation"].Value;
+			Globals.startupWindowLocationCoords =
+				Globals.settings["startupWindowLocationCoords"].Value.Split(',').Select(double.Parse).ToArray();
+			if ((Globals.startupWindowLocationCoords.All(d => d == 0)) || Globals.startupWindowLocation.Equals("center"))
+			{
+				WindowStartupLocation = WindowStartupLocation.CenterScreen;
+			}
+			else if (Globals.startupWindowLocation.Equals("remember"))
+			{
+				Left = Globals.startupWindowLocationCoords[0];
+				Top = Globals.startupWindowLocationCoords[1];
+				if (Globals.settings["startupWindowState"].Value.Equals("maximized"))
+				{
+					WindowState = WindowState.Maximized;
+				}
+			}
+
+			//exceptions
+			section = Globals.configFile.Sections.Get("exceptions") as AppSettingsSection;
+			Globals.ExceptionPathsEnable = bool.Parse(section.Settings["exceptionPathsEnableCb"].Value);
+			Globals.ExceptionFileTypesCaptureEnable = bool.Parse(section.Settings["exceptionFileTypesCaptureEnableCb"].Value);
+			Globals.ExceptionFileTypesSearchEnable = bool.Parse(section.Settings["exceptionFileTypesSearchEnableCb"].Value);
+			Globals.exceptionPathsOC = new ObservableCollection<string>(section.Settings["exceptionsList"].Value.Split("\n"));
+			Globals.exceptionFileTypesCaptureList = new List<string>(Globals.GetFileTypesFromString(section.Settings["exceptionFileTypesCaptureTxtBx"].Value));
+			Globals.exceptionFileTypesSearchList = new List<string>(Globals.GetFileTypesFromString(section.Settings["exceptionFileTypesSearchTxtBx"].Value));
+
+			// searchSettings
+			section = Globals.configFile.Sections.Get("searchSettings") as AppSettingsSection;
+			Globals.fileResultsColumnsOrder =
+				new List<int>(section.Settings["fileResultsColumnsOrder"].Value.Split(",").Select(int.Parse));
+			Globals.fileResultsColumnWidths =
+				new List<double>(section.Settings["fileResultsColumnWidths"].Value.Split(",").Select(double.Parse));
+			Globals.dirResultsColumnsOrder =
+				new List<int>(section.Settings["dirResultsColumnsOrder"].Value.Split(",").Select(int.Parse));
+			Globals.dirResultsColumnWidths =
+				new List<double>(section.Settings["dirResultsColumnWidths"].Value.Split(",").Select(double.Parse));
+
+			//mysqlConnectionProfiles
+			section = Globals.configFile.Sections.Get("mysqlConnectionProfiles") as AppSettingsSection;
+			foreach (var profileName in section.Settings.AllKeys)
+			{
+				dbConnectionProfiles.Add(new DbConnectionProfile(profileName, section.Settings[profileName].Value));
+			}
+
+		}
+
+		private void InitVarsBeforeUI()
+		{
+			Title = $"Cold Storage Manager {version}";
+
+			Globals.mainWindow = this;
+
+			//creating data sources
+			dataSources.Add(new DataSource(new DbConnectionProfile(GetLocalizedString(ConfigNameOfLocalDS))));
+			foreach (var profile in dbConnectionProfiles)
+			{
+				dataSources.Add(new DataSource(profile));
+			}
+		}
+
 		public MainWindow()
 		{
-			LoadSettings();
-			InitVars();
+			LoadSettingsBeforeUI();
+			InitVarsBeforeUI();
 
 			InitializeComponent();
 			
 			InitVarsAfterUI();
 			LoadSettingsAfterUI();
 
-			RefreshCapturesWithFallback("local", 0, true);
-		}
-
-		private void InitVars()
-		{
-			Title = $"Cold Storage Manager {version}";
-
-			Globals.mainWindow = this;
+			RefreshCapturesWithFallback();
 		}
 
 		private void InitVarsAfterUI()
@@ -475,164 +278,7 @@ namespace ColdStorageManager
 			Logger.dbStatusBarTb = dbStatusBarTb;
 			Logger.dbStatusEllipse = dbStatusEllipse;
 
-			Globals.localSqLiteDbManager = new SQLiteDbManager();
-
-			LogAction(GetLocalizedString("ready"), "Init complete");
-		}
-
-		//save settings on window close
-#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-		private void MainWindow_OnClosed(object? sender, EventArgs e)
-#pragma warning restore CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-		{
-			// general
-			if (Globals.startupWindowLocation.Equals("remember"))
-			{
-				Globals.startupWindowLocationCoords[0] = Left;
-				Globals.startupWindowLocationCoords[1] = Top;
-				Globals.settings["startupWindowLocationCoords"].Value =
-					string.Join(',', Globals.startupWindowLocationCoords);
-				switch (WindowState)
-				{
-					case WindowState.Maximized:
-						Globals.settings["startupWindowState"].Value = "maximized";
-						break;
-					case WindowState.Normal:
-						Globals.settings["startupWindowState"].Value = "normal";
-						break;
-				}
-			}
-			
-
-			//searchSettings
-			Globals.SetSectionSetting("searchSettings", "searchQuery", searchTxtBox.Text);
-			Globals.SetSectionSetting("searchSettings", "sizeEnabled", sizeEnable.IsChecked.ToString());
-			Globals.SetSectionSetting("searchSettings", "sizeRelCmbx_selectedIndex", sizeRelCmbx.SelectedIndex.ToString());
-			Globals.SetSectionSetting("searchSettings", "sizeSlider_value", sizeSlider.Value.ToString());
-			Globals.SetSectionSetting("searchSettings", "sizeCmbx_selectedIndex", sizeCmbx.SelectedIndex.ToString());
-			Globals.SetSectionSetting("searchSettings", "creationTimeEnable", creationTimeEnable.IsChecked.ToString());
-			Globals.SetSectionSetting("searchSettings", "createTimeRelCmbx_selectedIndex", createTimeRelCmbx.SelectedIndex.ToString());
-			Globals.SetSectionSetting("searchSettings", "createTimeDP", createTimeDP.Text);
-			Globals.SetSectionSetting("searchSettings", "lastAccessEnable", lastAccessEnable.IsChecked.ToString());
-			Globals.SetSectionSetting("searchSettings", "accessTimeRelCmbx_selectedIndex", accessTimeRelCmbx.SelectedIndex.ToString());
-			Globals.SetSectionSetting("searchSettings", "accessTimeDP", accessTimeDP.Text);
-			Globals.SetSectionSetting("searchSettings", "lastModTimeEnable", lastModTimeEnable.IsChecked.ToString());
-			Globals.SetSectionSetting("searchSettings", "lastModTimeRelCmbx_selectedIndex", lastModTimeRelCmbx.SelectedIndex.ToString());
-			Globals.SetSectionSetting("searchSettings", "lastModTimeDP", lastModTimeDP.Text);
-			Globals.SetSectionSetting("searchSettings", "fileResultsColumnsOrder", string.Join(',', Globals.fileResultsColumnsOrder));
-			Globals.SetSectionSetting("searchSettings", "fileResultsColumnWidths", string.Join(',', Globals.fileResultsColumnWidths));
-			Globals.SetSectionSetting("searchSettings", "dirResultsColumnsOrder", string.Join(',', Globals.dirResultsColumnsOrder));
-			Globals.SetSectionSetting("searchSettings", "dirResultsColumnWidths", string.Join(',', Globals.dirResultsColumnWidths));
-
-			//captureSettings
-			Globals.SetSectionSetting("captureSettings", "capPropSizeCb", capPropSizeCb.IsChecked.ToString());
-			Globals.SetSectionSetting("captureSettings", "capPropCreateTimeCb", capPropCreateTimeCb.IsChecked.ToString());
-			Globals.SetSectionSetting("captureSettings", "capPropLastAccessCb", capPropLastAccessCb.IsChecked.ToString());
-			Globals.SetSectionSetting("captureSettings", "capPropLastModCb", capPropLastModCb.IsChecked.ToString());
-
-			//mysqlConnectionProfiles
-			SaveMySQLDbConnectionProfilesToMem();
-		}
-
-		private void LoadSettings()
-		{
-			var configFileMap = new ExeConfigurationFileMap();
-			configFileMap.ExeConfigFilename = Globals.configFileName;
-			AppSettingsSection section;
-			try
-			{
-				var configFile = ConfigurationManager.OpenMappedExeConfiguration(configFileMap, ConfigurationUserLevel.None);
-				Globals.configFile = configFile;
-				//configFile.Sections.Add("general", new AppSettingsSection());
-				//AppSettingsSection sec = configFile.Sections.Get("general") as AppSettingsSection;
-				//sec.Settings.Add("hello", "test");
-
-				var settings = configFile.AppSettings.Settings;
-				Globals.settings = settings;
-				//load default settings
-				foreach(KeyValuePair<string, string> setting in defaultSettings)
-				{
-					if(settings[setting.Key] == null)
-					{
-						settings.Add(setting.Key, setting.Value);
-					}
-				}
-				//load default section settings
-				foreach (var sectionInfo in defaultSectionSettings)
-				{
-					if (configFile.Sections.Get(sectionInfo.Key) == null)
-					{
-						configFile.Sections.Add(sectionInfo.Key, new AppSettingsSection());
-					}
-
-					foreach (var setting in sectionInfo.Value)
-					{
-						section = configFile.Sections.Get(sectionInfo.Key) as AppSettingsSection;
-						if (section.Settings[setting.Key] == null)
-						{
-							section.Settings.Add(setting.Key, setting.Value);
-						}
-					}
-				}
-				configFile.Save(ConfigurationSaveMode.Modified);
-				ConfigurationManager.RefreshSection(configFile.AppSettings.SectionInformation.Name);
-			}
-			catch (ConfigurationErrorsException e)
-			{
-				Console.WriteLine("Configuration error: " + e.BareMessage);
-			}
-
-			//loading settings
-			//if set language is not the default, load it
-			if(Globals.settings["language"].Value != "en-US")
-			{
-				LoadLanguage("en-US");
-			}
-
-			//defaultSettings other than language
-			Globals.startupWindowLocation = Globals.settings["startupWindowLocation"].Value;
-			Globals.startupWindowLocationCoords =
-				Globals.settings["startupWindowLocationCoords"].Value.Split(',').Select(double.Parse).ToArray();
-			if ((Globals.startupWindowLocationCoords.All(d => d == 0)) || Globals.startupWindowLocation.Equals("center"))
-			{
-				WindowStartupLocation = WindowStartupLocation.CenterScreen;
-			}else if (Globals.startupWindowLocation.Equals("remember"))
-			{
-				Left = Globals.startupWindowLocationCoords[0];
-				Top = Globals.startupWindowLocationCoords[1];
-				if (Globals.settings["startupWindowState"].Value.Equals("maximized"))
-				{
-					WindowState = WindowState.Maximized;
-				}
-			}
-
-			//exceptions
-			section = Globals.configFile.Sections.Get("exceptions") as AppSettingsSection;
-			Globals.ExceptionPathsEnable = bool.Parse(section.Settings["exceptionPathsEnableCb"].Value);
-			Globals.ExceptionFileTypesCaptureEnable = bool.Parse(section.Settings["exceptionFileTypesCaptureEnableCb"].Value);
-			Globals.ExceptionFileTypesSearchEnable = bool.Parse(section.Settings["exceptionFileTypesSearchEnableCb"].Value);
-			Globals.exceptionPathsOC = new ObservableCollection<string>(section.Settings["exceptionsList"].Value.Split("\n"));
-			Globals.exceptionFileTypesCaptureList = new List<string>(Globals.GetFileTypesFromString(section.Settings["exceptionFileTypesCaptureTxtBx"].Value));
-			Globals.exceptionFileTypesSearchList = new List<string>(Globals.GetFileTypesFromString(section.Settings["exceptionFileTypesSearchTxtBx"].Value));
-
-			// searchSettings
-			section = Globals.configFile.Sections.Get("searchSettings") as AppSettingsSection;
-			Globals.fileResultsColumnsOrder =
-				new List<int>(section.Settings["fileResultsColumnsOrder"].Value.Split(",").Select(int.Parse));
-			Globals.fileResultsColumnWidths =
-				new List<double>(section.Settings["fileResultsColumnWidths"].Value.Split(",").Select(double.Parse));
-			Globals.dirResultsColumnsOrder =
-				new List<int>(section.Settings["dirResultsColumnsOrder"].Value.Split(",").Select(int.Parse));
-			Globals.dirResultsColumnWidths =
-				new List<double>(section.Settings["dirResultsColumnWidths"].Value.Split(",").Select(double.Parse));
-
-			//mysqlConnectionProfiles
-			section = Globals.configFile.Sections.Get("mysqlConnectionProfiles") as AppSettingsSection;
-			foreach (var profileName in section.Settings.AllKeys)
-			{
-				mySqlDbConnectionProfiles.Add(new MySQLDbConnectionProfile(profileName, section.Settings[profileName].Value));
-			}
-
+			LogActionWithStatus(GetLocalizedString("ready"), "Init complete");
 		}
 
 		private void LoadSettingsAfterUI()
@@ -661,12 +307,16 @@ namespace ColdStorageManager
 			accessTimeDP.Text = section.Settings["accessTimeDP"].Value;
 			lastModTimeRelCmbx.SelectedIndex = Int32.Parse(section.Settings["lastModTimeRelCmbx_selectedIndex"].Value);
 			lastModTimeDP.Text = section.Settings["lastModTimeDP"].Value;
-			RefreshCaptureConnectionsCmbx(true);
-			SetSelectedDbManager();
+
+			//setting selected data source
+			selectedDataSource = GetDataSourceByName(section.Settings["selectedCaptureConnection"].Value);
+			captureConnCmbx.SelectedItem = selectedDataSource;
+			captureConnSelectionChangedEnabled = true;
 
 			//copy all cmbx options setup
-			copyFromCmbx.ItemsSource = copyFromList;
-			copyToCmbx.ItemsSource = copyToList;
+			copyFromCmbx.ItemsSource = dataSources;
+			copyToCmbx.ItemsSource = dataSources;
+			captureConnCmbx.ItemsSource = dataSources;
 
 			//captureSettings
 			LoadCaptureSettings();
@@ -679,111 +329,6 @@ namespace ColdStorageManager
 			capPropCreateTimeCb.IsChecked = bool.Parse(section.Settings["capPropCreateTimeCb"].Value);
 			capPropLastAccessCb.IsChecked = bool.Parse(section.Settings["capPropLastAccessCb"].Value);
 			capPropLastModCb.IsChecked = bool.Parse(section.Settings["capPropLastModCb"].Value);
-		}
-
-		public void RemoveDisplayConnectionName(string connName)
-		{
-			copyFromListEventsEnabled = false;
-			copyToListEventsEnabled = false;
-
-			allConnectionNames.Remove(connName);
-			copyFromList.Remove(connName);
-			copyToList.Remove(connName);
-			captureConnList.Remove(connName);
-
-			copyFromListEventsEnabled = true;
-			copyToListEventsEnabled = true;
-		}
-
-		public void AddDisplayConnectionName(string connName)
-		{
-			allConnectionNames.Add(connName);
-			copyFromList.Add(connName);
-			copyToList.Add(connName);
-			captureConnList.Add(connName);
-		}
-
-		private void RefreshCaptureConnectionsCmbx(bool init = false)
-		{
-			captureConnSelectionChangedEnabled = false;
-
-			int selectedIndex = captureConnCmbx.SelectedIndex;
-			string selectedName = "";
-
-			// if we're in the initialization phase, the previous selected name should come from the configuration
-			if (init)
-			{
-				selectedName = GetSectionSetting("searchSettings", "selectedCaptureConnection");
-			}
-
-			if (selectedIndex != -1)
-			{
-				selectedName = captureConnCmbx.SelectedItem.ToString();
-			}
-
-			captureConnCmbx.ItemsSource = captureConnList;
-			AddDisplayConnectionName(GetLocalizedString("local"));
-
-			foreach (var mySqlDbConnectionProfile in mySqlDbConnectionProfiles)
-			{
-				AddDisplayConnectionName(mySqlDbConnectionProfile.ProfileName);
-				if (selectedName.Equals(mySqlDbConnectionProfile.ProfileName))
-				{
-					captureConnCmbx.SelectedItem = selectedName;
-				}
-			}
-
-			if (captureConnCmbx.SelectedIndex == -1)
-			{
-				captureConnCmbx.SelectedIndex = 0;
-			}
-
-			captureConnSelectionChangedEnabled = true;
-		}
-
-		// sets the 'selectedDbManager' and potentially 'activeMySQLDbManager' as indicated by the 'selectedCaptureConnection' setting in the local configuration
-		// assumes 'localSqLiteDbManager' has been initialized
-		// only the variable is being set, no connection is initiated
-		private void SetSelectedDbManager()
-		{
-			string connectionName = GetSectionSetting("searchSettings", "selectedCaptureConnection");
-			if (connectionName.Equals("local"))
-			{
-				selectedDbManager = localSqLiteDbManager;
-			}
-			else
-			{
-				// if the old MySQLDbManager can be used, do so
-				if (activeMySQLDbManager != null && activeMySQLDbManager.Profile.ProfileName.Equals(connectionName))
-				{
-					selectedDbManager = activeMySQLDbManager;
-					return;
-				}
-				else if(selectedDbManager is MySQLDbManager) //if changing from mysql to another mysql connection, first close the old one.
-				{
-					selectedDbManager.CloseConnection();
-					selectedDbManager = null;
-					activeMySQLDbManager = null;
-				}
-
-				var dbMgr = GetDbManagerFromConnectionName(connectionName);
-
-				//fallback to SQLite if profile not found due to possible configuration corruption
-				if (dbMgr == null)
-				{
-					selectedDbManager = localSqLiteDbManager;
-					captureConnSelectionChangedEnabled = false;
-					captureConnCmbx.SelectedIndex = 0;
-					captureConnSelectionChangedEnabled = true;
-
-					LogAction(GetLocalizedString("db_manager_not_found"), $"Failed to find DbManager: {connectionName}. Possible memory corruption.", ERROR);
-				}
-				else
-				{
-					selectedDbManager = dbMgr;
-					activeMySQLDbManager = (MySQLDbManager)dbMgr;
-				}
-			}
 		}
 
 		public void LoadLanguage(string prev)
@@ -804,41 +349,6 @@ namespace ColdStorageManager
 			}
 
 			Application.Current.Resources.MergedDictionaries.Add(resourceDictionaryToLoad);
-		}
-
-		private void OptionsMenu_Click(object sender, RoutedEventArgs e)
-		{
-			Options.GetInstance().Show();
-		}
-
-		private void PartitionSelected(object sender, RoutedEventArgs e)
-		{
-			TreeView trvSender = sender as TreeView;
-			//Console.WriteLine(trvSender.SelectedItem);
-			//Console.WriteLine(selected.GetType() + " " + typeof(Partition));
-			if (trvSender.SelectedItem is Partition selected)
-			{
-				Globals.selectedPartition = selected;
-				driveTxtBx.Text = selected.Parent.Model;
-				driveSnTxtBx.Text = selected.Parent.SerialNumber;
-				Globals.fileDialogEntryTree.Clear();
-				Globals.fileDialogEntryTree.AddRange(Globals.GetFileSystemEntries(selected.Letter+"\\"));
-
-				if (selected.IsCaptured)
-				{
-					var capProps = Globals.DecodeCaptureProperties(selected.Capture.capture_properties);
-					capPropSizeCb.IsChecked = capProps.size;
-					capPropCreateTimeCb.IsChecked = capProps.createTime;
-					capPropLastAccessCb.IsChecked = capProps.lastAccessTime;
-					capPropLastModCb.IsChecked = capProps.lastModTime;
-					nicknameTxtBx.Text = selected.Capture.drive_nickname;
-				}
-				else
-				{
-					LoadCaptureSettings();
-					nicknameTxtBx.Text = "";
-				}
-			}
 		}
 
 		private void ConvertFSObservListToList()
@@ -866,81 +376,6 @@ namespace ColdStorageManager
 					}
 				}
 			}
-		}
-
-		private void TrvFileDialog_OnExpanded(object sender, RoutedEventArgs e)
-		{
-			TreeViewItem item = e.OriginalSource as TreeViewItem;
-			if (item.DataContext is CSMDirectory dir)
-			{
-				//Console.WriteLine(dir);
-				if (!dir.IsExpanded)
-				{
-					dir.Children.Clear();
-					var list = Globals.GetFileSystemEntries(dir.Path, dir);
-					dir.Children.AddRange(list);
-					dir.IsExpanded = true;
-				}
-				e.Handled = true;
-			}
-		}
-
-		private void Capture_Click(object sender, RoutedEventArgs e)
-		{
-			ushort captureProperties = Globals.ToProperties(capPropSizeCb.IsChecked == true, capPropCreateTimeCb.IsChecked == true,
-				capPropLastAccessCb.IsChecked == true, capPropLastModCb.IsChecked == true);
-			ConvertFSObservListToList();
-			ExpandFSList();
-			var cfsBytes = CFSHandler.GetCFSBytes(Globals.selectedPartition.Parent.Model, nicknameTxtBx.Text,
-				capPropSizeCb.IsChecked == true,
-				capPropCreateTimeCb.IsChecked == true,
-				capPropLastAccessCb.IsChecked == true,
-				capPropLastModCb.IsChecked == true);
-
-			Capture newCapture = new Capture(Globals.selectedPartition.Parent.Model,
-				Globals.selectedPartition.Parent.SerialNumber,
-				Globals.selectedPartition.Parent.isNVMe,
-				Globals.selectedPartition.Parent.NVMeSerialNumberDetectionFail,
-				Globals.selectedPartition.Parent.TotalSpace,
-				nicknameTxtBx.Text,
-				Globals.selectedPartition.Label,
-				Globals.selectedPartition.Index,
-				Globals.selectedPartition.TotalSpace,
-				Globals.selectedPartition.FreeSpace,
-				Globals.selectedPartition.VolumeGUID,
-				captureProperties,
-				DateTime.Now.ToString(),
-				cfsBytes.lines,
-				cfsBytes.files,
-				cfsBytes.dirs,
-				cfsBytes.capture,
-				cfsBytes.sizes,
-				cfsBytes.creation_times,
-				cfsBytes.last_access_times,
-				cfsBytes.last_mod_times
-			);
-
-			if (Globals.selectedPartition.IsCaptured)
-			{
-				newCapture.id = Globals.selectedPartition.Capture.id;
-				Globals.selectedDbManager.UpdateCaptureById(newCapture);
-			}
-			else
-			{
-				Globals.selectedDbManager.SaveCapture(newCapture);
-			}
-
-
-			//CFSHandler.WriteCFS("test", driveTxtBx.Text, nicknameTxtBx.Text);
-			LogAction(GetLocalizedString("capture_successful") + Globals.selectedPartition.Letter + " [" +
-			                 Globals.selectedPartition.Label + "]", $"Successfully captured {Globals.selectedPartition.Letter} [{Globals.selectedPartition.Label}]");
-
-			if (selectedDbManager is MySQLDbManager)
-			{
-				InvalidateRemoteCapturesCache();
-			}
-
-			RefreshCaptures();
 		}
 
 		private List<CaptureBase> GetCapturesDisplayListFromCapturesList(List<Capture> captures)
@@ -996,78 +431,43 @@ namespace ColdStorageManager
 		}
 
 		//wrapper for RefreshCaptures that checks it's return value and falls back on a specified connection if necessary
-		private void RefreshCapturesWithFallback(string configNameOfFallbackConnection = "local", int indexOfFallbackConnection = 0, bool repeatRefresh = false)
+		private void RefreshCapturesWithFallback(int indexOfFallbackDataSource = 0, bool repeatRefresh = true)
 		{
 			if (!RefreshCaptures())
 			{
-				//if fallback conn is the same as the one already attempted and is not the local, then fall back to the local
-				if (selectedDbManager == GetDbManagerFromConnectionName(configNameOfFallbackConnection) && !(selectedDbManager is SQLiteDbManager))
-				{
-					SetSectionSetting("searchSettings", "selectedCaptureConnection", "local");
-					SetSelectedDbManager();
-
-					captureConnSelectionChangedEnabled = false;
-					captureConnCmbx.SelectedIndex = 0;
-					captureConnSelectionChangedEnabled = true;
-
-					if (!RefreshCaptures()) // if the local fails too, display error
-					{
-						captureConnSelectionChangedEnabled = false;
-						captureConnCmbx.SelectedIndex = -1;
-						captureConnSelectionChangedEnabled = true;
-						capturesDisplay.Add(new CapturePlaceholder(GetLocalizedString("could_not_connect_placeholder")));
-					}
-					return;
-				}
-				else if (selectedDbManager == GetDbManagerFromConnectionName(configNameOfFallbackConnection)) //if fallback conn is the same as the one already attempted and is local, display error
-				{
-					captureConnSelectionChangedEnabled = false;
-					captureConnCmbx.SelectedIndex = -1;
-					captureConnSelectionChangedEnabled = true;
-					capturesDisplay.Add(new CapturePlaceholder(GetLocalizedString("could_not_connect_placeholder")));
-					return;
-				}
-
-				SetSectionSetting("searchSettings", "selectedCaptureConnection", configNameOfFallbackConnection);
-				SetSelectedDbManager();
-
 				captureConnSelectionChangedEnabled = false;
-				captureConnCmbx.SelectedIndex = indexOfFallbackConnection;
+				captureConnCmbx.SelectedIndex = indexOfFallbackDataSource;
 				captureConnSelectionChangedEnabled = true;
-
-				if (repeatRefresh && !RefreshCaptures())
+				selectedDataSource = dataSources[indexOfFallbackDataSource];
+				
+				if (!RefreshCaptures())
 				{
-					if (indexOfFallbackConnection == 0)
+					//if repeated retry is allowed and fallback index was not 0 (local), then try local
+					if (repeatRefresh && indexOfFallbackDataSource != 0)
 					{
-						captureConnSelectionChangedEnabled = false;
-						captureConnCmbx.SelectedIndex = -1;
-						captureConnSelectionChangedEnabled = true;
-						capturesDisplay.Add(new CapturePlaceholder(GetLocalizedString("could_not_connect_placeholder")));
-					}
-					else
-					{
-						SetSectionSetting("searchSettings", "selectedCaptureConnection", "local");
-						SetSelectedDbManager();
-
 						captureConnSelectionChangedEnabled = false;
 						captureConnCmbx.SelectedIndex = 0;
 						captureConnSelectionChangedEnabled = true;
+						selectedDataSource = dataSources[0];
 
+						//if this failed too, display error msg
 						if (!RefreshCaptures())
 						{
 							captureConnSelectionChangedEnabled = false;
 							captureConnCmbx.SelectedIndex = -1;
 							captureConnSelectionChangedEnabled = true;
+							capturesDisplay.Clear();
 							capturesDisplay.Add(new CapturePlaceholder(GetLocalizedString("could_not_connect_placeholder")));
 						}
 					}
-				}
-				else //if repeated retry isn't allowed, display error msg after 2 failed attempts
-				{
-					captureConnSelectionChangedEnabled = false;
-					captureConnCmbx.SelectedIndex = -1;
-					captureConnSelectionChangedEnabled = true;
-					capturesDisplay.Add(new CapturePlaceholder(GetLocalizedString("could_not_connect_placeholder")));
+					else // if repeated retry isn't allowed or fallback was 0, display error msg
+					{
+						captureConnSelectionChangedEnabled = false;
+						captureConnCmbx.SelectedIndex = -1;
+						captureConnSelectionChangedEnabled = true;
+						capturesDisplay.Clear();
+						capturesDisplay.Add(new CapturePlaceholder(GetLocalizedString("could_not_connect_placeholder")));
+					}
 				}
 			}
 		}
@@ -1075,50 +475,19 @@ namespace ColdStorageManager
 		//returns whether it could get the captures
 		private bool RefreshCaptures()
 		{
-			//connect if not already connected
-			if (selectedDbManager is MySQLDbManager mySqlDbManager)
-			{
-				if (!mySqlDbManager.IsConnected)
-				{
-					if (!mySqlDbManager.ConnectAndCreateTableIfNotFound())
-					{
-						//do nothing if connection failed
-						return false;
-					}
-				}
 
-				//if the cache is alive, use it
-				if (mySqlDbManager.Profile.ProfileName.Equals(remoteCapturesCacheSource) &&
-				    (DateTime.Now - remoteCapturesCacheDateTime).TotalSeconds < remoteCaptureCacheTTL)
-				{
-					capturesDisplay.Clear();
-					capturesDisplay.AddRange(remoteCapturesDisplayCache);
-					capturesList.Clear();
-					capturesList.AddRange(remoteCapturesCache);
-					return true;
-				}
+			List<Capture> captures = selectedDataSource?.GetCaptures();
+			
+			if (captures == null)
+			{
+				return false;
 			}
 
-			List<Capture> captures = Globals.selectedDbManager.GetCaptures();
 			List<CaptureBase> capturesDisplayList = GetCapturesDisplayListFromCapturesList(captures);
-			if (selectedDbManager is SQLiteDbManager)
-			{
-				localCapturesDisplayCache = capturesDisplayList;
-				localCapturesCache = captures;
-			}
-			else
-			{
-				remoteCapturesDisplayCache = capturesDisplayList;
-				remoteCapturesCache = captures;
-				remoteCapturesCacheSource = ((MySQLDbManager)selectedDbManager).Profile.ProfileName;
-				remoteCapturesCacheDateTime = DateTime.Now;
-			}
-
 			MatchCapturesDisplayListToPartitions(capturesDisplayList);
+
 			capturesDisplay.Clear();
 			capturesDisplay.AddRange(capturesDisplayList);
-			capturesList.Clear();
-			capturesList.AddRange(captures);
 
 			return true;
 		}
@@ -1223,6 +592,133 @@ namespace ColdStorageManager
 			}
 		}
 
+		public void RefreshDbLogPopupOffsets()
+		{
+			System.Windows.Point dbStatusBtnPosition = GetPositionRelativeTo(dbStatusBtn, mainWindow);
+			System.Windows.Point mainStatusBarPosition = GetPositionRelativeTo(mainStatusBar, mainWindow);
+
+			dbLogPopup.HorizontalOffset = (mainWindow.ActualWidth - dbStatusBtnPosition.X) - dbLogPanel.Width - 17;
+			dbLogPopup.VerticalOffset = mainStatusBarPosition.Y - dbStatusBtnPosition.Y - 1;
+		}
+
+		public void RefreshLogPopupOffsets()
+		{
+			System.Windows.Point statusBtnPosition = GetPositionRelativeTo(statusBtn, mainWindow);
+			System.Windows.Point mainStatusBarPosition = GetPositionRelativeTo(mainStatusBar, mainWindow);
+
+			logPopup.HorizontalOffset = -statusBtnPosition.X;
+			logPopup.VerticalOffset = mainStatusBarPosition.Y - statusBtnPosition.Y - 1;
+		}
+
+		// =====================================
+		// **** EVENT HANDLERS ****
+		// =====================================
+
+		private void OptionsMenu_Click(object sender, RoutedEventArgs e)
+		{
+			Options.GetInstance().Show();
+		}
+
+		private void PartitionSelected(object sender, RoutedEventArgs e)
+		{
+			TreeView trvSender = sender as TreeView;
+			//Console.WriteLine(trvSender.SelectedItem);
+			//Console.WriteLine(selected.GetType() + " " + typeof(Partition));
+			if (trvSender.SelectedItem is Partition selected)
+			{
+				Globals.selectedPartition = selected;
+				driveTxtBx.Text = selected.Parent.Model;
+				driveSnTxtBx.Text = selected.Parent.SerialNumber;
+				Globals.fileDialogEntryTree.Clear();
+				Globals.fileDialogEntryTree.AddRange(Globals.GetFileSystemEntries(selected.Letter + "\\"));
+
+				if (selected.IsCaptured)
+				{
+					var capProps = Globals.DecodeCaptureProperties(selected.Capture.capture_properties);
+					capPropSizeCb.IsChecked = capProps.size;
+					capPropCreateTimeCb.IsChecked = capProps.createTime;
+					capPropLastAccessCb.IsChecked = capProps.lastAccessTime;
+					capPropLastModCb.IsChecked = capProps.lastModTime;
+					nicknameTxtBx.Text = selected.Capture.drive_nickname;
+				}
+				else
+				{
+					LoadCaptureSettings();
+					nicknameTxtBx.Text = "";
+				}
+			}
+		}
+
+		private void TrvFileDialog_OnExpanded(object sender, RoutedEventArgs e)
+		{
+			TreeViewItem item = e.OriginalSource as TreeViewItem;
+			if (item.DataContext is CSMDirectory dir)
+			{
+				//Console.WriteLine(dir);
+				if (!dir.IsExpanded)
+				{
+					dir.Children.Clear();
+					var list = Globals.GetFileSystemEntries(dir.Path, dir);
+					dir.Children.AddRange(list);
+					dir.IsExpanded = true;
+				}
+				e.Handled = true;
+			}
+		}
+
+		private void Capture_Click(object sender, RoutedEventArgs e)
+		{
+			ushort captureProperties = Globals.ToProperties(capPropSizeCb.IsChecked == true, capPropCreateTimeCb.IsChecked == true,
+				capPropLastAccessCb.IsChecked == true, capPropLastModCb.IsChecked == true);
+			ConvertFSObservListToList();
+			ExpandFSList();
+			var cfsBytes = CFSHandler.GetCFSBytes(Globals.selectedPartition.Parent.Model, nicknameTxtBx.Text,
+				capPropSizeCb.IsChecked == true,
+				capPropCreateTimeCb.IsChecked == true,
+				capPropLastAccessCb.IsChecked == true,
+				capPropLastModCb.IsChecked == true);
+
+			Capture newCapture = new Capture(Globals.selectedPartition.Parent.Model,
+				Globals.selectedPartition.Parent.SerialNumber,
+				Globals.selectedPartition.Parent.isNVMe,
+				Globals.selectedPartition.Parent.NVMeSerialNumberDetectionFail,
+				Globals.selectedPartition.Parent.TotalSpace,
+				nicknameTxtBx.Text,
+				Globals.selectedPartition.Label,
+				Globals.selectedPartition.Index,
+				Globals.selectedPartition.TotalSpace,
+				Globals.selectedPartition.FreeSpace,
+				Globals.selectedPartition.VolumeGUID,
+				captureProperties,
+				DateTime.Now.ToString(),
+				cfsBytes.lines,
+				cfsBytes.files,
+				cfsBytes.dirs,
+				cfsBytes.capture,
+				cfsBytes.sizes,
+				cfsBytes.creation_times,
+				cfsBytes.last_access_times,
+				cfsBytes.last_mod_times
+			);
+
+			if (Globals.selectedPartition.IsCaptured)
+			{
+				newCapture.id = Globals.selectedPartition.Capture.id;
+				Globals.selectedDataSource.UpdateCaptureById(newCapture);
+			}
+			else
+			{
+				Globals.selectedDataSource.SaveCapture(newCapture);
+			}
+
+
+			//CFSHandler.WriteCFS("test", driveTxtBx.Text, nicknameTxtBx.Text);
+			LogActionWithStatus(GetLocalizedString("capture_successful") + Globals.selectedPartition.Letter + " [" +
+							 Globals.selectedPartition.Label + "]", $"Successfully captured {Globals.selectedPartition.Letter} [{Globals.selectedPartition.Label}]");
+
+			RefreshCaptures();
+		}
+
 		private void SearchButton_Click(object sender, RoutedEventArgs e)
 		{
 			Search(searchTxtBox.Text);
@@ -1297,13 +793,8 @@ namespace ColdStorageManager
 				string previousSelectedConnection = GetSectionSetting("searchSettings", "selectedCaptureConnection");
 				if (captureConnCmbx.SelectedIndex == 0)
 				{
-					SetSectionSetting("searchSettings", "selectedCaptureConnection", "local");
-					SetSelectedDbManager();
-
-					if (UseLocalCapturesCache())
-					{
-						return;
-					}
+					SetSectionSetting("searchSettings", "selectedCaptureConnection", ConfigNameOfLocalDS);
+					selectedDataSource = GetDataSourceByName(GetLocalizedString(ConfigNameOfLocalDS));
 				}
 				else if (captureConnCmbx.SelectedIndex == -1)
 				{
@@ -1313,39 +804,21 @@ namespace ColdStorageManager
 				else
 				{
 					SetSectionSetting("searchSettings", "selectedCaptureConnection", e.AddedItems[0].ToString());
-					SetSelectedDbManager();
+					selectedDataSource = GetDataSourceByName(e.AddedItems[0].ToString());
 				}
 
-				
+
 
 				//if refreshing failed for some reason, fall back to previous connection
-				if (e.RemovedItems.Count > 0)
+				if (e.RemovedItems.Count > 0) //there will be 0 removed items if there wasn't anything selected before
 				{
-					RefreshCapturesWithFallback(previousSelectedConnection, captureConnCmbx.Items.IndexOf(e.RemovedItems[0]));
+					RefreshCapturesWithFallback(dataSources.IndexOf(e.RemovedItems[0] as DataSource));
 				}
 				else // if there was nothing selected, try local as fallback
 				{
-					RefreshCapturesWithFallback("local", 0);
+					RefreshCapturesWithFallback();
 				}	
 			}
-		}
-
-		public void RefreshDbLogPopupOffsets()
-		{
-			System.Windows.Point dbStatusBtnPosition = GetPositionRelativeTo(dbStatusBtn, mainWindow);
-			System.Windows.Point mainStatusBarPosition = GetPositionRelativeTo(mainStatusBar, mainWindow);
-
-			dbLogPopup.HorizontalOffset = (mainWindow.ActualWidth - dbStatusBtnPosition.X) - dbLogPanel.Width - 17;
-			dbLogPopup.VerticalOffset = mainStatusBarPosition.Y - dbStatusBtnPosition.Y - 1;
-		}
-
-		public void RefreshLogPopupOffsets()
-		{
-			System.Windows.Point statusBtnPosition = GetPositionRelativeTo(statusBtn, mainWindow);
-			System.Windows.Point mainStatusBarPosition = GetPositionRelativeTo(mainStatusBar, mainWindow);
-
-			logPopup.HorizontalOffset =  - statusBtnPosition.X;
-			logPopup.VerticalOffset = mainStatusBarPosition.Y - statusBtnPosition.Y - 1;
 		}
 
 		private void DbStatusBtn_OnClick(object sender, RoutedEventArgs e)
@@ -1366,24 +839,28 @@ namespace ColdStorageManager
 			{
 				if (!copyFromCmbx.SelectedValue.ToString().Equals(copyToCmbx.SelectedValue.ToString()))
 				{
-					IDbManager from, to;
+					bool fromJustConnected = false; //if Source DS was used for the first time, disconnect after 
+					DataSource from, to;
 
-					from = GetDbManagerFromConnectionName(copyFromCmbx.SelectedValue.ToString());
-					to = GetDbManagerFromConnectionName(copyToCmbx.SelectedValue.ToString());
+					from = GetDataSourceByName(copyFromCmbx.SelectedValue.ToString());
+					to = GetDataSourceByName(copyToCmbx.SelectedValue.ToString());
 
 					if (!from.IsConnected)
 					{
-						if (!from.ConnectAndCreateTableIfNotFound())
+						if (!from.ConnectAndCreateTable())
 						{
+							LogDbActionWithStatus(GetLocalizedString("db_copy_all_fail"), "Copy all failed. There was an error connecting to the source db.", ERROR);
 							return;
 						}
+
+						fromJustConnected = true;
 					}
 
 					if (!to.IsConnected)
 					{
-						Console.WriteLine("to");
-						if (!to.ConnectAndCreateTableIfNotFound())
+						if (!to.ConnectAndCreateTable())
 						{
+							LogDbActionWithStatus(GetLocalizedString("db_copy_all_fail"), "Copy all failed. There was an error connecting to the destination db.", ERROR);
 							return;
 						}
 					}
@@ -1395,24 +872,29 @@ namespace ColdStorageManager
 						to.SaveCapture(capture);
 					}
 
-					if (to == selectedDbManager)
+					if (fromJustConnected)
 					{
-						if (selectedDbManager is MySQLDbManager)
-						{
-							InvalidateRemoteCapturesCache();
-						}
-
-						RefreshCapturesWithFallback("local", 0, true);
+						from.CloseConnection();
 					}
+
+					to.InvalidateCache();
+
+					if (to == selectedDataSource)
+					{
+						RefreshCapturesWithFallback();
+					}
+
+					LogDbActionWithStatus($"{GetLocalizedString("db_copy_all_suc")}  ",
+						$"Copy all succeeded. {GetLocalizedString("source")}: {from.Name}, {GetLocalizedString("dest")}: {to.Name}");
 				}
 				else
 				{
-					LogActionSameMsg("Copy From and To cannot be the same!!", WARNING);
+					LogActionWithStatusSameMsg("Copy From and To cannot be the same!!", WARNING);
 				}
 			}
 			else
 			{
-				LogActionSameMsg("You must select a connection for From and To as well!!", WARNING);
+				LogActionWithStatusSameMsg("You must select a connection for From and To as well!!", WARNING);
 			}
 		}
 
@@ -1420,16 +902,20 @@ namespace ColdStorageManager
 		{
 			if (copyFromListEventsEnabled)
 			{
-				if (e.RemovedItems.Count > 0 && e.AddedItems[0].ToString().Equals(copyToCmbx.SelectedValue))
+				if (e.AddedItems.Count > 0) // if there are no added items, the selected item has been removed
 				{
-					copyToListEventsEnabled = false;
-					copyToCmbx.SelectedValue = e.RemovedItems[0].ToString();
-					copyToListEventsEnabled = true;
-				}else if (e.AddedItems[0].ToString().Equals(copyToCmbx.SelectedValue))
-				{
-					copyToListEventsEnabled = false;
-					copyToCmbx.SelectedIndex = -1;
-					copyToListEventsEnabled = true;
+					if (e.RemovedItems.Count > 0 && e.AddedItems[0].ToString().Equals(copyToCmbx.SelectedValue))
+					{
+						copyToListEventsEnabled = false;
+						copyToCmbx.SelectedValue = e.RemovedItems[0].ToString();
+						copyToListEventsEnabled = true;
+					}
+					else if (e.AddedItems[0].ToString().Equals(copyToCmbx.SelectedValue))
+					{
+						copyToListEventsEnabled = false;
+						copyToCmbx.SelectedIndex = -1;
+						copyToListEventsEnabled = true;
+					}
 				}
 			}
 		}
@@ -1438,16 +924,20 @@ namespace ColdStorageManager
 		{
 			if (copyToListEventsEnabled)
 			{
-				if (e.RemovedItems.Count > 0 && e.AddedItems[0].ToString().Equals(copyFromCmbx.SelectedValue))
+				if (e.AddedItems.Count > 0) // if there are no added items, the selected item has been removed
 				{
-					copyFromListEventsEnabled = false;
-					copyFromCmbx.SelectedValue = e.RemovedItems[0].ToString();
-					copyFromListEventsEnabled = true;
-				}else if (e.AddedItems[0].ToString().Equals(copyFromCmbx.SelectedValue))
-				{
-					copyFromListEventsEnabled = false;
-					copyFromCmbx.SelectedIndex = -1;
-					copyFromListEventsEnabled = true;
+					if (e.RemovedItems.Count > 0 && e.AddedItems[0].ToString().Equals(copyFromCmbx.SelectedValue))
+					{
+						copyFromListEventsEnabled = false;
+						copyFromCmbx.SelectedValue = e.RemovedItems[0].ToString();
+						copyFromListEventsEnabled = true;
+					}
+					else if (e.AddedItems[0].ToString().Equals(copyFromCmbx.SelectedValue))
+					{
+						copyFromListEventsEnabled = false;
+						copyFromCmbx.SelectedIndex = -1;
+						copyFromListEventsEnabled = true;
+					}
 				}
 			}
 		}
@@ -1456,12 +946,7 @@ namespace ColdStorageManager
 		{
 			if (trvCaptures.SelectedItem is Capture capture)
 			{
-				Globals.selectedDbManager.DeleteCapture(capture);
-				
-				if (selectedDbManager is MySQLDbManager)
-				{
-					InvalidateRemoteCapturesCache();
-				}
+				Globals.selectedDataSource.DeleteCapture(capture);
 
 				RefreshCaptures();
 			}
@@ -1477,20 +962,72 @@ namespace ColdStorageManager
 				// InvalidateRemoteCapturesCache();
 				// RefreshCaptures();
 
-				foreach (var capture in capturesList)
-				{
-					selectedDbManager.DeleteCapture(capture);
-				}
-
-				if (selectedDbManager is MySQLDbManager)
-				{
-					InvalidateRemoteCapturesCache();
-				}
+				selectedDataSource.DeleteAllCaptures();
 
 				RefreshCapturesWithFallback();
 			}
 		}
+
+		//save settings on window close
+#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+		private void MainWindow_OnClosed(object? sender, EventArgs e)
+#pragma warning restore CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+		{
+			// general
+			if (Globals.startupWindowLocation.Equals("remember"))
+			{
+				Globals.startupWindowLocationCoords[0] = Left;
+				Globals.startupWindowLocationCoords[1] = Top;
+				Globals.settings["startupWindowLocationCoords"].Value =
+					string.Join(',', Globals.startupWindowLocationCoords);
+				switch (WindowState)
+				{
+					case WindowState.Maximized:
+						Globals.settings["startupWindowState"].Value = "maximized";
+						break;
+					case WindowState.Normal:
+						Globals.settings["startupWindowState"].Value = "normal";
+						break;
+				}
+			}
+
+
+			//searchSettings
+			Globals.SetSectionSetting("searchSettings", "searchQuery", searchTxtBox.Text);
+			Globals.SetSectionSetting("searchSettings", "sizeEnabled", sizeEnable.IsChecked.ToString());
+			Globals.SetSectionSetting("searchSettings", "sizeRelCmbx_selectedIndex", sizeRelCmbx.SelectedIndex.ToString());
+			Globals.SetSectionSetting("searchSettings", "sizeSlider_value", sizeSlider.Value.ToString());
+			Globals.SetSectionSetting("searchSettings", "sizeCmbx_selectedIndex", sizeCmbx.SelectedIndex.ToString());
+			Globals.SetSectionSetting("searchSettings", "creationTimeEnable", creationTimeEnable.IsChecked.ToString());
+			Globals.SetSectionSetting("searchSettings", "createTimeRelCmbx_selectedIndex", createTimeRelCmbx.SelectedIndex.ToString());
+			Globals.SetSectionSetting("searchSettings", "createTimeDP", createTimeDP.Text);
+			Globals.SetSectionSetting("searchSettings", "lastAccessEnable", lastAccessEnable.IsChecked.ToString());
+			Globals.SetSectionSetting("searchSettings", "accessTimeRelCmbx_selectedIndex", accessTimeRelCmbx.SelectedIndex.ToString());
+			Globals.SetSectionSetting("searchSettings", "accessTimeDP", accessTimeDP.Text);
+			Globals.SetSectionSetting("searchSettings", "lastModTimeEnable", lastModTimeEnable.IsChecked.ToString());
+			Globals.SetSectionSetting("searchSettings", "lastModTimeRelCmbx_selectedIndex", lastModTimeRelCmbx.SelectedIndex.ToString());
+			Globals.SetSectionSetting("searchSettings", "lastModTimeDP", lastModTimeDP.Text);
+			Globals.SetSectionSetting("searchSettings", "fileResultsColumnsOrder", string.Join(',', Globals.fileResultsColumnsOrder));
+			Globals.SetSectionSetting("searchSettings", "fileResultsColumnWidths", string.Join(',', Globals.fileResultsColumnWidths));
+			Globals.SetSectionSetting("searchSettings", "dirResultsColumnsOrder", string.Join(',', Globals.dirResultsColumnsOrder));
+			Globals.SetSectionSetting("searchSettings", "dirResultsColumnWidths", string.Join(',', Globals.dirResultsColumnWidths));
+
+			//captureSettings
+			Globals.SetSectionSetting("captureSettings", "capPropSizeCb", capPropSizeCb.IsChecked.ToString());
+			Globals.SetSectionSetting("captureSettings", "capPropCreateTimeCb", capPropCreateTimeCb.IsChecked.ToString());
+			Globals.SetSectionSetting("captureSettings", "capPropLastAccessCb", capPropLastAccessCb.IsChecked.ToString());
+			Globals.SetSectionSetting("captureSettings", "capPropLastModCb", capPropLastModCb.IsChecked.ToString());
+
+			//mysqlConnectionProfiles
+			SaveMySQLDbConnectionProfilesToMem();
+		}
+
+		// =====================================
+		// **** EVENT HANDLERS END ****
+		// =====================================
+
 	}
+
 
 	public class VisibilityConverter : IValueConverter
 	{

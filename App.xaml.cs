@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Management;
 using System.Text.RegularExpressions;
-using 
 
 namespace ColdStorageManager
 {

@@ -33,7 +33,21 @@
 
 	<Style TargetType="Button" x:Key="bigButton">
 		<Setter Property="FontSize" Value="26"></Setter>
-		<Setter Property="Padding" Value="8"></Setter>
+		<Setter Property="Padding" Value="8,5"></Setter>
+		<Setter Property="HorizontalAlignment" Value="Center"></Setter>
+		<Setter Property="VerticalAlignment" Value="Center"></Setter>
+	</Style>
+
+	<Style TargetType="Button" x:Key="MediumBtn">
+		<Setter Property="FontSize" Value="22"></Setter>
+		<Setter Property="Padding" Value="6,4"></Setter>
+		<Setter Property="HorizontalAlignment" Value="Center"></Setter>
+		<Setter Property="VerticalAlignment" Value="Center"></Setter>
+	</Style>
+
+	<Style TargetType="TabItem" x:Key="MediumTabItem">
+		<Setter Property="FontSize" Value="22"></Setter>
+		<Setter Property="Padding" Value="6,4"></Setter>
 		<Setter Property="HorizontalAlignment" Value="Center"></Setter>
 		<Setter Property="VerticalAlignment" Value="Center"></Setter>
 	</Style>
@@ -184,8 +198,9 @@
 	<Thickness x:Key="OptionsMarginAllAround" Left="10" Bottom="10" Right="10" Top="10"></Thickness>
 	<Thickness x:Key="OptionsTopMargin" Left="0" Bottom="0" Right="0" Top="10"></Thickness>
 	<Thickness x:Key="OptionsInlineMarginLarge" Left="0" Bottom="0" Right="25" Top="0"></Thickness>
-	<Thickness x:Key="OptionsInlineMarginMedium" Left="0" Bottom="0" Right="15" Top="0"></Thickness>
+	<Thickness x:Key="OptionsInlineMarginMedium" Left="5" Bottom="0" Right="15" Top="0"></Thickness>
 	<Thickness x:Key="OptionsInlineMarginSmall" Left="0" Bottom="0" Right="10" Top="0"></Thickness>
+	<Thickness x:Key="ButtonPaddingSmall" Left="5" Bottom="3" Right="5" Top="3"></Thickness>
 	<sys:Double x:Key="OptionsCmboxMinWidth">150</sys:Double>
 	<sys:Double x:Key="TxtboxMinWidth">100</sys:Double>
 	<sys:Double x:Key="OptionsCmboxMinHeight">25</sys:Double>

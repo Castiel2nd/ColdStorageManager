@@ -5,7 +5,7 @@ using ColdStorageManager.DBManagers;
 
 namespace ColdStorageManager.Models
 {
-	public class MySQLDbConnectionProfile : IEquatable<MySQLDbConnectionProfile>
+	public class DbConnectionProfile : IEquatable<DbConnectionProfile>
 	{
 		private const char AttributeSeparator = ';', ValueSeparator = '=';
 		private const string EmptyPwValue = "null";
@@ -21,9 +21,9 @@ namespace ColdStorageManager.Models
 
 		// source: https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/statements-expressions-operators/how-to-define-value-equality-for-a-type
 		
-		public override bool Equals(object obj) => this.Equals(obj as MySQLDbConnectionProfile);
+		public override bool Equals(object obj) => this.Equals(obj as DbConnectionProfile);
 
-		public bool Equals(MySQLDbConnectionProfile profile)
+		public bool Equals(DbConnectionProfile profile)
 		{
 			if (profile is null)
 			{
@@ -52,7 +52,13 @@ namespace ColdStorageManager.Models
 			                                                     Password.Equals(profile.Password));
 		}
 
-        public MySQLDbConnectionProfile(string profileName, string host, ushort port, string databaseName, string uid, string password)
+		//used for dummy profile
+		public DbConnectionProfile(string profileName)
+		{
+			ProfileName = profileName;
+		}
+
+		public DbConnectionProfile(string profileName, string host, ushort port, string databaseName, string uid, string password)
 		{
 			ProfileName = profileName;
 			Host = host;
@@ -64,7 +70,7 @@ namespace ColdStorageManager.Models
 			SetDisplayStrings();
 		}
 
-        public MySQLDbConnectionProfile(string profileName, string serializedForm)
+        public DbConnectionProfile(string profileName, string serializedForm)
         {
 	        ProfileName = profileName;
 

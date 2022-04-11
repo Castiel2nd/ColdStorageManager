@@ -71,15 +71,20 @@ namespace ColdStorageManager
 		public const string ERROR = "ERROR";
 
 		//logging
-		public static void LogAction(string statusMsg, string logMsg, string type = NORMAL)
+		public static void LogAction(string logMsg, string type = NORMAL)
+		{
+			logHolder.AppendLog($"{type}	|	{logMsg}");
+		}
+
+		public static void LogActionWithStatus(string statusMsg, string logMsg, string type = NORMAL)
 		{
 			logHolder.Status = statusMsg;
 			logHolder.AppendLog($"{type}	|	{logMsg}");
 		}
 
-		public static void LogActionSameMsg(string msg, string type = NORMAL)
+		public static void LogActionWithStatusSameMsg(string msg, string type = NORMAL)
 		{
-			LogAction(msg, msg, type);
+			LogActionWithStatus(msg, msg, type);
 		}
 
 		//db logging
@@ -87,15 +92,20 @@ namespace ColdStorageManager
 		public static TextBlock dbStatusBarTb;
 		public static Ellipse dbStatusEllipse;
 
-		public static void LogDbAction(string statusMsg, string logMsg, string type = NORMAL)
+		public static void LogDbAction(string logMsg, string type = NORMAL)
+		{
+			logHolder.AppendDbLog($"{type}	|	{logMsg}");
+		}
+
+		public static void LogDbActionWithStatus(string statusMsg, string logMsg, string type = NORMAL)
 		{
 			logHolder.DbStatus = statusMsg;
 			logHolder.AppendDbLog($"{type}	|	{logMsg}");
 		}
 
-		public static void LogDbActionSameMsg(string msg, string type = NORMAL)
+		public static void LogDbActionWithStatusSameMsg(string msg, string type = NORMAL)
 		{
-			LogDbAction(msg, msg, type);
+			LogDbActionWithStatus(msg, msg, type);
 		}
 
 		public static void LogDbActionWithMsgBox(string displayMsg, string logMsg, string windowTitle,

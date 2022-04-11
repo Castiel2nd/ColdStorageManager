@@ -5,10 +5,6 @@
 		<Setter Property="Margin" Value="{StaticResource OptionsInlineMarginLarge}"></Setter>
 	</Style>
 	
-	<Style TargetType="TextBlock">
-		<Setter Property="Margin" Value="{StaticResource OptionsInlineMarginLarge}"></Setter>
-	</Style>
-	
 	<Style TargetType="CheckBox">
 		<Setter Property="Margin" Value="{StaticResource OptionsInlineMarginSmall}"></Setter>
 	</Style>
@@ -29,6 +25,7 @@
 	<Style TargetType="Button">
 		<Setter Property="Margin" Value="{StaticResource OptionsInlineMarginMedium}"></Setter>
 		<Setter Property="VerticalAlignment" Value="Center"></Setter>
+		<Setter Property="Padding" Value="5,3,5,3"></Setter>
 	</Style>
 
 	<Style TargetType="TextBox">

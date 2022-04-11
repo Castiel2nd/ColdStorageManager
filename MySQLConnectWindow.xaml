@@ -4,14 +4,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ColdStorageManager"
+        xmlns:models="clr-namespace:ColdStorageManager.Models"
         mc:Ignorable="d"
         Title="{DynamicResource mysql_connect_window_title}" Height="230" Width="550"
         >
-
+	<Window.Resources>
+		<ResourceDictionary Source="Styles/CommonLinearUIStylesSetter.xaml"></ResourceDictionary>
+	</Window.Resources>
 	<DockPanel Margin="0,0,0,0">
-		<DockPanel.Resources>
-			<ResourceDictionary Source="Styles/CommonLinearUIStylesSetter.xaml"></ResourceDictionary>
-		</DockPanel.Resources>
 		<Grid DockPanel.Dock="Top">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="*"></ColumnDefinition>
@@ -25,7 +25,13 @@
 			</Grid.RowDefinitions>
 			<DockPanel >
 				<TextBlock Text="{DynamicResource conn_profile}"></TextBlock>
-				<ComboBox Name="connProfileCmbx" HorizontalAlignment="Right" MinWidth="80" Margin="0,0,15,0" SelectionChanged="ConnProfileCmbx_OnSelectionChanged"></ComboBox>
+				<ComboBox Name="connProfileCmbx" HorizontalAlignment="Right" MinWidth="80" Margin="0,0,15,0" SelectionChanged="ConnProfileCmbx_OnSelectionChanged">
+					<ComboBox.Resources>
+								<DataTemplate DataType="{x:Type models:DbConnectionProfile}">
+									<TextBlock Text="{Binding ProfileName}"></TextBlock>
+								</DataTemplate>
+					</ComboBox.Resources>
+				</ComboBox>
 			</DockPanel>
 			<DockPanel Grid.Column="1">
 				<TextBlock Text="{DynamicResource connection_name}"></TextBlock>

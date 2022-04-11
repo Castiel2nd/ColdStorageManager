@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using System.Windows.Navigation;
 using ColdStorageManager.Models;
 using Dapper;
 using MySql.Data.MySqlClient;
@@ -14,7 +15,7 @@ namespace ColdStorageManager.DBManagers
 {
 	public class MySQLDbManager : IDbManager
 	{
-		public MySQLDbConnectionProfile Profile { get; set; }
+		public DbConnectionProfile Profile { get; set; }
 
 		public bool IsConnected
 		{
@@ -31,10 +32,7 @@ namespace ColdStorageManager.DBManagers
 		private MySqlConnection _connection;
 		private MySqlCommand _command;
 		private string _connectionString = "server={0};port={1};database={2};uid={3};pwd={4};";
-
-		private static string CreateCapturesTableSQLCommand;
-		private static string AddCaptureSQLCommand;
-		private static string UpdateCaptureSQLCommand;
+		private bool _isInitialized = false;
 
 		private StringBuilder stringBuilder;
 
@@ -51,6 +49,10 @@ namespace ColdStorageManager.DBManagers
 		}
 
 		private Window _msgBoxOwner;
+
+		private static string CreateCapturesTableSQLCommand;
+		private static string AddCaptureSQLCommand;
+		private static string UpdateCaptureSQLCommand;
 
 		private static string[] dbCapturesColumns = new string[]
 		{
@@ -82,7 +84,7 @@ namespace ColdStorageManager.DBManagers
 			"LONGBLOB", "LONGBLOB", "LONGBLOB", "LONGBLOB", "LONGBLOB"
 		};
 
-		public MySQLDbManager(MySQLDbConnectionProfile connectionProfile, Window msgBoxOwner = null)
+		public MySQLDbManager(DbConnectionProfile connectionProfile, Window msgBoxOwner = null)
 		{
 			
 			Profile = connectionProfile;
@@ -92,10 +94,7 @@ namespace ColdStorageManager.DBManagers
 		~MySQLDbManager()
 		{
 			// Console.WriteLine("desTRUCT!");
-			if (_connection.State != ConnectionState.Closed)
-			{
-				CloseConnection();
-			}
+			CloseConnection();
 		}
 
 		private void ConstructCreateSQLCommand()
@@ -136,15 +135,37 @@ namespace ColdStorageManager.DBManagers
 			UpdateCaptureSQLCommand = stringBuilder.ToString();
 		}
 
-		public bool TestConnection()
+		// checks if the connection is open, and if not, it tries opening it.
+		// return if the connection is open at the end of the function
+		private bool CheckConnection()
 		{
-			return CreateConnection(true);
+			if (_isInitialized)
+			{
+				if (IsConnected)
+				{
+					return true;
+				}
+				else
+				{
+					return Connect();
+				}
+			}
+			else
+			{
+				_isInitialized = true;
+				return ConnectAndCreateTable();
+			}
 		}
 
-		public bool ConnectAndCreateTableIfNotFound()
+		public bool TestConnection()
+		{
+			return Connect(true);
+		}
+
+		public bool ConnectAndCreateTable()
 		{
 			bool ret = false;
-			if (ret = CreateConnection())
+			if (ret = Connect())
 			{
 				//constructing sql commands
 				stringBuilder = new StringBuilder();
@@ -159,89 +180,151 @@ namespace ColdStorageManager.DBManagers
 			return ret;
 		}
 
-		private bool CreateConnection(bool isTest = false)
+		public bool CreateTable(string tableName, List<ColumnInfo> columns)
 		{
-			_connectionString = string.Format(_connectionString, Profile.Host, Profile.Port,
-				Profile.DatabaseName, Profile.UID, Profile.Password);
+			throw new NotImplementedException();
+		}
 
-			try
+
+		// returns whether the connection is open at the end of this function
+		private bool Connect(bool isTest = false)
+		{
+			if (_connection == null)
 			{
-				_connection = new MySqlConnection(_connectionString);
-				_connection.Open();
+				_connectionString = string.Format(_connectionString, Profile.Host, Profile.Port,
+					Profile.DatabaseName, Profile.UID, Profile.Password);
 
-				if (isTest)
+				try
 				{
-					LogDbActionWithMsgBoxWithOwner(GetLocalizedString("success_connection") + Profile.HostWithPort + ".",
-						GetLocalizedString("success_connection_title"),
-						MessageBoxImage.Information,
-						MsgBoxOwner);
-					CloseConnection();
+					_connection = new MySqlConnection(_connectionString);
+					_connection.Open();
+
+					if (isTest)
+					{
+						LogDbActionWithMsgBoxWithOwner(GetLocalizedString("success_connection") + Profile.HostWithPort + ".",
+							GetLocalizedString("success_connection_title"),
+							MessageBoxImage.Information,
+							MsgBoxOwner);
+						CloseConnection();
+					}
+					else
+					{
+						LogDbActionWithStatusSameMsg(GetLocalizedString("success_connection") + Profile.HostWithPort + ".");
+					}
 				}
-				else
+				catch (Exception e)
 				{
-					LogDbActionSameMsg(GetLocalizedString("success_connection") + Profile.HostWithPort + ".");
+					if (e is MySqlException ||
+					    e is AggregateException)
+					{
+						LogDbActionWithMsgBoxWithOwner(GetLocalizedString("error_connection") + Profile.HostWithPort + ".",
+							GetLocalizedString("error_connection_title"),
+							MessageBoxImage.Error,
+							MsgBoxOwner,
+							e.Message);
+					}
+
+					return false;
+				}
+
+				return true;
+			}
+			else if (_connection.State == ConnectionState.Open)
+			{
+				LogDbAction($"Tried opening already open connection. ({Profile.ProfileName})", WARNING);
+
+				return true;
+			}else if (_connection.State == ConnectionState.Closed || _connection.State == ConnectionState.Broken)
+			{
+				try
+				{
+					_connection.Open();
+
+					if (isTest)
+					{
+						LogDbActionWithMsgBoxWithOwner(GetLocalizedString("success_connection") + Profile.HostWithPort + ".",
+							GetLocalizedString("success_connection_title"),
+							MessageBoxImage.Information,
+							MsgBoxOwner);
+						CloseConnection();
+					}
+					else
+					{
+						LogDbActionWithStatusSameMsg(GetLocalizedString("success_connection") + Profile.HostWithPort + ".");
+					}
+				}
+				catch (Exception e)
+				{
+					if (e is MySqlException ||
+					    e is AggregateException)
+					{
+						LogDbActionWithMsgBoxWithOwner(GetLocalizedString("error_connection") + Profile.HostWithPort + ".",
+							GetLocalizedString("error_connection_title"),
+							MessageBoxImage.Error,
+							MsgBoxOwner,
+							e.Message);
+					}
+
+					return false;
 				}
 			}
-			catch (MySqlException e)
+			else
 			{
-				LogDbActionWithMsgBoxWithOwner(GetLocalizedString("error_connection") + Profile.HostWithPort + ".",
-					GetLocalizedString("error_connection_title"),
-					MessageBoxImage.Error,
-					MsgBoxOwner,
-						e.Message);
-				return false;
-			}
-			catch(AggregateException e)
-			{
-				LogDbActionWithMsgBoxWithOwner(GetLocalizedString("error_connection") + Profile.HostWithPort + ".",
-					GetLocalizedString("error_connection_title"),
-					MessageBoxImage.Error,
-					MsgBoxOwner,
-					e.Message);
-				return false;
+				LogDbAction($"Tried opening busy connection. ({Profile.ProfileName}, State = {_connection.State})", WARNING);
+
+				return true;
 			}
 
-			return true;
+			return _connection.State == ConnectionState.Open;
 		}
 
 		public List<Capture> GetCaptures()
 		{
+			if (!CheckConnection())
+			{
+				return null;
+			}
+
 			IEnumerable<Capture> ret = null;
 
 			try
 			{
 				ret = _connection.Query<Capture>("select * from " + IDbManager.DbCapturesTableName, new DynamicParameters());
 
-				LogDbAction($"{GetLocalizedString("db_list_suc")} {Profile.ProfileName}",
+				LogDbActionWithStatus($"{GetLocalizedString("db_list_suc")} {Profile.ProfileName}",
 					$"Successfully loaded captures from: {Profile.PathToTable}.");
-
 			}
 			catch (Exception e)
 			{
-				LogDbAction($"{GetLocalizedString("db_list_fail")} {Profile.ProfileName}",
+				LogDbActionWithStatus($"{GetLocalizedString("db_list_fail")} {Profile.ProfileName}",
 					$"Failed to load captures from: {Profile.PathToTable}.{LineSeparator}" +
 					$"{e.Message}",
 					ERROR);
-
 			}
 
-			return ret.ToList();
+			if (ret != null) return ret.ToList();
+			return null;
 		}
 
 		public void SaveCapture(Capture capture)
 		{
+			if (!CheckConnection())
+			{
+				return;
+			}
+
 			try
 			{
 				_connection.Execute(AddCaptureSQLCommand, capture);
 
-				LogDbAction($"{GetLocalizedString("db_save_suc")} {Profile.ProfileName}",
+				LogDbActionWithStatus($"{GetLocalizedString("db_save_suc")} {Profile.ProfileName}",
 					$"Successfully saved a capture to: {Profile.PathToTable}.{LineSeparator}" +
 					$"({nameof(capture.drive_model)} = {capture.drive_model}, {nameof(capture.drive_sn)} = {capture.drive_sn})");
 
 			}
 			catch (Exception e)
 			{
-				LogDbAction($"{GetLocalizedString("db_save_fail")} {Profile.ProfileName}",
+				LogDbActionWithStatus($"{GetLocalizedString("db_save_fail")} {Profile.ProfileName}",
 					$"Failed to save a capture to: {Profile.PathToTable}.{LineSeparator}" +
 					$"({nameof(capture.drive_model)} = {capture.drive_model}, {nameof(capture.drive_sn)} = {capture.drive_sn}){LineSeparator}" +
 					$"{e.Message}",
@@ -253,17 +336,22 @@ namespace ColdStorageManager.DBManagers
 
 		public void UpdateCaptureById(Capture capture)
 		{
+			if (!CheckConnection())
+			{
+				return;
+			}
+
 			try
 			{
 				_connection.Execute(UpdateCaptureSQLCommand, capture);
 
-				LogDbAction($"{GetLocalizedString("db_update_suc")} {Profile.ProfileName}",
+				LogDbActionWithStatus($"{GetLocalizedString("db_update_suc")} {Profile.ProfileName}",
 					$"Successfully updated a capture in: {Profile.PathToTable}. (id = {capture.id})");
 
 			}
 			catch (Exception e)
 			{
-				LogDbAction($"{GetLocalizedString("db_update_fail")} {Profile.ProfileName}",
+				LogDbActionWithStatus($"{GetLocalizedString("db_update_fail")} {Profile.ProfileName}",
 					$"Failed to update a capture in: {Profile.PathToTable}. (id = {capture.id}){LineSeparator}" +
 					$"{e.Message}",
 					ERROR);
@@ -273,17 +361,22 @@ namespace ColdStorageManager.DBManagers
 
 		public void DeleteCapture(Capture capture)
 		{
+			if (!CheckConnection())
+			{
+				return;
+			}
+
 			try
 			{
 				_connection.Execute("delete from " + IDbManager.DbCapturesTableName +
-									" where drive_model = @drive_model and drive_sn = @drive_sn and volume_guid = @volume_guid", capture);
+									" where id = @id and drive_model = @drive_model and drive_sn = @drive_sn and volume_guid = @volume_guid", capture);
 				
-				LogDbAction($"{GetLocalizedString("db_delete_suc")} {Profile.ProfileName}",
+				LogDbActionWithStatus($"{GetLocalizedString("db_delete_suc")} {Profile.ProfileName}",
 					$"Successfully deleted a capture from: {Profile.PathToTable}. (id = {capture.id})");
 			}
 			catch (Exception e)
 			{
-				LogDbAction($"{GetLocalizedString("db_delete_fail")} {Profile.ProfileName}",
+				LogDbActionWithStatus($"{GetLocalizedString("db_delete_fail")} {Profile.ProfileName}",
 					$"Failed to delete a capture from: {Profile.PathToTable}. (id = {capture.id}){LineSeparator}" +
 					$"{e.Message}",
 					ERROR);
@@ -291,20 +384,49 @@ namespace ColdStorageManager.DBManagers
 
 		}
 
+		public bool DeleteAllCaptures()
+		{
+			if (!CheckConnection())
+			{
+				return false;
+			}
+
+			try
+			{
+				_connection.Execute("delete from " + IDbManager.DbCapturesTableName);
+
+				LogDbActionWithStatus($"{GetLocalizedString("db_delete_all_suc")} {Profile.ProfileName}",
+					$"Successfully deleted all captures from: {Profile.PathToTable}.");
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_delete_all_fail")} {Profile.ProfileName}",
+					$"Failed to delete all captures from: {Profile.PathToTable}.{LineSeparator}" +
+					$"{e.Message}",
+					ERROR);
+
+				return false;
+			}
+
+			return true;
+		}
+
 		public void CloseConnection()
 		{
-			if (_connection.State != ConnectionState.Closed)
+			if (_connection != null)
 			{
-				_connection.Close();
+				if (_connection.State != ConnectionState.Closed)
+				{
+					_connection.Close();
 
-				LogDbAction($"{GetLocalizedString("db_connect_closed")} {Profile.ProfileName}",
-					$"Closed connection to: {Profile.PathToDb}.");
+					LogDbActionWithStatus($"{GetLocalizedString("db_connect_closed")} {Profile.ProfileName}",
+						$"Closed connection to: {Profile.PathToDb}.");
+
+					return;
+				}
 			}
-			else
-			{
-				LogDbAction($"{GetLocalizedString("db_connect_already_closed")} {Profile.ProfileName}",
-					$"Tried to close already closed connection: {Profile.PathToDb}.");
-			}
+			LogDbActionWithStatus($"{GetLocalizedString("db_connect_already_closed")} {Profile.ProfileName}",
+				$"Tried to close already closed connection: {Profile.PathToDb}.");
 		}
 
 		private bool CreateTableIfNotFound(string tableName)
@@ -315,7 +437,7 @@ namespace ColdStorageManager.DBManagers
 				try
 				{
 					int res = _command.ExecuteNonQuery();
-					LogDbAction(
+					LogDbActionWithStatus(
 						$"{GetLocalizedString("db_table_create_suc")}{Profile.PathToTable}",
 						$"Successfully created table: {Profile.PathToTable}.");
 				}
@@ -329,7 +451,7 @@ namespace ColdStorageManager.DBManagers
 			}
 			else
 			{
-				LogDbAction(
+				LogDbActionWithStatus(
 					$"{GetLocalizedString("db_table_found")}{IDbManager.DbCapturesTableName}{GetLocalizedString("db_table_found2")}{Profile.PathToDb}.",
 					$"Found table '{IDbManager.DbCapturesTableName}' in database:{Profile.PathToDb}.");
 			}

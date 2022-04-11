@@ -21,7 +21,7 @@ namespace ColdStorageManager
 	/// </summary>
 	public partial class MySQLConnectWindow : Window
 	{
-		private MySQLDbConnectionProfile selectedProfile;
+		private DbConnectionProfile selectedProfile;
 		private string prevSelectedProfileName;
 		private MainWindow parent;
 		private bool selectionChangedEnabled = true;
@@ -32,7 +32,7 @@ namespace ColdStorageManager
 			Owner = parent;
 			WindowStartupLocation = WindowStartupLocation.CenterOwner;
 			InitializeComponent();
-			SetProfileList();
+			connProfileCmbx.ItemsSource = dbConnectionProfiles;
 
 			if (connProfileCmbx.Items.Count != 0)
 			{
@@ -42,18 +42,18 @@ namespace ColdStorageManager
 			ShowDialog();
 		}
 
-		private void SetProfileList()
-		{
-			selectionChangedEnabled = false;
-
-			connProfileCmbx.Items.Clear();
-			foreach (var profile in mySqlDbConnectionProfiles)
-			{
-				connProfileCmbx.Items.Add(profile.ProfileName);
-			}
-
-			selectionChangedEnabled = true;
-		}
+		// private void SetProfileList()
+		// {
+		// 	selectionChangedEnabled = false;
+		//
+		// 	connProfileCmbx.Items.Clear();
+		// 	foreach (var profile in dbConnectionProfiles)
+		// 	{
+		// 		connProfileCmbx.Items.Add(profile.ProfileName);
+		// 	}
+		//
+		// 	selectionChangedEnabled = true;
+		// }
 
 		private void DisplayError(string errorMsg, string caption)
 		{
@@ -62,7 +62,7 @@ namespace ColdStorageManager
 				MessageBoxResult.OK);
 		}
 
-		private MySQLDbConnectionProfile CreateConnectionProfile()
+		private DbConnectionProfile CreateConnectionProfile()
 		{
 			string profileName = connNameTxtbox.Text.Trim(),
 				host = hostnameTxtbox.Text.Trim(),
@@ -119,41 +119,44 @@ namespace ColdStorageManager
 				return null;
 			}
 
-			return new MySQLDbConnectionProfile(profileName, host, port, dbName, username, pw);
+			return new DbConnectionProfile(profileName, host, port, dbName, username, pw);
 		}
 
+		// returns whether the profile could be saved
 		private bool SaveConnectionProfile()
 		{
 			var profile = CreateConnectionProfile();
 			if (profile != null)
 			{
-				if (connProfileCmbx.SelectedIndex == -1)
+				if (connProfileCmbx.SelectedIndex == -1) // no profile is selected, just add it
 				{
-					mySqlDbConnectionProfiles.Add(profile);
-					mainWindow.AddDisplayConnectionName(profile.ProfileName);
+					dbConnectionProfiles.Add(profile);
 				}
-				else if (profile.ProfileName.Equals(mySqlDbConnectionProfiles[connProfileCmbx.SelectedIndex].ProfileName))
+				else if (profile.ProfileName.Equals(dbConnectionProfiles[connProfileCmbx.SelectedIndex].ProfileName)) // if profile saved already exists
 				{
-					if (mySqlDbConnectionProfiles[connProfileCmbx.SelectedIndex].Equals(profile))
+					if (dbConnectionProfiles[connProfileCmbx.SelectedIndex].Equals(profile)) // check if it's been modified
 					{
 						return true;
 					}
-					else
+					else //if yes, remove the old one, and add the new
 					{
-						mySqlDbConnectionProfiles.RemoveAt(connProfileCmbx.SelectedIndex);
-						mySqlDbConnectionProfiles.Add(profile);
+						selectionChangedEnabled = false;
+						dbConnectionProfiles.RemoveAt(connProfileCmbx.SelectedIndex);
+						dbConnectionProfiles.Add(profile);
+						selectionChangedEnabled = true;
 					}
 				}
-				else
+				else // if there was a different profile selected, still just add it
 				{
-					mySqlDbConnectionProfiles.Add(profile);
-					mainWindow.AddDisplayConnectionName(profile.ProfileName);
+					dbConnectionProfiles.Add(profile);
 				}
-				SetProfileList();
-				connProfileCmbx.SelectedIndex = mySqlDbConnectionProfiles.IndexOf(profile);
+				connProfileCmbx.SelectedIndex = dbConnectionProfiles.IndexOf(profile);
 
 				SaveMySQLDbConnectionProfilesToMem();
 				WriteConfigFileToDisk();
+
+				//create DataSource
+				dataSources.Add(new DataSource(profile));
 
 				return true;
 			}
@@ -176,36 +179,33 @@ namespace ColdStorageManager
 
 		private void Delete_OnClick(object sender, RoutedEventArgs e)
 		{
-			if (connProfileCmbx.SelectedIndex != -1)
+			if (connProfileCmbx.SelectedIndex != -1) // if there's something selected
 			{
-				if (activeMySQLDbManager != null &&
-				    activeMySQLDbManager.Profile.Equals(mySqlDbConnectionProfiles[connProfileCmbx.SelectedIndex]))
-				{
-					if (activeMySQLDbManager.IsConnected)
-					{
-						activeMySQLDbManager.CloseConnection();
-					}
+				int selectedIndex = connProfileCmbx.SelectedIndex;
 
-					activeMySQLDbManager = null;
+				//delete the corresponding DataSource
+				var ds = GetDataSourceByName(dbConnectionProfiles[selectedIndex].ProfileName);
+				if (ds != null)
+				{
+					ds.CloseConnection();
+					dataSources.Remove(ds);
 				}
 
-				int selectedIndex = connProfileCmbx.SelectedIndex;
-				mainWindow.RemoveDisplayConnectionName(mySqlDbConnectionProfiles[connProfileCmbx.SelectedIndex].ProfileName);
-				mySqlDbConnectionProfiles.RemoveAt(connProfileCmbx.SelectedIndex);
+				dbConnectionProfiles.RemoveAt(connProfileCmbx.SelectedIndex);
 				selectedProfile = null;
-				SetProfileList();
 
 				SaveMySQLDbConnectionProfilesToMem();
 				WriteConfigFileToDisk();
 
-				if (connProfileCmbx.Items.Count > 0 && selectedIndex + 1 <= connProfileCmbx.Items.Count)
+				if (connProfileCmbx.Items.Count > 0 && selectedIndex < connProfileCmbx.Items.Count) // if there are still profiles and the same index is available, use that
 				{
 					connProfileCmbx.SelectedIndex = selectedIndex;
-				}else if (connProfileCmbx.Items.Count > 0)
+				}
+				else if (connProfileCmbx.Items.Count > 0) // if there are still profiles, use the last one
 				{
 					connProfileCmbx.SelectedIndex = connProfileCmbx.Items.Count - 1;
 				}
-				else
+				else // if the last profile has just been deleted, reset the fields
 				{
 					Reset_OnClick(null, null);
 				}
@@ -228,7 +228,7 @@ namespace ColdStorageManager
 			Close();
 		}
 
-		private void SetDisplayProfileData(MySQLDbConnectionProfile profile)
+		private void SetDisplayProfileData(DbConnectionProfile profile)
 		{
 			connNameTxtbox.Text = profile.ProfileName;
 			hostnameTxtbox.Text = profile.Host;
@@ -241,8 +241,11 @@ namespace ColdStorageManager
 		{
 			if (selectionChangedEnabled)
 			{
-				selectedProfile = mySqlDbConnectionProfiles[connProfileCmbx.SelectedIndex];
-				SetDisplayProfileData(selectedProfile);
+				if (e.AddedItems.Count > 0)
+				{
+					selectedProfile = dbConnectionProfiles[connProfileCmbx.SelectedIndex];
+					SetDisplayProfileData(selectedProfile);
+				}
 			}
 		}
 

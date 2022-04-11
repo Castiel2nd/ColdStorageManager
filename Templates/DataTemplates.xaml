@@ -111,6 +111,9 @@
 		</StackPanel>
 	</Grid>
 
+	<TextBlock x:Key="dataSourceView"  Text="{Binding Name}"></TextBlock>
+	<TextBlock x:Key="dbProfileSourceView" Text="{Binding ProfileName}"></TextBlock>
+
 	<Label x:Key="capturePlaceholder" FontSize="16" FontWeight="Medium" Content="{Binding Msg}"></Label>
 
 </ResourceDictionary>

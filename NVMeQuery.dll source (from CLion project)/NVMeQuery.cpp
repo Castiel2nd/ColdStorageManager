@@ -29,305 +29,6 @@ NVMeQuery::NVMeQuery(MessageChangedCallback managedDelegate)
 {
 }
 
-//auto NVMeQuery::GetTemp(const wchar_t* nvmePath) -> unsigned long
-//{
-//    auto nvmeHandle = CreateFile("\\\\.\\PhysicalDrive3", 0, 0,
-//                                 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-//    {
-//        auto lastErrorID = GetLastError();
-//        if (lastErrorID != 0)
-//        {
-//            LPVOID errorBuffer{};
-//            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-//                          nullptr, lastErrorID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorBuffer, 0, nullptr);
-//            printf_s("Query: ERROR creating handle to NVMe [%s]: %d, %s", nvmePath, lastErrorID, errorBuffer);
-//        }
-//    }
-//
-//    unsigned long bufferLength = FIELD_OFFSET(STORAGE_PROPERTY_QUERY, AdditionalParameters)
-//                                 + sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) + NVME_MAX_LOG_SIZE;
-//    void* buffer = malloc(bufferLength);
-//    ZeroMemory(buffer, bufferLength);
-//
-//    query = (PSTORAGE_PROPERTY_QUERY)buffer;
-//    protocolDataDescriptor = (PSTORAGE_PROTOCOL_DATA_DESCRIPTOR)buffer;
-//    protocolSpecificData = (PSTORAGE_PROTOCOL_SPECIFIC_DATA)query->AdditionalParameters;
-//
-//    query->PropertyId = StorageDeviceProtocolSpecificProperty;
-//    query->QueryType = PropertyStandardQuery;
-//
-//
-//    protocolSpecificData->ProtocolType = ProtocolTypeNvme;
-//    protocolSpecificData->DataType = NVMeDataTypeLogPage;
-//    protocolSpecificData->ProtocolDataRequestValue = NVME_LOG_PAGE_HEALTH_INFO;
-//    protocolSpecificData->ProtocolDataRequestSubValue = 0;
-//    protocolSpecificData->ProtocolDataOffset = sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA);
-//    protocolSpecificData->ProtocolDataLength = sizeof(NVME_HEALTH_INFO_LOG);
-//
-//    unsigned long returnedLength{};
-//
-//    auto result = DeviceIoControl(nvmeHandle, IOCTL_STORAGE_QUERY_PROPERTY,
-//                                  buffer, bufferLength,
-//                                  buffer, bufferLength,
-//                                  &returnedLength, nullptr);
-//
-//    if (!result || returnedLength == 0)
-//    {
-//        auto lastErrorID = GetLastError();
-//        LPVOID errorBuffer{};
-//        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-//                      nullptr, lastErrorID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorBuffer, 0, nullptr);
-//        printf_s("Query: drive path: %s, nvmeHandle %lu\n", nvmePath, nvmeHandle);
-//        printf_s("Query: ERROR DeviceIoControl 0x%x %s\n", lastErrorID, errorBuffer);
-//    }
-//
-//    if (protocolDataDescriptor->Version != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR) ||
-//        protocolDataDescriptor->Size != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR))
-//    {
-//        printf_s("Query: Data descriptor header not valid (size of descriptor: %llu)\n", sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR));
-//        printf_s("Query: DataDesc: version %lu, size %lu\n", protocolDataDescriptor->Version, protocolDataDescriptor->Size);
-//    }
-//
-//    protocolSpecificData = &protocolDataDescriptor->ProtocolSpecificData;
-//    if (protocolSpecificData->ProtocolDataOffset < sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) ||
-//        protocolSpecificData->ProtocolDataLength < sizeof(NVME_HEALTH_INFO_LOG))
-//        printf_s("Query: ProtocolData Offset/Length not valid\n");
-//
-//    SmartHealthInfo = (PNVME_HEALTH_INFO_LOG)((PCHAR)protocolSpecificData + protocolSpecificData->ProtocolDataOffset);
-//    CloseHandle(nvmeHandle);
-//    auto temp = ((ULONG)SmartHealthInfo->Temperature[1] << 8 | SmartHealthInfo->Temperature[0]) - 273;
-//    return temp;
-//}
-
-//auto NVMeQuery::GetSerialNumber(const wchar_t* nvmePath) -> char*
-//{
-//    auto nvmeHandle = CreateFile("\\\\.\\PhysicalDrive3",
-//                                 0,
-//                                 (FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE),
-//                                 nullptr,
-//                                 OPEN_EXISTING,
-//                                 FILE_ATTRIBUTE_NORMAL,
-//                                 nullptr);
-//    {
-//        auto lastErrorID = GetLastError();
-//        if (lastErrorID != 0)
-//        {
-//            LPVOID errorBuffer{};
-//            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-//                          nullptr, lastErrorID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorBuffer, 0, nullptr);
-//            printf_s("Query: ERROR creating handle to NVMe [%s]: %d, %s", nvmePath, lastErrorID, errorBuffer);
-//        }
-//    }
-//
-//    unsigned long bufferLength = FIELD_OFFSET(STORAGE_PROPERTY_QUERY, AdditionalParameters)
-//                                 + sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) + NVME_MAX_LOG_SIZE;
-//    void* buffer = malloc(bufferLength);
-//    ZeroMemory(buffer, bufferLength);
-//
-//    query = (PSTORAGE_PROPERTY_QUERY)buffer;
-//    protocolDataDescriptor = (PSTORAGE_PROTOCOL_DATA_DESCRIPTOR)buffer;
-//    protocolSpecificData = (PSTORAGE_PROTOCOL_SPECIFIC_DATA)query->AdditionalParameters;
-//
-//    query->PropertyId = StorageDeviceProtocolSpecificProperty;
-//    query->QueryType = PropertyStandardQuery;
-//
-//
-//    protocolSpecificData->ProtocolType = ProtocolTypeNvme;
-//    protocolSpecificData->DataType = NVMeDataTypeIdentify;
-//    protocolSpecificData->ProtocolDataRequestValue = NVME_IDENTIFY_CNS_CONTROLLER ;
-//    protocolSpecificData->ProtocolDataRequestSubValue = 0;
-//    protocolSpecificData->ProtocolDataOffset = sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA);
-//    protocolSpecificData->ProtocolDataLength = NVME_MAX_LOG_SIZE;
-//
-//    ULONG returnedLength = 0;
-//
-//    auto result = DeviceIoControl(nvmeHandle,
-//                                  IOCTL_STORAGE_QUERY_PROPERTY,
-//                                  buffer,
-//                                  bufferLength,
-//                                  buffer,
-//                                  bufferLength,
-//                                  &returnedLength,
-//                                  nullptr);
-//    std::cout << "result: " << result << std::endl;
-//
-//    auto lastErrorID = GetLastError();
-//    if (lastErrorID != 0)
-//    {
-//        LPVOID errorBuffer{};
-//        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-//                      nullptr, lastErrorID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorBuffer, 0, nullptr);
-//        printf_s("Query: ERROR in DeviceIoControl: %s\n", errorBuffer);
-//    }
-//
-//    //
-//    // Validate the returned data.
-//    //
-//    if ((protocolDataDescriptor->Version != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR)) ||
-//        (protocolDataDescriptor->Size != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR))) {
-//        printf_s("DeviceNVMeQueryProtocolDataTest: Get Identify Controller Data - data descriptor header not valid.\n");
-//        return nullptr;
-//    }
-//
-//    protocolSpecificData = &protocolDataDescriptor->ProtocolSpecificData;
-//
-//    if ((protocolSpecificData->ProtocolDataOffset < sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA)) ||
-//        (protocolSpecificData->ProtocolDataLength < NVME_MAX_LOG_SIZE)) {
-//        printf_s("DeviceNVMeQueryProtocolDataTest: Get Identify Controller Data - ProtocolData Offset/Length not valid.\n");
-//        return nullptr;
-//    }
-//
-//    //
-//    // Identify Controller Data
-//    //
-//    {
-//        PNVME_IDENTIFY_CONTROLLER_DATA identifyControllerData = (PNVME_IDENTIFY_CONTROLLER_DATA)((PCHAR)protocolSpecificData + (protocolSpecificData->ProtocolDataOffset));
-//        std::cout << (identifyControllerData->SN) << std::endl;
-//        if ((identifyControllerData->VID == 0) ||
-//            (identifyControllerData->NN == 0)) {
-//            printf_s("DeviceNVMeQueryProtocolDataTest: Identify Controller Data not valid.\n");
-//            return nullptr;
-//        } else {
-//            printf_s("DeviceNVMeQueryProtocolDataTest: ***Identify Controller Data succeeded***.\n");
-//        }
-//    }
-//    return nullptr;
-//}
-
-/*auto NVMeQuery::GetSerialNumber(const wchar_t* nvmePath) -> char*
-{
-    auto nvmeHandle = CreateFile("\\\\.\\PhysicalDrive3",
-                                 0,
-                                 (FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE),
-                                 nullptr,
-                                 OPEN_EXISTING,
-                                 FILE_ATTRIBUTE_NORMAL,
-                                 nullptr);
-    {
-        auto lastErrorID = GetLastError();
-        if (lastErrorID != 0)
-        {
-            LPVOID errorBuffer{};
-            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                          nullptr, lastErrorID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorBuffer, 0, nullptr);
-            printf_s("Query: ERROR creating handle to NVMe [%s]: %d, %s", nvmePath, lastErrorID, errorBuffer);
-        }
-    }
-
-    BOOL    result;
-    PVOID   buffer = NULL;
-    ULONG   bufferLength = 0;
-    ULONG   returnedLength = 0;
-
-    PSTORAGE_PROPERTY_QUERY query = NULL;
-    PSTORAGE_PROTOCOL_SPECIFIC_DATA protocolData = NULL;
-    PSTORAGE_PROTOCOL_DATA_DESCRIPTOR protocolDataDescr = NULL;
-
-    //
-    // Allocate buffer for use.
-    //
-    bufferLength = FIELD_OFFSET(STORAGE_PROPERTY_QUERY, AdditionalParameters) + sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) + NVME_MAX_LOG_SIZE;
-    buffer = malloc(bufferLength);
-
-    if (buffer == NULL) {
-        printf_s("DeviceNVMeQueryProtocolDataTest: allocate buffer failed, exit.\n");
-        return nullptr;
-    }
-
-    //
-    // Initialize query data structure to get Identify Controller Data.
-    //
-    ZeroMemory(buffer, bufferLength);
-
-    query = (PSTORAGE_PROPERTY_QUERY)buffer;
-    protocolDataDescr = (PSTORAGE_PROTOCOL_DATA_DESCRIPTOR)buffer;
-    protocolData = (PSTORAGE_PROTOCOL_SPECIFIC_DATA)query->AdditionalParameters;
-
-    query->PropertyId = StorageAdapterProtocolSpecificProperty;
-    query->QueryType = PropertyStandardQuery;
-
-    protocolData->ProtocolType = ProtocolTypeNvme;
-    protocolData->DataType = NVMeDataTypeIdentify;
-    protocolData->ProtocolDataRequestValue = NVME_IDENTIFY_CNS_CONTROLLER;
-    protocolData->ProtocolDataRequestSubValue = 0;
-    protocolData->ProtocolDataOffset = sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA);
-    protocolData->ProtocolDataLength = sizeof(NVME_IDENTIFY_CONTROLLER_DATA);
-
-    //
-    // Send request down.
-    //
-    result = DeviceIoControl(nvmeHandle,
-                             IOCTL_STORAGE_QUERY_PROPERTY,
-                             buffer,
-                             bufferLength,
-                             buffer,
-                             bufferLength,
-                             &returnedLength,
-                             NULL
-    );
-
-    ZeroMemory(buffer, bufferLength);
-    query = (PSTORAGE_PROPERTY_QUERY)buffer;
-    protocolDataDescr = (PSTORAGE_PROTOCOL_DATA_DESCRIPTOR)buffer;
-    protocolData = (PSTORAGE_PROTOCOL_SPECIFIC_DATA)query->AdditionalParameters;
-
-    query->PropertyId = StorageDeviceProtocolSpecificProperty;
-    query->QueryType = PropertyStandardQuery;
-
-    protocolData->ProtocolType = ProtocolTypeNvme;
-    protocolData->DataType = NVMeDataTypeLogPage;
-    protocolData->ProtocolDataRequestValue = NVME_LOG_PAGE_HEALTH_INFO;
-    protocolData->ProtocolDataRequestSubValue = 0;
-    protocolData->ProtocolDataOffset = sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA);
-    protocolData->ProtocolDataLength = NVME_MAX_LOG_SIZE;
-
-    //
-    // Send request down.
-    //
-    result = DeviceIoControl(nvmeHandle,
-                             IOCTL_STORAGE_QUERY_PROPERTY,
-                             buffer,
-                             bufferLength,
-                             buffer,
-                             bufferLength,
-                             &returnedLength,
-                             NULL
-    );
-
-    //
-    // Validate the returned data.
-    //
-    if ((protocolDataDescr->Version != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR)) ||
-        (protocolDataDescr->Size != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR))) {
-        printf_s(("DeviceNVMeQueryProtocolDataTest: Get Identify Controller Data - data descriptor header not valid. %d\n"));
-        return nullptr;
-    }
-
-    protocolData = &protocolDataDescr->ProtocolSpecificData;
-
-    if ((protocolData->ProtocolDataOffset < sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA)) ||
-        (protocolData->ProtocolDataLength < NVME_MAX_LOG_SIZE)) {
-        printf_s(("DeviceNVMeQueryProtocolDataTest: Get Identify Controller Data - ProtocolData Offset/Length not valid.\n"));
-        return nullptr;
-    }
-
-    //
-    // Identify Controller Data
-    //
-    {
-        PNVME_IDENTIFY_CONTROLLER_DATA identifyControllerData = (PNVME_IDENTIFY_CONTROLLER_DATA)((PCHAR)protocolData + protocolData->ProtocolDataOffset);
-
-        if ((identifyControllerData->VID == 0) ||
-            (identifyControllerData->NN == 0)) {
-            printf_s(("DeviceNVMeQueryProtocolDataTest: Identify Controller Data not valid.\n"));
-            return nullptr;
-        } else {
-            printf_s(("DeviceNVMeQueryProtocolDataTest: ***Identify Controller Data succeeded***.\n"));
-        }
-    }
-    return nullptr;
-}*/
-
 std::string NVMeQuery::GetSerialNumber(const int physicalDriveId){
 
     BOOL	found = FALSE;
@@ -1045,3 +746,302 @@ Pinvoke auto GetSerialNumber(NVMeQuery* p, int physicalDriveId, char* serialNumb
 {
     strcpy(serialNumber , (p->GetSerialNumber(physicalDriveId)).c_str());
 }
+
+//auto NVMeQuery::GetTemp(const wchar_t* nvmePath) -> unsigned long
+//{
+//    auto nvmeHandle = CreateFile("\\\\.\\PhysicalDrive3", 0, 0,
+//                                 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+//    {
+//        auto lastErrorID = GetLastError();
+//        if (lastErrorID != 0)
+//        {
+//            LPVOID errorBuffer{};
+//            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+//                          nullptr, lastErrorID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorBuffer, 0, nullptr);
+//            printf_s("Query: ERROR creating handle to NVMe [%s]: %d, %s", nvmePath, lastErrorID, errorBuffer);
+//        }
+//    }
+//
+//    unsigned long bufferLength = FIELD_OFFSET(STORAGE_PROPERTY_QUERY, AdditionalParameters)
+//                                 + sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) + NVME_MAX_LOG_SIZE;
+//    void* buffer = malloc(bufferLength);
+//    ZeroMemory(buffer, bufferLength);
+//
+//    query = (PSTORAGE_PROPERTY_QUERY)buffer;
+//    protocolDataDescriptor = (PSTORAGE_PROTOCOL_DATA_DESCRIPTOR)buffer;
+//    protocolSpecificData = (PSTORAGE_PROTOCOL_SPECIFIC_DATA)query->AdditionalParameters;
+//
+//    query->PropertyId = StorageDeviceProtocolSpecificProperty;
+//    query->QueryType = PropertyStandardQuery;
+//
+//
+//    protocolSpecificData->ProtocolType = ProtocolTypeNvme;
+//    protocolSpecificData->DataType = NVMeDataTypeLogPage;
+//    protocolSpecificData->ProtocolDataRequestValue = NVME_LOG_PAGE_HEALTH_INFO;
+//    protocolSpecificData->ProtocolDataRequestSubValue = 0;
+//    protocolSpecificData->ProtocolDataOffset = sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA);
+//    protocolSpecificData->ProtocolDataLength = sizeof(NVME_HEALTH_INFO_LOG);
+//
+//    unsigned long returnedLength{};
+//
+//    auto result = DeviceIoControl(nvmeHandle, IOCTL_STORAGE_QUERY_PROPERTY,
+//                                  buffer, bufferLength,
+//                                  buffer, bufferLength,
+//                                  &returnedLength, nullptr);
+//
+//    if (!result || returnedLength == 0)
+//    {
+//        auto lastErrorID = GetLastError();
+//        LPVOID errorBuffer{};
+//        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+//                      nullptr, lastErrorID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorBuffer, 0, nullptr);
+//        printf_s("Query: drive path: %s, nvmeHandle %lu\n", nvmePath, nvmeHandle);
+//        printf_s("Query: ERROR DeviceIoControl 0x%x %s\n", lastErrorID, errorBuffer);
+//    }
+//
+//    if (protocolDataDescriptor->Version != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR) ||
+//        protocolDataDescriptor->Size != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR))
+//    {
+//        printf_s("Query: Data descriptor header not valid (size of descriptor: %llu)\n", sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR));
+//        printf_s("Query: DataDesc: version %lu, size %lu\n", protocolDataDescriptor->Version, protocolDataDescriptor->Size);
+//    }
+//
+//    protocolSpecificData = &protocolDataDescriptor->ProtocolSpecificData;
+//    if (protocolSpecificData->ProtocolDataOffset < sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) ||
+//        protocolSpecificData->ProtocolDataLength < sizeof(NVME_HEALTH_INFO_LOG))
+//        printf_s("Query: ProtocolData Offset/Length not valid\n");
+//
+//    SmartHealthInfo = (PNVME_HEALTH_INFO_LOG)((PCHAR)protocolSpecificData + protocolSpecificData->ProtocolDataOffset);
+//    CloseHandle(nvmeHandle);
+//    auto temp = ((ULONG)SmartHealthInfo->Temperature[1] << 8 | SmartHealthInfo->Temperature[0]) - 273;
+//    return temp;
+//}
+
+//auto NVMeQuery::GetSerialNumber(const wchar_t* nvmePath) -> char*
+//{
+//    auto nvmeHandle = CreateFile("\\\\.\\PhysicalDrive3",
+//                                 0,
+//                                 (FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE),
+//                                 nullptr,
+//                                 OPEN_EXISTING,
+//                                 FILE_ATTRIBUTE_NORMAL,
+//                                 nullptr);
+//    {
+//        auto lastErrorID = GetLastError();
+//        if (lastErrorID != 0)
+//        {
+//            LPVOID errorBuffer{};
+//            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+//                          nullptr, lastErrorID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorBuffer, 0, nullptr);
+//            printf_s("Query: ERROR creating handle to NVMe [%s]: %d, %s", nvmePath, lastErrorID, errorBuffer);
+//        }
+//    }
+//
+//    unsigned long bufferLength = FIELD_OFFSET(STORAGE_PROPERTY_QUERY, AdditionalParameters)
+//                                 + sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) + NVME_MAX_LOG_SIZE;
+//    void* buffer = malloc(bufferLength);
+//    ZeroMemory(buffer, bufferLength);
+//
+//    query = (PSTORAGE_PROPERTY_QUERY)buffer;
+//    protocolDataDescriptor = (PSTORAGE_PROTOCOL_DATA_DESCRIPTOR)buffer;
+//    protocolSpecificData = (PSTORAGE_PROTOCOL_SPECIFIC_DATA)query->AdditionalParameters;
+//
+//    query->PropertyId = StorageDeviceProtocolSpecificProperty;
+//    query->QueryType = PropertyStandardQuery;
+//
+//
+//    protocolSpecificData->ProtocolType = ProtocolTypeNvme;
+//    protocolSpecificData->DataType = NVMeDataTypeIdentify;
+//    protocolSpecificData->ProtocolDataRequestValue = NVME_IDENTIFY_CNS_CONTROLLER ;
+//    protocolSpecificData->ProtocolDataRequestSubValue = 0;
+//    protocolSpecificData->ProtocolDataOffset = sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA);
+//    protocolSpecificData->ProtocolDataLength = NVME_MAX_LOG_SIZE;
+//
+//    ULONG returnedLength = 0;
+//
+//    auto result = DeviceIoControl(nvmeHandle,
+//                                  IOCTL_STORAGE_QUERY_PROPERTY,
+//                                  buffer,
+//                                  bufferLength,
+//                                  buffer,
+//                                  bufferLength,
+//                                  &returnedLength,
+//                                  nullptr);
+//    std::cout << "result: " << result << std::endl;
+//
+//    auto lastErrorID = GetLastError();
+//    if (lastErrorID != 0)
+//    {
+//        LPVOID errorBuffer{};
+//        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+//                      nullptr, lastErrorID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorBuffer, 0, nullptr);
+//        printf_s("Query: ERROR in DeviceIoControl: %s\n", errorBuffer);
+//    }
+//
+//    //
+//    // Validate the returned data.
+//    //
+//    if ((protocolDataDescriptor->Version != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR)) ||
+//        (protocolDataDescriptor->Size != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR))) {
+//        printf_s("DeviceNVMeQueryProtocolDataTest: Get Identify Controller Data - data descriptor header not valid.\n");
+//        return nullptr;
+//    }
+//
+//    protocolSpecificData = &protocolDataDescriptor->ProtocolSpecificData;
+//
+//    if ((protocolSpecificData->ProtocolDataOffset < sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA)) ||
+//        (protocolSpecificData->ProtocolDataLength < NVME_MAX_LOG_SIZE)) {
+//        printf_s("DeviceNVMeQueryProtocolDataTest: Get Identify Controller Data - ProtocolData Offset/Length not valid.\n");
+//        return nullptr;
+//    }
+//
+//    //
+//    // Identify Controller Data
+//    //
+//    {
+//        PNVME_IDENTIFY_CONTROLLER_DATA identifyControllerData = (PNVME_IDENTIFY_CONTROLLER_DATA)((PCHAR)protocolSpecificData + (protocolSpecificData->ProtocolDataOffset));
+//        std::cout << (identifyControllerData->SN) << std::endl;
+//        if ((identifyControllerData->VID == 0) ||
+//            (identifyControllerData->NN == 0)) {
+//            printf_s("DeviceNVMeQueryProtocolDataTest: Identify Controller Data not valid.\n");
+//            return nullptr;
+//        } else {
+//            printf_s("DeviceNVMeQueryProtocolDataTest: ***Identify Controller Data succeeded***.\n");
+//        }
+//    }
+//    return nullptr;
+//}
+
+/*auto NVMeQuery::GetSerialNumber(const wchar_t* nvmePath) -> char*
+{
+    auto nvmeHandle = CreateFile("\\\\.\\PhysicalDrive3",
+                                 0,
+                                 (FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE),
+                                 nullptr,
+                                 OPEN_EXISTING,
+                                 FILE_ATTRIBUTE_NORMAL,
+                                 nullptr);
+    {
+        auto lastErrorID = GetLastError();
+        if (lastErrorID != 0)
+        {
+            LPVOID errorBuffer{};
+            FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                          nullptr, lastErrorID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errorBuffer, 0, nullptr);
+            printf_s("Query: ERROR creating handle to NVMe [%s]: %d, %s", nvmePath, lastErrorID, errorBuffer);
+        }
+    }
+
+    BOOL    result;
+    PVOID   buffer = NULL;
+    ULONG   bufferLength = 0;
+    ULONG   returnedLength = 0;
+
+    PSTORAGE_PROPERTY_QUERY query = NULL;
+    PSTORAGE_PROTOCOL_SPECIFIC_DATA protocolData = NULL;
+    PSTORAGE_PROTOCOL_DATA_DESCRIPTOR protocolDataDescr = NULL;
+
+    //
+    // Allocate buffer for use.
+    //
+    bufferLength = FIELD_OFFSET(STORAGE_PROPERTY_QUERY, AdditionalParameters) + sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) + NVME_MAX_LOG_SIZE;
+    buffer = malloc(bufferLength);
+
+    if (buffer == NULL) {
+        printf_s("DeviceNVMeQueryProtocolDataTest: allocate buffer failed, exit.\n");
+        return nullptr;
+    }
+
+    //
+    // Initialize query data structure to get Identify Controller Data.
+    //
+    ZeroMemory(buffer, bufferLength);
+
+    query = (PSTORAGE_PROPERTY_QUERY)buffer;
+    protocolDataDescr = (PSTORAGE_PROTOCOL_DATA_DESCRIPTOR)buffer;
+    protocolData = (PSTORAGE_PROTOCOL_SPECIFIC_DATA)query->AdditionalParameters;
+
+    query->PropertyId = StorageAdapterProtocolSpecificProperty;
+    query->QueryType = PropertyStandardQuery;
+
+    protocolData->ProtocolType = ProtocolTypeNvme;
+    protocolData->DataType = NVMeDataTypeIdentify;
+    protocolData->ProtocolDataRequestValue = NVME_IDENTIFY_CNS_CONTROLLER;
+    protocolData->ProtocolDataRequestSubValue = 0;
+    protocolData->ProtocolDataOffset = sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA);
+    protocolData->ProtocolDataLength = sizeof(NVME_IDENTIFY_CONTROLLER_DATA);
+
+    //
+    // Send request down.
+    //
+    result = DeviceIoControl(nvmeHandle,
+                             IOCTL_STORAGE_QUERY_PROPERTY,
+                             buffer,
+                             bufferLength,
+                             buffer,
+                             bufferLength,
+                             &returnedLength,
+                             NULL
+    );
+
+    ZeroMemory(buffer, bufferLength);
+    query = (PSTORAGE_PROPERTY_QUERY)buffer;
+    protocolDataDescr = (PSTORAGE_PROTOCOL_DATA_DESCRIPTOR)buffer;
+    protocolData = (PSTORAGE_PROTOCOL_SPECIFIC_DATA)query->AdditionalParameters;
+
+    query->PropertyId = StorageDeviceProtocolSpecificProperty;
+    query->QueryType = PropertyStandardQuery;
+
+    protocolData->ProtocolType = ProtocolTypeNvme;
+    protocolData->DataType = NVMeDataTypeLogPage;
+    protocolData->ProtocolDataRequestValue = NVME_LOG_PAGE_HEALTH_INFO;
+    protocolData->ProtocolDataRequestSubValue = 0;
+    protocolData->ProtocolDataOffset = sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA);
+    protocolData->ProtocolDataLength = NVME_MAX_LOG_SIZE;
+
+    //
+    // Send request down.
+    //
+    result = DeviceIoControl(nvmeHandle,
+                             IOCTL_STORAGE_QUERY_PROPERTY,
+                             buffer,
+                             bufferLength,
+                             buffer,
+                             bufferLength,
+                             &returnedLength,
+                             NULL
+    );
+
+    //
+    // Validate the returned data.
+    //
+    if ((protocolDataDescr->Version != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR)) ||
+        (protocolDataDescr->Size != sizeof(STORAGE_PROTOCOL_DATA_DESCRIPTOR))) {
+        printf_s(("DeviceNVMeQueryProtocolDataTest: Get Identify Controller Data - data descriptor header not valid. %d\n"));
+        return nullptr;
+    }
+
+    protocolData = &protocolDataDescr->ProtocolSpecificData;
+
+    if ((protocolData->ProtocolDataOffset < sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA)) ||
+        (protocolData->ProtocolDataLength < NVME_MAX_LOG_SIZE)) {
+        printf_s(("DeviceNVMeQueryProtocolDataTest: Get Identify Controller Data - ProtocolData Offset/Length not valid.\n"));
+        return nullptr;
+    }
+
+    //
+    // Identify Controller Data
+    //
+    {
+        PNVME_IDENTIFY_CONTROLLER_DATA identifyControllerData = (PNVME_IDENTIFY_CONTROLLER_DATA)((PCHAR)protocolData + protocolData->ProtocolDataOffset);
+
+        if ((identifyControllerData->VID == 0) ||
+            (identifyControllerData->NN == 0)) {
+            printf_s(("DeviceNVMeQueryProtocolDataTest: Identify Controller Data not valid.\n"));
+            return nullptr;
+        } else {
+            printf_s(("DeviceNVMeQueryProtocolDataTest: ***Identify Controller Data succeeded***.\n"));
+        }
+    }
+    return nullptr;
+}*/

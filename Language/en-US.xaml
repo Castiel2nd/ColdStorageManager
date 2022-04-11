@@ -21,8 +21,7 @@
 	<System:String x:Key="apply">Apply</System:String>
 	<System:String x:Key="cancel">Cancel</System:String>
 	<System:String x:Key="capture">Capture</System:String>
-	<System:String x:Key="capturing">Capturing</System:String>
-	<System:String x:Key="searching">Searching</System:String>
+	<System:String x:Key="register">Register</System:String>
 	<System:String x:Key="search">Search</System:String>
 	<System:String x:Key="del">Delete</System:String>
 	<System:String x:Key="del_all">Delete All</System:String>
@@ -33,6 +32,9 @@
 	<System:String x:Key="save">Save</System:String>
 	<System:String x:Key="test_connect">Test</System:String>
 	<System:String x:Key="copy_all_btn">Copy All</System:String>
+	<System:String x:Key="tables">Tables</System:String>
+	<System:String x:Key="create_table">Create table</System:String>
+	<System:String x:Key="create">Create</System:String>
 
 	<!-- Tooltips -->
 	<System:String x:Key="del_capture_tooltip">Delete selected capture(s)</System:String>
@@ -61,6 +63,8 @@
 	<System:String x:Key="del_all_warning" xml:space="preserve">All captures will be deleted from</System:String>
 	<System:String x:Key="del_all_title" xml:space="preserve">Delete all?</System:String>
 	<System:String x:Key="sure" xml:space="preserve">Are you sure?</System:String>
+	<System:String x:Key="source" xml:space="preserve">Source</System:String>
+	<System:String x:Key="dest" xml:space="preserve">Destination</System:String>
 
 	<!-- Options general tab -->
 	<System:String x:Key="general_cat">General</System:String>
@@ -114,6 +118,8 @@
 	<System:String x:Key="db_table_found2" xml:space="preserve">' in database: </System:String>
 	<System:String x:Key="db_delete_suc" xml:space="preserve">Successfully deleted a capture from:</System:String>
 	<System:String x:Key="db_delete_fail" xml:space="preserve">Failed to delete a capture from:</System:String>
+	<System:String x:Key="db_delete_all_suc" xml:space="preserve">Successfully deleted all captures from:</System:String>
+	<System:String x:Key="db_delete_all_fail" xml:space="preserve">Failed to delete all captures from:</System:String>
 	<System:String x:Key="db_update_suc" xml:space="preserve">Successfully updated a capture in:</System:String>
 	<System:String x:Key="db_update_fail" xml:space="preserve">Failed to update a capture in:</System:String>
 	<System:String x:Key="db_save_suc" xml:space="preserve">Successfully saved a capture to:</System:String>
@@ -121,7 +127,13 @@
 	<System:String x:Key="db_list_suc" xml:space="preserve">Successfully loaded captures from:</System:String>
 	<System:String x:Key="db_list_fail" xml:space="preserve">Failed to load captures from:</System:String>
 	<System:String x:Key="db_manager_not_found" xml:space="preserve">Failed to find DbManager.(This shouldn't normally happen)</System:String>
+	<System:String x:Key="db_copy_all_fail" xml:space="preserve">Copy all failed.</System:String>
+	<System:String x:Key="db_copy_all_suc" xml:space="preserve">Copy all succeeded.</System:String>
 
+	<!-- RC Create table -->
+	<System:String x:Key="col_type">Column type:</System:String>
+	<System:String x:Key="col_name">Column name:</System:String>
+	<System:String x:Key="table_name">Table name:</System:String>
 
 	<!-- Generic error messages -->
 	<System:String x:Key="error_multiple_title">There were multiple errors</System:String>

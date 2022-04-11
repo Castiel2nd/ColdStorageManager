@@ -33,7 +33,7 @@
 			</StatusBar.ItemsPanel>
 			<StatusBarItem>
 				<StackPanel Orientation="Horizontal">
-					<Button Name="statusBtn" Click="StatusBtn_OnClick">
+					<Button Name="statusBtn" Click="StatusBtn_OnClick" Padding="2">
 						<TextBlock Name="statusBarTb" Text="{DynamicResource loading}"></TextBlock>
 					</Button>
 					<Popup Name="logPopup" PlacementTarget="{Binding ElementName=statusBtn}" Placement="Top" StaysOpen="False">
@@ -46,7 +46,7 @@
 			<StatusBarItem Grid.Column="2">
 				<StackPanel Orientation="Horizontal">
 					<Ellipse Name="dbStatusEllipse" Width="12" Height="12" Margin="0,2,10,2" Fill="DarkGray"></Ellipse>
-					<Button Name="dbStatusBtn" Click="DbStatusBtn_OnClick">
+					<Button Name="dbStatusBtn" Click="DbStatusBtn_OnClick" Padding="2">
 						<TextBlock Name="dbStatusBarTb" Text="{DynamicResource dbInit}"></TextBlock>
 					</Button>
 					<Popup Name="dbLogPopup" PlacementTarget="{Binding ElementName=dbStatusBtn}" Placement="Top" StaysOpen="False">
@@ -85,7 +85,7 @@
 					</Setter>
 				</Style>
 			</TabControl.Resources>
-			<TabItem Header="{DynamicResource capturing}">
+			<TabItem Header="{DynamicResource capture}">
 				<Grid DockPanel.Dock="Left" HorizontalAlignment="Stretch">
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="2*" MaxWidth="500"></ColumnDefinition>
@@ -203,7 +203,7 @@
 				</Grid>
 			</TabItem>
 
-			<TabItem Header="{DynamicResource searching}">
+			<TabItem Header="{DynamicResource search}">
 				<Grid DockPanel.Dock="Left" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="2*" MaxWidth="330" MinWidth="312"></ColumnDefinition>
@@ -231,14 +231,32 @@
 						</Grid.ColumnDefinitions>
 						<StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
 							<Label Content="{DynamicResource copy_all}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0,0,0,0"></Label>
-							<ComboBox Name="copyFromCmbx" Margin="15,0,0,0" VerticalAlignment="Bottom" SelectionChanged="CopyFromCmbx_OnSelectionChanged"></ComboBox>
+							<ComboBox Name="copyFromCmbx" Margin="15,0,0,0" VerticalAlignment="Bottom" SelectionChanged="CopyFromCmbx_OnSelectionChanged">
+								<ComboBox.Resources>
+									<DataTemplate DataType="{x:Type models:DataSource}">
+										<TextBlock Text="{Binding Name}"></TextBlock>
+									</DataTemplate>
+								</ComboBox.Resources>
+							</ComboBox>
 							<Label Content="=>" VerticalAlignment="Bottom" Margin="20,0,20,0" FontWeight="Bold" FontSize="15"></Label>
-							<ComboBox Name="copyToCmbx"  VerticalAlignment="Bottom" SelectionChanged="CopyToCmbx_OnSelectionChanged"></ComboBox>
+							<ComboBox Name="copyToCmbx"  VerticalAlignment="Bottom" SelectionChanged="CopyToCmbx_OnSelectionChanged">
+								<ComboBox.Resources>
+									<DataTemplate DataType="{x:Type models:DataSource}">
+										<TextBlock Text="{Binding Name}"></TextBlock>
+									</DataTemplate>
+								</ComboBox.Resources>
+							</ComboBox>
 						</StackPanel>
 						<Button Grid.Column="1" Content="{DynamicResource copy_all_btn}" Click="CopyAllBtn_OnClick" VerticalAlignment="Center"  HorizontalAlignment="Right" Margin="0,0,5,0"></Button>
 						<StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Center">
 							<Label Content="{DynamicResource capture_connection_select}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="0,0,0,0"></Label>
-							<ComboBox Name="captureConnCmbx" Margin="15,0,0,0" VerticalAlignment="Bottom" SelectionChanged="CaptureConnCmbx_OnSelectionChanged"></ComboBox>
+							<ComboBox Name="captureConnCmbx" Margin="15,0,0,0" VerticalAlignment="Bottom" SelectionChanged="CaptureConnCmbx_OnSelectionChanged">
+								<ComboBox.Resources>
+									<DataTemplate DataType="{x:Type models:DataSource}">
+										<TextBlock Text="{Binding Name}"></TextBlock>
+									</DataTemplate>
+								</ComboBox.Resources>
+							</ComboBox>
 						</StackPanel>
 					</Grid>
 
@@ -433,6 +451,10 @@
 					<GridSplitter Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"></GridSplitter>
 					<GridSplitter Grid.Row="1" Grid.Column="3" HorizontalAlignment="Stretch"></GridSplitter>
 				</Grid>
+			</TabItem>
+
+			<TabItem Header="{DynamicResource register}">
+				<local:RegisterControlFrame></local:RegisterControlFrame>
 			</TabItem>
 		</TabControl>
 	</DockPanel>

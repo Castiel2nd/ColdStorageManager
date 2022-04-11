@@ -7,9 +7,6 @@
 			 Exit="App_OnExit">
 	<Application.Resources>
 		<ResourceDictionary>
-			<Style TargetType="ScrollViewer">
-				<Setter Property="VerticalScrollBarVisibility" Value="Auto"></Setter>
-			</Style>
 			<ResourceDictionary.MergedDictionaries>
 				<ResourceDictionary Source="Language/en-US.xaml"/>
 				<ResourceDictionary Source="Styles/Default.xaml"/>
