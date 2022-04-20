@@ -8,21 +8,17 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
 	<DockPanel Background="White" LastChildFill="True">
-		        <TabControl>
-			        <!-- <TabControl.Resources> -->
-				       <!--  <Style TargetType="{x:Type TabItem}"> -->
-					      <!--   <Setter Property="MinWidth" Value="45"></Setter> -->
-					      <!--   <Setter Property="Height" Value="26"></Setter> -->
-					      <!--   <Setter Property="BorderThickness" Value="0"/> -->
-					      <!--   <Setter Property="Padding" Value="0" /> -->
-				       <!--  </Style> -->
-			        <!-- </TabControl.Resources> -->
-			<TabItem Header="{DynamicResource tables}" Style="{StaticResource MediumTabItem}">
-
+		<TabControl FontSize="16">
+			<TabItem Header="{DynamicResource tables}" >
+				<controls:RegControlTableBrowser></controls:RegControlTableBrowser>
 			</TabItem>
 
-			<TabItem Header="{DynamicResource create_table}" Style="{StaticResource MediumTabItem}">
-				<controls:RegControlCreateTable></controls:RegControlCreateTable>
+			<TabItem Header="{DynamicResource create_table}" Selector.Selected="CreateTable_OnSelected">
+				<TabItem.CommandBindings>
+					<CommandBinding Command="{x:Static local:Commands.CreateTableAddColCmd}" Executed="AddColCmd_OnExecuted"></CommandBinding>
+					<CommandBinding Command="{x:Static local:Commands.CreateTableRemoveColCmd}" Executed="RemoveColCmd_OnExecuted"></CommandBinding>
+				</TabItem.CommandBindings>
+				<controls:RegControlCreateTable x:Name="CreateTableControl"></controls:RegControlCreateTable>
 			</TabItem>
 		</TabControl>
     </DockPanel>

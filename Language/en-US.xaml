@@ -27,14 +27,15 @@
 	<System:String x:Key="del_all">Delete All</System:String>
 	<System:String x:Key="reset">Reset</System:String>
 	<System:String x:Key="add">Add</System:String>
-	<System:String x:Key="del_selected">Delete selected</System:String>
-	<System:String x:Key="save_and_connect">Save and connect</System:String>
+	<System:String x:Key="del_selected">Delete Selected</System:String>
+	<System:String x:Key="save_and_connect">Save and Connect</System:String>
 	<System:String x:Key="save">Save</System:String>
 	<System:String x:Key="test_connect">Test</System:String>
 	<System:String x:Key="copy_all_btn">Copy All</System:String>
 	<System:String x:Key="tables">Tables</System:String>
-	<System:String x:Key="create_table">Create table</System:String>
+	<System:String x:Key="create_table">Create Table</System:String>
 	<System:String x:Key="create">Create</System:String>
+	<System:String x:Key="add_row">Add Row</System:String>
 
 	<!-- Tooltips -->
 	<System:String x:Key="del_capture_tooltip">Delete selected capture(s)</System:String>
@@ -129,6 +130,22 @@
 	<System:String x:Key="db_manager_not_found" xml:space="preserve">Failed to find DbManager.(This shouldn't normally happen)</System:String>
 	<System:String x:Key="db_copy_all_fail" xml:space="preserve">Copy all failed.</System:String>
 	<System:String x:Key="db_copy_all_suc" xml:space="preserve">Copy all succeeded.</System:String>
+	<System:String x:Key="db_get_table_names_fail" xml:space="preserve">Failed to load tables from</System:String>
+	<System:String x:Key="db_get_table_names_suc" xml:space="preserve">Successfully loaded tables from</System:String>
+	<System:String x:Key="db_get_table_cols_fail" xml:space="preserve">Failed to load columns of table</System:String>
+	<System:String x:Key="db_get_table_cols_suc" xml:space="preserve">Successfully loaded columns of table</System:String>
+	<System:String x:Key="db_get_table_data_fail" xml:space="preserve">Failed to load data from table</System:String>
+	<System:String x:Key="db_get_table_data_suc" xml:space="preserve">Successfully loaded data from table</System:String>
+	<System:String x:Key="db_insert_row_fail" xml:space="preserve">Failed to insert row into table</System:String>
+	<System:String x:Key="db_insert_row_suc" xml:space="preserve">Successfully inserted row into table</System:String>
+	<System:String x:Key="db_update_row_fail" xml:space="preserve">Failed to update row in table</System:String>
+	<System:String x:Key="db_update_row_suc" xml:space="preserve">Successfully updated row in table</System:String>
+	<System:String x:Key="db_get_last_row_id_fail" xml:space="preserve">Failed to get last inserted row id from</System:String>
+	<System:String x:Key="db_get_last_row_id_suc" xml:space="preserve">Successfully got last inserted row id from</System:String>
+	<System:String x:Key="db_get_row_by_id_fail" xml:space="preserve">Failed to load row from</System:String>
+	<System:String x:Key="db_get_row_by_id_suc" xml:space="preserve">Successfully loaded row from</System:String>
+	<System:String x:Key="db_del_row_by_id_fail" xml:space="preserve">Failed to delete row from table</System:String>
+	<System:String x:Key="db_del_row_by_id_suc" xml:space="preserve">Successfully deleted row from table</System:String>
 
 	<!-- RC Create table -->
 	<System:String x:Key="col_type">Column type:</System:String>

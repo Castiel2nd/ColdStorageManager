@@ -116,4 +116,8 @@
 
 	<Label x:Key="capturePlaceholder" FontSize="16" FontWeight="Medium" Content="{Binding Msg}"></Label>
 
+	<ContextMenu x:Key="DataGridRowHeaderContextMenu">
+		<MenuItem Header="hellol"></MenuItem>
+	</ContextMenu>
+
 </ResourceDictionary>

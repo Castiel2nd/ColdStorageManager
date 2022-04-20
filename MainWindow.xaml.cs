@@ -231,9 +231,11 @@ namespace ColdStorageManager
 			InitVarsBeforeUI();
 
 			InitializeComponent();
-			
+
 			InitVarsAfterUI();
 			LoadSettingsAfterUI();
+
+			tableBrowser.GetTableNames();
 
 			RefreshCapturesWithFallback();
 		}
@@ -320,6 +322,9 @@ namespace ColdStorageManager
 
 			//captureSettings
 			LoadCaptureSettings();
+
+			//commands
+			Commands.SetupCmds();
 		}
 
 		public void LoadCaptureSettings()
@@ -433,6 +438,7 @@ namespace ColdStorageManager
 		//wrapper for RefreshCaptures that checks it's return value and falls back on a specified connection if necessary
 		private void RefreshCapturesWithFallback(int indexOfFallbackDataSource = 0, bool repeatRefresh = true)
 		{
+
 			if (!RefreshCaptures())
 			{
 				captureConnSelectionChangedEnabled = false;
@@ -475,9 +481,8 @@ namespace ColdStorageManager
 		//returns whether it could get the captures
 		private bool RefreshCaptures()
 		{
-
 			List<Capture> captures = selectedDataSource?.GetCaptures();
-			
+
 			if (captures == null)
 			{
 				return false;

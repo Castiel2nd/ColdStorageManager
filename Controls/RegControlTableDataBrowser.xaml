@@ -1,0 +1,64 @@
+﻿<UserControl x:Class="ColdStorageManager.Controls.RegControlTableDataBrowser"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ColdStorageManager.Controls"
+             xmlns:coldStorageManager="clr-namespace:ColdStorageManager"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+	<UserControl.CommandBindings>
+		<CommandBinding Command="{x:Static coldStorageManager:Commands.DataTableAddRowCmd}" Executed="AddRowCmd_OnExecuted"></CommandBinding>
+	</UserControl.CommandBindings>
+	<Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal">
+	        <StackPanel.Resources>
+		        <ResourceDictionary>
+			        <Style TargetType="Button">
+				        <Setter Property="FontSize" Value="19"></Setter>
+				        <Setter Property="Margin" Value="3,5"></Setter>
+				        <Setter Property="Padding" Value="3,5"></Setter>
+			        </Style>
+		        </ResourceDictionary>
+	        </StackPanel.Resources>
+			<Button Content="{DynamicResource add_row}" Click="AddRowBtn_OnClick"></Button>
+        </StackPanel>
+
+        <DataGrid Grid.Row="1" Name="DataGrid" AutoGenerateColumns="False" CellEditEnding="DataGrid_OnCellEditEnding" SelectionChanged="DataGrid_OnSelectionChanged"
+                  LoadingRow="DataGrid_OnLoadingRow"
+                  BeginningEdit="DataGrid_OnBeginningEdit"
+                  SelectionUnit="CellOrRowHeader"
+				  ContextMenuOpening="DataGrid_OnContextMenuOpening"
+                  RowHeaderWidth="25"
+				  ColumnHeaderHeight="25"
+                  >
+	        <DataGrid.CommandBindings>
+				<CommandBinding Command="{x:Static coldStorageManager:Commands.DataTableCellEditSwitchCmd}"
+				                Executed="CellEditSwitchCmd_OnExecuted"></CommandBinding>
+		        <CommandBinding Command="{x:Static coldStorageManager:Commands.DataTableDeleteRowCmd}"
+		                        Executed="DeleteRowCmd_OnExecuted"></CommandBinding>
+			</DataGrid.CommandBindings>
+			<DataGrid.ContextMenu>
+				<ContextMenu></ContextMenu>
+			</DataGrid.ContextMenu>
+	        <DataGrid.Columns>
+
+			</DataGrid.Columns>
+        </DataGrid>
+
+	    <!-- <ListView Grid.Row="1" Name="DataLV"> -->
+		   <!--  <ListView.View> -->
+			  <!--   <GridView> -->
+				 <!--    <GridView.Columns> -->
+	    <!-- -->
+				 <!--    </GridView.Columns> -->
+			  <!--   </GridView> -->
+		   <!--  </ListView.View> -->
+	    <!-- </ListView> -->
+    </Grid>
+</UserControl>

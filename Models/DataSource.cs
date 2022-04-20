@@ -96,6 +96,46 @@ namespace ColdStorageManager.Models
 			return DbManager.CreateTable(tableName, columns);
 		}
 
+		public List<string> GetTableNames()
+		{
+			return DbManager.GetTableNames();
+		}
+
+		public ColumnInfo[] GetColumns(string tableName)
+		{
+			return DbManager.GetColumns(tableName);
+		}
+
+		public bool SetTableData(ref TableModel table)
+		{
+			return DbManager.SetTableData(ref table);
+		}
+
+		public bool SetCellData(string tableName, string columnName, int rowId, object data)
+		{
+			return DbManager.SetCellData(tableName, columnName, rowId, data);
+		}
+
+		public long GetLastInsertedRowId()
+		{
+			return DbManager.GetLastInsertedRowId();
+		}
+
+		public object[] GetLastInsertedRow(string tableName, ColumnInfo[] columns)
+		{
+			return DbManager.GetLastInsertedRow(tableName, columns);
+		}
+
+		public object[] GetRowById(string tableName, ColumnInfo[] columns, long rowId)
+		{
+			return DbManager.GetRowById(tableName, columns, rowId);
+		}
+
+		public bool DeleteRowById(string tableName, long rowId)
+		{
+			return DbManager.DeleteRowById(tableName, rowId);
+		}
+
 		public void InvalidateCache()
 		{
 			_capturesCache?.Clear();

@@ -22,5 +22,20 @@ namespace ColdStorageManager
 		{
 			InitializeComponent();
 		}
+
+		private void CreateTable_OnSelected(object sender, RoutedEventArgs e)
+		{
+			TabItem tab = sender as TabItem;
+		}
+
+		private void AddColCmd_OnExecuted(object sender, ExecutedRoutedEventArgs e)
+		{
+			CreateTableControl.AddColumn();
+		}
+
+		private void RemoveColCmd_OnExecuted(object sender, ExecutedRoutedEventArgs e)
+		{
+			CreateTableControl.RemoveColumn();
+		}
 	}
 }

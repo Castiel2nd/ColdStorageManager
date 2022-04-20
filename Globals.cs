@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using ColdStorageManager.Controls;
 using ColdStorageManager.DBManagers;
 using ColdStorageManager.Models;
 
@@ -25,6 +26,7 @@ namespace ColdStorageManager
 		public static string startupWindowLocation;
 		public static double[] startupWindowLocationCoords;
 		public static MainWindow mainWindow;
+		public static RegControlTableBrowser tableBrowser;
 
 		public static ObservableCollection<DataSource> dataSources = new ObservableCollection<DataSource>();
 		public static DataSource selectedDataSource = null;
@@ -264,9 +266,16 @@ namespace ColdStorageManager
 
 		public static DataSource GetDataSourceByName(string name)
 		{
+			string displayName = name;
+			if (name.Equals(ConfigNameOfLocalDS))
+			{
+				displayName = GetLocalizedString(name);
+
+			}
+
 			foreach (var dataSource in dataSources)
 			{
-				if (dataSource.Name.Equals(name))
+				if (dataSource.Name.Equals(displayName))
 				{
 					return dataSource;
 				}

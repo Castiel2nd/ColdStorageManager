@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data.SQLite;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.IO;
 using System.Linq;
@@ -24,7 +25,10 @@ namespace ColdStorageManager
 		private const string dbCapturesFilePath = dbPath + dbCapturesFile;
 		private const string dbRegisterFilePath = dbPath + dbRegisterFile;
 
-		private static readonly string[] ColTypes = { "TEXT", "INTEGER" };
+		private const string GetTableNamesSql = "SELECT tbl_name FROM sqlite_master WHERE type = 'table'";
+
+		private static readonly Dictionary<CSMColumnType, string> ColTypes = new Dictionary<CSMColumnType, string>(){ {CSMColumnType.Text, "TEXT"},
+			{CSMColumnType.Integer, "INTEGER"} };
 
 		private static readonly string[] DbCapturesColumns = new string[]
 		{
@@ -339,6 +343,295 @@ namespace ColdStorageManager
 			string createTableCmd = ConstructCreateSQLCommand(tableName, colNames.ToArray(), colProp.ToArray());
 
 			return CreateTableIfNotFound(_commandRegister, tableName, createTableCmd, dbRegisterFilePath);
+		}
+
+		private List<string> GetTableNamesFromConnection(SQLiteConnection conn, string filepath)
+		{
+			List<string> tableNames = null;
+
+			try
+			{
+				var res = conn.Query(GetTableNamesSql);
+
+				tableNames = new List<string>();
+
+				string tableName;
+
+				foreach (dynamic row in res)
+				{
+					tableName = row.tbl_name;
+
+					if(tableName.Equals("sqlite_sequence"))
+						continue;
+
+					tableNames.Add(tableName);
+				}
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_get_table_names_fail")} {filepath}" ,$"Failed to get table names from {filepath}.{LineSeparator}" +
+				            $"Error message: {e.Message}", ERROR);
+			}
+
+			return tableNames;
+		}
+
+		public List<string> GetTableNames()
+		{
+			return GetTableNamesFromConnection(_connectionRegister, dbRegisterFilePath);
+		}
+
+		private ColumnInfo[] GetColumnsFromConnection(SQLiteConnection connection, string tableName)
+		{
+			List<ColumnInfo> columnInfos = new List<ColumnInfo>();
+
+			try
+			{
+				var res = connection.Query($"PRAGMA table_info({tableName})");
+
+				foreach (dynamic row in res)
+				{
+					ColumnInfo columnInfo = new ColumnInfo();
+					// Console.WriteLine($"found column: name: {row.name} type: {row.type}{LineSeparator}");
+					switch (row.type as string)
+					{
+						case "TEXT":
+							columnInfo.Type = CSMColumnType.Text;
+							break;
+						case "INTEGER":
+							columnInfo.Type = CSMColumnType.Integer;
+							break;
+						default:
+							columnInfo.Type = CSMColumnType.NullType;
+							break;
+					}
+
+					columnInfo.Name = row.name;
+
+					if (columnInfo.Name.Equals("id"))
+					{
+						columnInfo.IsTextEditable = false;
+					}
+
+					columnInfos.Add(columnInfo);
+				}
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_get_table_cols_fail")} {tableName}",
+					$"Failed to get columns from table '{tableName}'.{LineSeparator}" +
+				            $"Error message: {e.Message}", ERROR);
+			}
+
+			return columnInfos.ToArray();
+		}
+
+		public ColumnInfo[] GetColumns(string tableName)
+		{
+			return GetColumnsFromConnection(_connectionRegister, tableName);
+		}
+
+		private bool SetTableDataFromConnection(SQLiteConnection connection, ref TableModel table)
+		{
+			bool ret = false;
+
+			try
+			{
+				var res = connection.Query($"SELECT * FROM {table.Name}");
+
+				List<object[]> data = new List<object[]>();
+
+				foreach (dynamic dapperRow in res)
+				{
+					IDictionary<string, object> row = dapperRow as IDictionary<string, object>;
+
+					// Console.WriteLine("row: " + row);
+
+					object[] dataArray = new object[table.Columns.Length];
+
+					for (int i = 0; i < table.Columns.Length; i++)
+					{
+						row.TryGetValue(table.Columns[i].Name, out dataArray[i]);
+
+						// Console.WriteLine($"Column name: {table.Columns[i].Name}");
+						// Console.WriteLine($"Column value: {dataArray[i]}");
+					}
+					
+					data.Add(dataArray);
+				}
+
+				table.Data = new ObservableCollection<object[]>(data);
+
+				ret = true;
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_get_table_data_fail")} {table.Name}",
+					$"Failed to get data from table {table.Name}.{LineSeparator}" +
+				            $"Error message: {e.Message}", ERROR);
+			}
+
+			return ret;
+		}
+
+		public bool SetTableData(ref TableModel table)
+		{
+			return SetTableDataFromConnection(_connectionRegister,ref table);
+		}
+
+		//a rowId of -1 indicates a new record that should be added 
+		private bool SetCellDataViaConnection(SQLiteConnection connection, string tableName, string columnName,
+			int rowId, object data)
+		{
+			if (rowId == -1)
+			{
+				try
+				{
+					int affectedRows = connection.Execute($"INSERT INTO {tableName} ({columnName}) VALUES (@Data)",
+						new { Data = data });
+
+					return affectedRows == 1;
+				}
+				catch (Exception e)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_insert_row_fail")} {tableName}",
+						$"Failed to add new record to '{tableName}' with '{columnName}' = '{data}'.{LineSeparator}" +
+					            $"Error message: {e.Message}", ERROR);
+				}
+			}
+			else
+			{
+				try
+				{
+					int affectedRows = connection.Execute($"UPDATE {tableName} SET {columnName} = @Data WHERE id = {rowId}",
+						new { Data = data });
+
+					if (affectedRows == 1)
+					{
+						return true;
+					}
+				}
+				catch (Exception e)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_update_row_fail")} {tableName}",
+						$"Failed to update value of column '{columnName}' in table '{tableName}'.(id = {rowId}){LineSeparator}" +
+					            $"Error message: {e.Message}", ERROR);
+				}
+			}
+
+			return false;
+		}
+
+		public bool SetCellData(string tableName, string columnName, int rowId, object data)
+		{
+			return SetCellDataViaConnection(_connectionRegister, tableName, columnName, rowId, data);
+		}
+
+		//returns -1 if the query didn't complete, 0 if there was no previously inserted row in the current session
+		private long GetLastInsertedRowIdViaConnection(SQLiteConnection connection)
+		{
+			long ret = -1;
+
+			try
+			{
+				ret = (long)connection.ExecuteScalar("SELECT last_insert_rowid()");
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_get_last_row_id_fail")} {connection.DataSource}",
+					$"Failed to get last inserted row id from {connection.DataSource}.{LineSeparator}" +
+				            $"Error message: {e.Message}", ERROR);
+			}
+
+			return ret;
+		}
+
+		public long GetLastInsertedRowId()
+		{
+			return GetLastInsertedRowIdViaConnection(_connectionRegister);
+		}
+
+		//returns null if it failed
+		private object[] GetLastInsertedRowViaConnection(SQLiteConnection connection, string tableName,
+			ColumnInfo[] columns)
+		{
+			object[] ret = null;
+			long rowId = GetLastInsertedRowIdViaConnection(connection);
+
+			if (rowId == -1)
+			{
+
+			}else if (rowId == 0)
+			{
+				LogDbAction($"Could not select last inserted row from {connection.DataSource}, since there was none. (rowId = 0)", WARNING);
+			}
+			else
+			{
+				ret = GetRowByIdViaConnection(connection, tableName, columns, rowId);
+			}
+
+			return ret;
+		}
+
+		public object[] GetLastInsertedRow(string tableName, ColumnInfo[] columns)
+		{
+			return GetLastInsertedRowViaConnection(_connectionRegister, tableName, columns);
+		}
+
+		//returns null of row was not found
+		private object[] GetRowByIdViaConnection(SQLiteConnection connection, string tableName, ColumnInfo[] columns,
+			long rowId)
+		{
+			object[] row = null;
+
+			try
+			{
+				dynamic res = connection.QueryFirst($"SELECT * FROM {tableName} WHERE id = @Id", new { Id = rowId });
+
+				IDictionary<string, object> rowAsDict = res as IDictionary<string, object>;
+				row = new object[columns.Length];
+
+				for (int i = 0; i < columns.Length; i++)
+				{
+					rowAsDict.TryGetValue(columns[i].Name, out row[i]);
+				}
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_get_row_by_id_fail")} {tableName} (id = {rowId})",
+					$"Failed to get row by id from {tableName}. (id = {rowId}){LineSeparator}" +
+				            $"Error message: {e.Message}", ERROR);
+			}
+
+			return row;
+		}
+
+		public object[] GetRowById(string tableName, ColumnInfo[] columns, long rowId)
+		{
+			return GetRowByIdViaConnection(_connectionRegister, tableName, columns, rowId);
+		}
+
+		private bool DeleteRowByIdViaConnection(SQLiteConnection connection, string tableName, long rowId)
+		{
+			try
+			{
+				int rowsAffected = connection.Execute($"DELETE FROM {tableName} WHERE id = @Id", new { Id = rowId });
+
+				return rowsAffected == 1;
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_del_row_by_id_fail")} {tableName} (id = {rowId})",
+					$"Failed to delete row by id from {tableName}. (id = {rowId}){LineSeparator}" +
+				            $"Error message: {e.Message}", ERROR);
+			}
+
+			return false;
+		}
+
+		public bool DeleteRowById(string tableName, long rowId)
+		{
+			return DeleteRowByIdViaConnection(_connectionRegister, tableName, rowId);
 		}
 
 		//returns whether the operation completed successfully

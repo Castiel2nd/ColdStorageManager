@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using ColdStorageManager.DBManagers;
 using ColdStorageManager.Models;
 
 namespace ColdStorageManager.Controls
@@ -26,7 +27,7 @@ namespace ColdStorageManager.Controls
 
 		public ColumnInfo GetValue()
 		{
-			return new ColumnInfo(ColTypeCmbx.SelectedIndex, ColNameTxtBox.Text);
+			return new ColumnInfo((CSMColumnType)ColTypeCmbx.SelectedIndex, ColNameTxtBox.Text);
 		}
 	}
 }

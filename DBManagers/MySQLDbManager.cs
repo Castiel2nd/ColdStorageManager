@@ -185,6 +185,46 @@ namespace ColdStorageManager.DBManagers
 			throw new NotImplementedException();
 		}
 
+		public List<string> GetTableNames()
+		{
+			throw new NotImplementedException();
+		}
+
+		public ColumnInfo[] GetColumns(string tableName)
+		{
+			throw new NotImplementedException();
+		}
+
+		public bool SetTableData(ref TableModel table)
+		{
+			throw new NotImplementedException();
+		}
+
+		public bool SetCellData(string tableName, string columnName, int rowId, object data)
+		{
+			throw new NotImplementedException();
+		}
+
+		public long GetLastInsertedRowId()
+		{
+			throw new NotImplementedException();
+		}
+
+		public object[] GetLastInsertedRow(string tableName, ColumnInfo[] columns)
+		{
+			throw new NotImplementedException();
+		}
+
+		public object[] GetRowById(string tableName, ColumnInfo[] columns, long rowId)
+		{
+			throw new NotImplementedException();
+		}
+
+		public bool DeleteRowById(string tableName, long rowId)
+		{
+			throw new NotImplementedException();
+		}
+
 
 		// returns whether the connection is open at the end of this function
 		private bool Connect(bool isTest = false)

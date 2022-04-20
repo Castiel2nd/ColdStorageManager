@@ -12,6 +12,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using ColdStorageManager.Models;
 using static ColdStorageManager.Globals;
+using DispatcherPriority = System.Windows.Threading.DispatcherPriority;
 
 namespace ColdStorageManager.Controls
 {
@@ -25,18 +26,23 @@ namespace ColdStorageManager.Controls
 		{
 			InitializeComponent();
 			AddColumn();
+
+			Dispatcher.BeginInvoke(new Action(() => TableNameTxtBox.Focus()));
 		}
 
-		private void AddColumn()
+		public void AddColumn()
 		{
 			var column = new RegControlColumnCreator();
 			_columnCreators.Push(column);
 			ColumnPanel.Children.Add(column);
 		}
 
-		private void RemoveColumn()
+		public void RemoveColumn()
 		{
-			ColumnPanel.Children.Remove(_columnCreators.Pop());
+			if (ColumnPanel.Children.Count > 1)
+			{
+				ColumnPanel.Children.Remove(_columnCreators.Pop());
+			}
 		}
 
 		private void AddBtn_OnClick(object sender, RoutedEventArgs e)
@@ -58,8 +64,14 @@ namespace ColdStorageManager.Controls
 			}
 
 			selectedDataSource.CreateTable(TableNameTxtBox.Text, columnInfos);
+
+			tableBrowser.GetTableNames();
 		}
 
-		
+		private void RegControlCreateTable_OnGotFocus(object sender, RoutedEventArgs e)
+		{
+			Console.WriteLine("throw new NotImplementedException();");
+			TableNameTxtBox.Focus();
+		}
 	}
 }
