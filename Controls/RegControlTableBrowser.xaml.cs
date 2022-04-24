@@ -27,6 +27,12 @@ namespace ColdStorageManager.Controls
 			tableBrowser = this;
 		}
 
+		public void Refresh()
+		{
+			GetTableNames();
+			TableDisplayArea.Children.Clear();
+		}
+
 		public void GetTableNames()
 		{
 			TableNamesSP.Children.Clear();

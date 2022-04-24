@@ -2,15 +2,25 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Markup;
+using System.Windows.Media;
+using System.Xml;
 using ColdStorageManager.Controls;
 using ColdStorageManager.DBManagers;
 using ColdStorageManager.Models;
+using FontAwesome6;
+using FontAwesome6.Svg.Converters;
+using static ColdStorageManager.Logger;
 
 namespace ColdStorageManager
 {
@@ -28,9 +38,11 @@ namespace ColdStorageManager
 		public static MainWindow mainWindow;
 		public static RegControlTableBrowser tableBrowser;
 
+		public static ObservableCollection<DbConnectionProfile> dbConnectionProfiles = new ObservableCollection<DbConnectionProfile>();
 		public static ObservableCollection<DataSource> dataSources = new ObservableCollection<DataSource>();
 		public static DataSource selectedDataSource = null;
-		public static ObservableCollection<DbConnectionProfile> dbConnectionProfiles = new ObservableCollection<DbConnectionProfile>();
+
+		public static Partition selectedPartition;
 
 		public static List<PhysicalDrive> physicalDrives;
 		public static TreeView capturesTrv;
@@ -40,7 +52,8 @@ namespace ColdStorageManager
 		public static bool copyFromListEventsEnabled = true;
 		public static bool copyToListEventsEnabled = true;
 
-		public static Partition selectedPartition;
+		public static Stopwatch stopwatch = new Stopwatch();
+		public static string secondsFormat = "0.###";
 
 		public static WpfObservableRangeCollection<CSMFileSystemEntry> fileDialogEntryTree = new WpfObservableRangeCollection<CSMFileSystemEntry>();
 		public static List<CSMFileSystemEntry> fsList;
@@ -70,6 +83,7 @@ namespace ColdStorageManager
 		public static ObservableCollection<string> exceptionPathsOC;
 		public static List<string> exceptionFileTypesCaptureList;
 		public static List<string> exceptionFileTypesSearchList;
+		public static bool debugLogging;
 
 		private static string[] sizes =
 		{
@@ -119,6 +133,34 @@ namespace ColdStorageManager
 			);
 		}
 
+		public static void LoadLanguage(string prev)
+		{
+			string lang = Globals.settings["language"].Value;
+
+			var resourceDictionaryToLoad = new ResourceDictionary();
+			resourceDictionaryToLoad.Source =
+				new Uri("Language/" + lang + ".xaml",
+					UriKind.RelativeOrAbsolute);
+
+			var current = Application.Current.Resources.MergedDictionaries.FirstOrDefault(
+				m => m.Source.OriginalString.EndsWith(prev + ".xaml"));
+
+			if (current != null)
+			{
+				Application.Current.Resources.MergedDictionaries.Remove(current);
+			}
+
+			Application.Current.Resources.MergedDictionaries.Add(resourceDictionaryToLoad);
+		}
+
+		private static void SaveResourceDictionary(string path, ResourceDictionary resourceDictionary)
+		{
+			XmlWriterSettings settings = new XmlWriterSettings();
+			settings.Indent = true;
+			XmlWriter writer = XmlWriter.Create(path, settings);
+			XamlWriter.Save(resourceDictionary, writer);
+		}
+
 		public static string GetSectionSetting(string section, string key)
 		{
 			return (configFile.Sections.Get(section) as AppSettingsSection).Settings[key]?.Value;
@@ -142,6 +184,16 @@ namespace ColdStorageManager
 		public static string GetLocalizedString(string key)
 		{
 			return Application.Current.Resources[key].ToString();
+		}
+
+		public static Style GetStyle(string key)
+		{
+			return Application.Current.Resources[key] as Style;
+		}
+
+		public static object GetResource(string key)
+		{
+			return Application.Current.Resources[key];
 		}
 
 		public static List<CSMFileSystemEntry> GetFileSystemEntries(in string path, in CSMDirectory parent = null, in bool getIcon = true)
@@ -300,6 +352,69 @@ namespace ColdStorageManager
 		public static void WriteConfigFileToDisk()
 		{
 			configFile.Save(ConfigurationSaveMode.Modified);
+		}
+
+		public static long MapUlongToLong(ulong ulongValue)
+		{
+			return unchecked((long)ulongValue);
+		}
+
+		public static ulong MapLongToUlong(long longValue)
+		{
+			return unchecked((ulong)longValue);
+		}
+
+		public static Popup CreatePopup(string msg, UIElement target, string type = NORMAL)
+		{
+			Popup popup = new Popup();
+			popup.PlacementTarget = target;
+			popup.AllowsTransparency = true;
+			popup.PopupAnimation = PopupAnimation.Fade;
+			TextBlock textBlock = new TextBlock();
+			textBlock.Text = msg;
+			switch (type)
+			{
+				case NORMAL:
+					textBlock.Style = GetStyle("PopupNormal");
+					break;
+				case WARNING:
+					textBlock.Style = GetStyle("PopupWarning");
+					break;
+				case ERROR:
+					textBlock.Style = GetStyle("PopupError");
+					break;
+			}
+
+			popup.Child = textBlock;
+			popup.StaysOpen = false;
+			popup.IsOpen = true;
+
+			IProgress<bool> progress = ProgressManager.GetUpdateFrontendPropertyProgress<bool>(popup, "IsOpen");
+
+			Task.Run(() =>
+			{
+				Thread.Sleep(1000);
+				progress.Report(false);
+			});
+
+			return popup;
+		}
+
+		public static DataGridCell GetDataGridCell(DataGridCellInfo cellInfo)
+		{
+			var cellContent = cellInfo.Column.GetCellContent(cellInfo.Item);
+			if (cellContent != null)
+				return (DataGridCell)cellContent.Parent;
+
+			return null;
+		}
+
+		public static void SetIcon(Window window, EFontAwesomeIcon icon)
+		{
+			DrawingConverter converter = new DrawingConverter();
+			DrawingImage image = new DrawingImage();
+			image.Drawing = (Drawing)converter.Convert(icon, typeof(Drawing), default, default);
+			window.Icon = image;
 		}
 	}
 }

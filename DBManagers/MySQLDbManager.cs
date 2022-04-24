@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
 using System.Text;
@@ -34,7 +35,7 @@ namespace ColdStorageManager.DBManagers
 		private string _connectionString = "server={0};port={1};database={2};uid={3};pwd={4};";
 		private bool _isInitialized = false;
 
-		private StringBuilder stringBuilder;
+		private StringBuilder stringBuilder = new StringBuilder();
 
 		public Window MsgBoxOwner
 		{
@@ -54,7 +55,13 @@ namespace ColdStorageManager.DBManagers
 		private static string AddCaptureSQLCommand;
 		private static string UpdateCaptureSQLCommand;
 
-		private static string[] dbCapturesColumns = new string[]
+		private const string GetTableNamesSql = "SELECT table_name FROM information_schema.tables WHERE table_schema = @DbName";
+		private const string GetTableNamesSql2 = "SHOW tables";
+
+		private static readonly Dictionary<CSMColumnType, string> ColTypes = new Dictionary<CSMColumnType, string>(){ {CSMColumnType.Text, "TEXT"},
+			{CSMColumnType.Integer, "INTEGER"} };
+
+		private static readonly string[] DbCapturesColumns = new string[]
 		{
 			"id", "drive_model", "drive_sn", "isNVMe", "NVMeSerialNumberDetectionFail",
 			"drive_size", "drive_nickname", "partition_label", "partition_number", "partition_size",
@@ -64,7 +71,7 @@ namespace ColdStorageManager.DBManagers
 			"capture", "sizes", "creation_times", "last_access_times", "last_mod_times"
 		};
 
-		private static string[] dbCapturesColumnsWithoutId = new string[]
+		private static readonly string[] DbCapturesColumnsWithoutId = new string[]
 		{
 			"drive_model", "drive_sn", "isNVMe", "NVMeSerialNumberDetectionFail",
 			"drive_size", "drive_nickname", "partition_label", "partition_number", "partition_size",
@@ -74,7 +81,7 @@ namespace ColdStorageManager.DBManagers
 			"capture", "sizes", "creation_times", "last_access_times", "last_mod_times"
 		};
 
-		private static string[] dbCapturesColumnsProperties = new string[]
+		private static readonly string[] DbCapturesColumnsProperties = new string[]
 		{
 			"INTEGER PRIMARY KEY AUTO_INCREMENT", "TEXT", "TEXT", "INTEGER", "INTEGER",
 			"BIGINT", "TEXT", "TEXT", "INTEGER", "BIGINT",
@@ -97,24 +104,25 @@ namespace ColdStorageManager.DBManagers
 			CloseConnection();
 		}
 
-		private void ConstructCreateSQLCommand()
+		private string ConstructCreateSQLCommand(string tableName, string[] colNames, string[] colProperties)
 		{
 			stringBuilder.Clear();
-			stringBuilder.Append("CREATE TABLE ").Append(IDbManager.DbCapturesTableName).Append("(");
+			stringBuilder.Append("CREATE TABLE ").Append(tableName).Append("(");
 			int i;
-			for (i = 0; i < dbCapturesColumns.Length - 1; i++)
+			for (i = 0; i < colNames.Length - 1; i++)
 			{
-				stringBuilder.Append(dbCapturesColumns[i]).Append(" ").Append(dbCapturesColumnsProperties[i])
+				stringBuilder.Append("`").Append(colNames[i]).Append("` ").Append(colProperties[i])
 					.Append(", ");
 			}
-			stringBuilder.Append(dbCapturesColumns[i]).Append(" ").Append(dbCapturesColumnsProperties[i]).Append(")");
-			CreateCapturesTableSQLCommand = stringBuilder.ToString();
+			stringBuilder.Append("`").Append(colNames[i]).Append("` ").Append(colProperties[i]).Append(")");
+
+			return stringBuilder.ToString();
 		}
 
 		private void ConstructAddCaptureSQLCommand()
 		{
-			AddCaptureSQLCommand = "insert into " + IDbManager.DbCapturesTableName + " (" + String.Join(", ", dbCapturesColumnsWithoutId) +
-			                       ") values (@" + String.Join(", @", dbCapturesColumnsWithoutId) + ")";
+			AddCaptureSQLCommand = "insert into " + IDbManager.DbCapturesTableName + " (" + String.Join(", ", DbCapturesColumnsWithoutId) +
+			                       ") values (@" + String.Join(", @", DbCapturesColumnsWithoutId) + ")";
 		}
 
 		private void ConstructUpdateCaptureSQLCommand()
@@ -122,21 +130,21 @@ namespace ColdStorageManager.DBManagers
 			stringBuilder.Clear();
 			stringBuilder.Append("update ").Append(IDbManager.DbCapturesTableName).Append(" set ");
 			int i;
-			for (i = 0; i < dbCapturesColumnsWithoutId.Length - 1; i++)
+			for (i = 0; i < DbCapturesColumnsWithoutId.Length - 1; i++)
 			{
-				stringBuilder.Append(dbCapturesColumnsWithoutId[i]).Append(" = @")
-					.Append(dbCapturesColumnsWithoutId[i]).Append(", ");
+				stringBuilder.Append(DbCapturesColumnsWithoutId[i]).Append(" = @")
+					.Append(DbCapturesColumnsWithoutId[i]).Append(", ");
 			}
 
-			stringBuilder.Append(dbCapturesColumnsWithoutId[i]).Append(" = @")
-				.Append(dbCapturesColumnsWithoutId[i]);
+			stringBuilder.Append(DbCapturesColumnsWithoutId[i]).Append(" = @")
+				.Append(DbCapturesColumnsWithoutId[i]);
 
-			stringBuilder.Append(" where ").Append(dbCapturesColumns[0]).Append(" = @").Append(dbCapturesColumns[0]);
+			stringBuilder.Append(" where ").Append(DbCapturesColumns[0]).Append(" = @").Append(DbCapturesColumns[0]);
 			UpdateCaptureSQLCommand = stringBuilder.ToString();
 		}
 
 		// checks if the connection is open, and if not, it tries opening it.
-		// return if the connection is open at the end of the function
+		// returns if the connection is open at the end of the function
 		private bool CheckConnection()
 		{
 			if (_isInitialized)
@@ -165,16 +173,16 @@ namespace ColdStorageManager.DBManagers
 		public bool ConnectAndCreateTable()
 		{
 			bool ret = false;
-			if (ret = Connect())
+			if (Connect())
 			{
 				//constructing sql commands
 				stringBuilder = new StringBuilder();
-				ConstructCreateSQLCommand();
+				CreateCapturesTableSQLCommand = ConstructCreateSQLCommand(IDbManager.DbCapturesTableName, DbCapturesColumns, DbCapturesColumnsProperties);
 				ConstructAddCaptureSQLCommand();
 				ConstructUpdateCaptureSQLCommand();
 
 				_command = _connection.CreateCommand();
-				ret = CreateTableIfNotFound(IDbManager.DbCapturesTableName);
+				ret = CreateTableIfNotFound(IDbManager.DbCapturesTableName, CreateCapturesTableSQLCommand);
 			}
 
 			return ret;
@@ -182,49 +190,352 @@ namespace ColdStorageManager.DBManagers
 
 		public bool CreateTable(string tableName, List<ColumnInfo> columns)
 		{
-			throw new NotImplementedException();
+			List<string> colNames = new List<string>();
+			List<string> colProp = new List<string>();
+
+			colNames.Add(DbCapturesColumns[0]);
+			colProp.Add(DbCapturesColumnsProperties[0]);
+
+			foreach (var columnInfo in columns)
+			{
+				colNames.Add(columnInfo.Name);
+				colProp.Add(ColTypes[columnInfo.Type]);
+			}
+
+			string createTableCmd = ConstructCreateSQLCommand(tableName, colNames.ToArray(), colProp.ToArray());
+
+			return CreateTableIfNotFound(tableName, createTableCmd);
 		}
 
 		public List<string> GetTableNames()
 		{
-			throw new NotImplementedException();
+			List<string> tableNames = null;
+
+			try
+			{
+				var res = _connection.Query(GetTableNamesSql, new{DbName = Profile.DatabaseName});
+
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_get_table_names_suc")} {Profile.PathToTable}",
+						$"Successfully loaded tables from {Profile.PathToTable}. Result = {res}, Count = {res.Count()}");
+				}
+
+				tableNames = new List<string>();
+
+				string tableName;
+
+				foreach (dynamic row in res)
+				{
+					tableName = row.table_name;
+
+					if (tableName.Equals("captures", StringComparison.InvariantCultureIgnoreCase))
+						continue;
+
+					tableNames.Add(tableName);
+				}
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_get_table_names_fail")} {Profile.ProfileName}",
+					$"Failed to get table names from {Profile.PathToTable}.{LineSeparator}" +
+					$"Error message: {e.Message}", ERROR);
+			}
+
+			return tableNames;
 		}
 
 		public ColumnInfo[] GetColumns(string tableName)
 		{
-			throw new NotImplementedException();
+			List<ColumnInfo> columnInfos = new List<ColumnInfo>();
+
+			try
+			{
+				var res = _connection.Query($"SHOW COLUMNS FROM {tableName}");
+
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_get_table_cols_suc")} {tableName}",
+						$"Successfully loaded columns of table {tableName}. Source = {_connection.DataSource}, Result = {res}, Count = {res.Count()}");
+				}
+
+				foreach (dynamic row in res)
+				{
+					ColumnInfo columnInfo = new ColumnInfo();
+					// Console.WriteLine($"found column: name: {row.name} type: {row.type}{LineSeparator}");
+					switch (row.Type as string)
+					{
+						case "text":
+							columnInfo.Type = CSMColumnType.Text;
+							break;
+						case { } s when s.StartsWith("int") ||
+											  s.StartsWith("bigint"):
+							columnInfo.Type = CSMColumnType.Integer;
+							break;
+						default:
+							if (debugLogging)
+							{
+								LogDbAction($"Unsupported column type ({row.Type as string}) found in table {tableName}, at {Profile.PathToDb}.", WARNING);
+							}
+							columnInfo.Type = CSMColumnType.NullType;
+							break;
+					}
+
+					columnInfo.Name = row.Field;
+
+					if (columnInfo.Name.Equals("id"))
+					{
+						columnInfo.IsTextEditable = false;
+					}
+
+					columnInfos.Add(columnInfo);
+				}
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_get_table_cols_fail")} {tableName}",
+					$"Failed to get columns from table '{tableName}'.{LineSeparator}" +
+					$"Error message: {e.Message}", ERROR);
+			}
+
+			return columnInfos.ToArray();
 		}
 
 		public bool SetTableData(ref TableModel table)
 		{
-			throw new NotImplementedException();
+			bool ret = false;
+
+			try
+			{
+				var res = _connection.Query($"SELECT * FROM {table.Name}");
+
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_get_table_data_suc")} {table.Name}",
+						$"Successfully loaded data from table {table.Name}. Source = {_connection.DataSource}, Result = {res}, Count = {res.Count()}");
+				}
+
+				List<object[]> data = new List<object[]>();
+
+				foreach (dynamic dapperRow in res)
+				{
+					IDictionary<string, object> row = dapperRow as IDictionary<string, object>;
+
+					// Console.WriteLine("row: " + row);
+
+					object[] dataArray = new object[table.Columns.Length];
+
+					for (int i = 0; i < table.Columns.Length; i++)
+					{
+						row.TryGetValue(table.Columns[i].Name, out dataArray[i]);
+						// Console.WriteLine($"Column name: {table.Columns[i].Name}");
+						// Console.WriteLine($"Column value: {dataArray[i]}");
+					}
+
+					data.Add(dataArray);
+				}
+
+				table.Data = new ObservableCollection<object[]>(data);
+
+				ret = true;
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_get_table_data_fail")} {table.Name}",
+					$"Failed to get data from table {table.Name}.{LineSeparator}" +
+					$"Error message: {e.Message}", ERROR);
+			}
+
+			return ret;
 		}
 
-		public bool SetCellData(string tableName, string columnName, int rowId, object data)
+		public bool SetCellData(string tableName, string columnName, object rowId, object data)
 		{
-			throw new NotImplementedException();
+			if (rowId == null)
+			{
+				try
+				{
+					int affectedRows = _connection.Execute($"INSERT INTO {tableName} (`{columnName}`) VALUES (@Data)",
+						new { Data = data });
+
+					if (debugLogging)
+					{
+						LogDbActionWithStatus($"{GetLocalizedString("db_insert_row_suc")} {tableName}",
+							$"Successfully inserted row into table {tableName}. Column = {columnName}, affectedRows = {affectedRows}");
+					}
+
+					return affectedRows == 1;
+				}
+				catch (Exception e)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_insert_row_fail")} {tableName}",
+						$"Failed to add new record to '{tableName}' with '{columnName}' = '{data}'.{LineSeparator}" +
+						$"Error message: {e.Message}", ERROR);
+				}
+			}
+			else
+			{
+				try
+				{
+					int affectedRows = _connection.Execute($"UPDATE {tableName} SET `{columnName}` = @Data WHERE id = {rowId}",
+						new { Data = data });
+
+					if (debugLogging)
+					{
+						LogDbActionWithStatus($"{GetLocalizedString("db_update_row_suc")} {tableName}",
+							$"Successfully updated row in table {tableName}. Column = {columnName}, id = {rowId}, affectedRows = {affectedRows}");
+					}
+
+					return affectedRows == 1;
+				}
+				catch (Exception e)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_update_row_fail")} {tableName}",
+						$"Failed to update value of column '{columnName}' in table '{tableName}'.(id = {rowId}){LineSeparator}" +
+						$"Error message: {e.Message}", ERROR);
+				}
+			}
+
+			return false;
 		}
 
-		public long GetLastInsertedRowId()
+		public ulong GetLastInsertedRowId()
 		{
-			throw new NotImplementedException();
+			ulong ret = UInt64.MaxValue;
+
+			try
+			{
+				ret = (ulong)_connection.ExecuteScalar("SELECT LAST_INSERT_ID()");
+
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_get_last_row_id_suc")} {_connection.DataSource}",
+						$"Successfully loaded row from {_connection.DataSource}");
+				}
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_get_last_row_id_fail")} {_connection.DataSource}",
+					$"Failed to get last inserted row id from {_connection.DataSource}.{LineSeparator}" +
+					$"Error message: {e.Message}", ERROR);
+			}
+
+			return ret;
 		}
 
 		public object[] GetLastInsertedRow(string tableName, ColumnInfo[] columns)
 		{
-			throw new NotImplementedException();
+			object[] ret = null;
+			ulong rowId = GetLastInsertedRowId();
+
+			if (rowId == UInt64.MaxValue)
+			{
+
+			}
+			else if (rowId == 0)
+			{
+				LogDbAction($"Could not select last inserted row from {_connection.DataSource}, since there was none. (rowId = 0)", WARNING);
+			}
+			else
+			{
+				ret = GetRowById(tableName, columns, rowId);
+			}
+
+			return ret;
 		}
 
-		public object[] GetRowById(string tableName, ColumnInfo[] columns, long rowId)
+		public object[] GetRowById(string tableName, ColumnInfo[] columns, object rowId)
 		{
-			throw new NotImplementedException();
+			object[] row = null;
+
+			try
+			{
+				dynamic res = _connection.QueryFirst($"SELECT * FROM {tableName} WHERE id = @Id", new { Id = rowId });
+
+				IDictionary<string, object> rowAsDict = res as IDictionary<string, object>;
+				row = new object[columns.Length];
+
+				for (int i = 0; i < columns.Length; i++)
+				{
+					rowAsDict.TryGetValue(columns[i].Name, out row[i]);
+				}
+
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_get_row_by_id_suc")} {tableName} (id = {rowId})",
+						$"Successfully loaded row from {tableName}. (id = {rowId})");
+				}
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_get_row_by_id_fail")} {tableName} (id = {rowId})",
+					$"Failed to get row by id from {tableName}. (id = {rowId}){LineSeparator}" +
+					$"Error message: {e.Message}", ERROR);
+			}
+
+			return row;
 		}
 
-		public bool DeleteRowById(string tableName, long rowId)
+		public bool DeleteRowById(string tableName, object rowId)
 		{
-			throw new NotImplementedException();
+			try
+			{
+				int rowsAffected = _connection.Execute($"DELETE FROM {tableName} WHERE id = @Id", new { Id = rowId });
+
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_del_row_by_id_suc")} {tableName} (id = {rowId})",
+						$"Successfully deleted row from table {tableName}. (id = {rowId})");
+				}
+
+				return rowsAffected == 1;
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_del_row_by_id_fail")} {tableName} (id = {rowId})",
+					$"Failed to delete row by id from {tableName}. (id = {rowId}){LineSeparator}" +
+					$"Error message: {e.Message}", ERROR);
+			}
+
+			return false;
 		}
 
+		public bool DeleteTable(string tableName)
+		{
+			try
+			{
+				_connection.Execute($"DROP TABLE {tableName}");
+
+				LogDbActionWithStatus($"{GetLocalizedString("db_del_table_suc")} {tableName} {GetLocalizedString("from")} {_connection.DataSource}",
+					$"Successfully deleted table {tableName} from {_connection.DataSource}.");
+
+
+				return true;
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_del_table_fail")} {tableName} {GetLocalizedString("from")} {_connection.DataSource}",
+					$"Failed to delete table {tableName} from {_connection.DataSource}.{LineSeparator}" +
+					$"Error message: {e.Message}", ERROR);
+			}
+
+			return false;
+		}
+
+		public bool TryParse(CSMColumnType columnType, object data)
+		{
+			switch (columnType)
+			{
+				case CSMColumnType.Text:
+					return true;
+				case CSMColumnType.Integer:
+					return int.TryParse(data.ToString(), out int res);
+				case CSMColumnType.NullType:
+					return false;
+			}
+
+			return false;
+		}
 
 		// returns whether the connection is open at the end of this function
 		private bool Connect(bool isTest = false)
@@ -469,11 +780,11 @@ namespace ColdStorageManager.DBManagers
 				$"Tried to close already closed connection: {Profile.PathToDb}.");
 		}
 
-		private bool CreateTableIfNotFound(string tableName)
+		private bool CreateTableIfNotFound(string tableName, string createTableCmd)
 		{
-			if (!checkIfTableExists(tableName))
+			if (!CheckIfTableExists(tableName))
 			{
-				_command.CommandText = CreateCapturesTableSQLCommand;
+				_command.CommandText = createTableCmd;
 				try
 				{
 					int res = _command.ExecuteNonQuery();
@@ -484,7 +795,8 @@ namespace ColdStorageManager.DBManagers
 				catch (Exception e)
 				{
 					LogDbActionWithMsgBox(GetLocalizedString("db_table_create_fail") + Profile.PathToTable,
-						$"Failed to create table: {Profile.PathToTable}.",
+						$"Failed to create table: {Profile.PathToTable}.{LineSeparator}" +
+						$"Error msg: {e.Message}{(debugLogging ? $"{LineSeparator} SQL: {createTableCmd}" : "")}",
 						GetLocalizedString("db_table_create_fail_title"), MessageBoxImage.Error, e.Message);
 					return false;
 				}
@@ -499,10 +811,10 @@ namespace ColdStorageManager.DBManagers
 			return true;
 		}
 
-		private bool checkIfTableExists(string tableName)
+		private bool CheckIfTableExists(string tableName)
 		{
 			_command.CommandText =
-				$"SELECT table_name FROM information_schema.tables WHERE table_schema = '{Profile.DatabaseName}' AND table_name = '{IDbManager.DbCapturesTableName}' LIMIT 1";
+				$"SELECT table_name FROM information_schema.tables WHERE table_schema = '{Profile.DatabaseName}' AND table_name = '{tableName}' LIMIT 1";
 			var res = _command.ExecuteScalar();
 
 			return res != null;

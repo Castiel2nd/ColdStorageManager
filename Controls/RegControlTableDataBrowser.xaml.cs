@@ -17,6 +17,7 @@ using ColdStorageManager.DBManagers;
 using ColdStorageManager.Models;
 using Org.BouncyCastle.Bcpg;
 using static ColdStorageManager.Globals;
+using static ColdStorageManager.Logger;
 
 namespace ColdStorageManager.Controls
 {
@@ -27,7 +28,7 @@ namespace ColdStorageManager.Controls
 	{
 		private const int DbResNotificationDurationMs = 500;
 		private static readonly SolidColorBrush _newRowBackground = new SolidColorBrush(Color.FromRgb(200, 200, 200));
-		private static SolidColorBrush _successfulEditRowBackground = new SolidColorBrush(Color.FromRgb(110, 221, 108));
+		private static readonly SolidColorBrush _successfulEditRowBackground = new SolidColorBrush(Color.FromRgb(110, 221, 108));
 		private static readonly SolidColorBrush _failedEditRowBackground = new SolidColorBrush(Color.FromRgb(221, 108, 108));
 		private static Brush _defaultRowBackground;
 
@@ -37,11 +38,18 @@ namespace ColdStorageManager.Controls
 		private bool _onRowLoadDbResNotify;
 		private int _delay;
 
+		private DataGridCellInfo _currentlyEditedCell;
+		private object _dataOnEditBegin;
 		private ObservableCollection<DataGridColumn> _columns;
 		private TableModel _table;
-		private bool _newRowAdded = false, _isCellBeingEdited = false, _lastEditOperationSuccessful;
+		private bool _newRowAdded = false, _isCellBeingEdited = false, _lastEditOperationSuccessful, _switchedCellByCmd, _editCancelled;
 
-		private MenuItem[] _rowHeaderContextMenuItems, _columnHeaderContextMenuItems, _dataAreaContextMenuItems, _topLeftAreaContextMenuItems;
+		private static ContextMenu _rowHeaderContextMenu = GetResource("DataGridRowHeaderContextMenu") as ContextMenu,
+			_columnHeaderContextMenu = GetResource("DataGridColumnHeaderContextMenu") as ContextMenu,
+			_dataAreaContextMenu = GetResource("DataGridDataAreaContextMenu") as ContextMenu,
+			_topLeftAreaContextMenu = GetResource("DataGridTopLeftAreaContextMenu") as ContextMenu;
+
+		// private MenuItem[] _rowHeaderContextMenuItems, _columnHeaderContextMenuItems, _dataAreaContextMenuItems, _topLeftAreaContextMenuItems;
 
 		public RegControlTableDataBrowser(TableModel table)
 		{
@@ -63,31 +71,33 @@ namespace ColdStorageManager.Controls
 
 		private void InitContextMenus()
 		{
-			if (_rowHeaderContextMenuItems == null)
-			{
-				_rowHeaderContextMenuItems = new MenuItem[1];
+			((MenuItem)_rowHeaderContextMenu.Items[0]).Click += DelRowsCntxMenu_OnClick;
 
-				var mi = new MenuItem();
-				mi.Header = GetLocalizedString("del_selected");
-				mi.Click += DelRowsCntxMenu_OnClick;
-				_rowHeaderContextMenuItems[0] = mi;
-			}
-
-			if (_columnHeaderContextMenuItems == null)
-			{
-				_columnHeaderContextMenuItems = Array.Empty<MenuItem>();
-
-			}
-
-			if (_dataAreaContextMenuItems == null)
-			{
-				_dataAreaContextMenuItems = Array.Empty<MenuItem>();
-			}
-
-			if (_topLeftAreaContextMenuItems == null)
-			{
-				_topLeftAreaContextMenuItems = Array.Empty<MenuItem>();
-			}
+			// if (_rowHeaderContextMenuItems == null)
+			// {
+			// 	_rowHeaderContextMenuItems = new MenuItem[1];
+			//
+			// 	var mi = new MenuItem();
+			// 	mi.Header = GetLocalizedString("del_selected");
+			// 	mi.Click += DelRowsCntxMenu_OnClick;
+			// 	_rowHeaderContextMenuItems[0] = mi;
+			// }
+			//
+			// if (_columnHeaderContextMenuItems == null)
+			// {
+			// 	_columnHeaderContextMenuItems = Array.Empty<MenuItem>();
+			//
+			// }
+			//
+			// if (_dataAreaContextMenuItems == null)
+			// {
+			// 	_dataAreaContextMenuItems = Array.Empty<MenuItem>();
+			// }
+			//
+			// if (_topLeftAreaContextMenuItems == null)
+			// {
+			// 	_topLeftAreaContextMenuItems = Array.Empty<MenuItem>();
+			// }
 		}
 
 		public void RefreshTableData()
@@ -191,8 +201,8 @@ namespace ColdStorageManager.Controls
 
 		private void DataGrid_OnCellEditEnding(object? sender, DataGridCellEditEndingEventArgs e)
 		{
-			int rowIndex = e.Row.GetIndex(), colIndex = _columns.IndexOf(e.Column), 
-				id = _newRowAdded ? -1 : int.Parse((e.Row.Item as object[])[_table.GetColumnIndexByName("id")].ToString());
+			int rowIndex = e.Row.GetIndex(), colIndex = _columns.IndexOf(e.Column); 
+			object id = _newRowAdded ? null : (e.Row.Item as object[])[_table.GetColumnIndexByName("id")];
 			string columnName = e.Column.Header.ToString();
 
 			object value = null;
@@ -205,12 +215,38 @@ namespace ColdStorageManager.Controls
 			{
 				case CSMColumnType.Text:
 					TextBox tb = e.EditingElement as TextBox;
+					if (_editCancelled)
+					{
+						_editCancelled = false;
+						tb.Text = ((object[])e.Row.Item)[_table.GetColumnIndexByName(columnName)].ToString();
+						_lastEditOperationSuccessful = true;
+						return;
+					}
 					value = tb.Text;
 					break;
 				case CSMColumnType.Integer:
 					TextBox tbInt = e.EditingElement as TextBox;
+					if (_editCancelled)
+					{
+						_editCancelled = false;
+						tbInt.Text = ((object[])e.Row.Item)[_table.GetColumnIndexByName(columnName)].ToString();
+						_lastEditOperationSuccessful = true;
+						return;
+					}
 					value = tbInt.Text;
 					break;
+			}
+
+			if(!selectedDataSource.TryParse(_table.GetColumnByName(columnName).Type, value))
+			{
+				e.Cancel = true;
+				_lastEditOperationSuccessful = false;
+
+				IndicateDbOperationResult(e.Row, _failedEditRowBackground, _defaultRowBackground, DbResNotificationDurationMs);
+
+				CreatePopup(GetLocalizedString("db_bad_cell_value"), GetDataGridCell(_currentlyEditedCell), ERROR);
+
+				return;
 			}
 
 			if (!selectedDataSource.SetCellData(_table.Name, columnName, id, value))
@@ -218,7 +254,7 @@ namespace ColdStorageManager.Controls
 				e.Cancel = true;
 				_lastEditOperationSuccessful = false;
 
-				IndicateDbOperationResult(e.Row, _failedEditRowBackground, e.Row.Background, DbResNotificationDurationMs);
+				IndicateDbOperationResult(e.Row, _failedEditRowBackground, _defaultRowBackground, DbResNotificationDurationMs);
 
 				return;
 			}
@@ -233,11 +269,15 @@ namespace ColdStorageManager.Controls
 				_afterNotifyBackgroundOnLoad = _defaultRowBackground;
 
 				_table.ReplaceRow((object[])e.Row.Item, refreshedRow);
-				BeginEditingCell(refreshedRow, GetNextEditableColumnIndex(colIndex));
+				if (_switchedCellByCmd)
+				{
+					_switchedCellByCmd = false;
+					BeginEditingCell(refreshedRow, GetNextEditableColumnIndex(colIndex));
+				}
 			}
 			else
 			{
-				IndicateDbOperationResult(e.Row, _successfulEditRowBackground, e.Row.Background, DbResNotificationDurationMs);
+				IndicateDbOperationResult(e.Row, _successfulEditRowBackground, _defaultRowBackground, DbResNotificationDurationMs);
 				_isCellBeingEdited = false;
 			}
 
@@ -327,13 +367,23 @@ namespace ColdStorageManager.Controls
 		{
 			if (_isCellBeingEdited)
 			{
-				BeginEditingCell((object[])DataGrid.CurrentCell.Item, GetNextEditableColumnIndex(_columns.IndexOf(DataGrid.CurrentCell.Column)));
+				if (_newRowAdded)
+				{
+					_switchedCellByCmd = true;
+					DataGrid.CommitEdit();
+				}
+				else
+				{
+					BeginEditingCell((object[])DataGrid.CurrentCell.Item, GetNextEditableColumnIndex(_columns.IndexOf(DataGrid.CurrentCell.Column)));
+
+				}
 			}
 		}
 
 		private void DataGrid_OnBeginningEdit(object? sender, DataGridBeginningEditEventArgs e)
 		{
 			_isCellBeingEdited = true;
+			_currentlyEditedCell = DataGrid.CurrentCell;
 		}
 
 		private void AddRowCmd_OnExecuted(object sender, ExecutedRoutedEventArgs e)
@@ -343,15 +393,13 @@ namespace ColdStorageManager.Controls
 
 		private void DeleteSelectedRows()
 		{
-			Console.WriteLine(DataGrid.SelectedItems);
 			int index = _table.GetColumnIndexByName("id");
 			List<object[]> rowsToRemove = new List<object[]>();
 			foreach (var dataGridSelectedItem in DataGrid.SelectedItems)
 			{
 				if (dataGridSelectedItem is object[] row)
 				{
-					long i = (long)row[index];
-					if (!selectedDataSource.DeleteRowById(_table.Name, (long)row[index]))
+					if (!selectedDataSource.DeleteRowById(_table.Name, row[index]))
 					{
 						var dgr = (DataGridRow)(DataGrid.ItemContainerGenerator.ContainerFromItem(row));
 						IndicateDbOperationResult(dgr, _failedEditRowBackground, _defaultRowBackground, DbResNotificationDurationMs);
@@ -382,65 +430,99 @@ namespace ColdStorageManager.Controls
 			//RowHeader
 			if (pos.X <= DataGrid.RowHeaderActualWidth && pos.Y > DataGrid.ColumnHeaderHeight)
 			{
-				if (DataGrid.ContextMenu != null)
-				{
-					DataGrid.ContextMenu.Items.Clear();
-					foreach (var menuItem in _rowHeaderContextMenuItems)
-					{
-						DataGrid.ContextMenu.Items.Add(menuItem);
-					}
-				}
+				DataGrid.ContextMenu = _rowHeaderContextMenu;
+				// if (DataGrid.ContextMenu != null)
+				// {
+				// 	DataGrid.ContextMenu.Items.Clear();
+				// 	foreach (var menuItem in _rowHeaderContextMenuItems)
+				// 	{
+				// 		DataGrid.ContextMenu.Items.Add(menuItem);
+				// 	}
+				// }
 			}
 			else if (pos.X > DataGrid.RowHeaderActualWidth && pos.Y <= DataGrid.ColumnHeaderHeight)//ColumnHeader
 			{
-				if (DataGrid.ContextMenu != null)
+				DataGrid.ContextMenu = _columnHeaderContextMenu;
+				if (_columnHeaderContextMenu.Items.Count == 0)
 				{
-					DataGrid.ContextMenu.Items.Clear();
-					if (_columnHeaderContextMenuItems.Length == 0)
-					{
-						e.Handled = true;
-					}
-					foreach (var menuItem in _columnHeaderContextMenuItems)
-					{
-						DataGrid.ContextMenu.Items.Add(menuItem);
-					}
+					e.Handled = true;
 				}
+				// if (DataGrid.ContextMenu != null)
+				// {
+				// 	DataGrid.ContextMenu.Items.Clear();
+				// 	if (_columnHeaderContextMenuItems.Length == 0)
+				// 	{
+				// 		e.Handled = true;
+				// 	}
+				// 	foreach (var menuItem in _columnHeaderContextMenuItems)
+				// 	{
+				// 		DataGrid.ContextMenu.Items.Add(menuItem);
+				// 	}
+				// }
 			}
 			else if (pos.X > DataGrid.RowHeaderActualWidth && pos.Y > DataGrid.ColumnHeaderHeight)//DataArea
 			{
-				if (DataGrid.ContextMenu != null)
+				DataGrid.ContextMenu = _dataAreaContextMenu;
+				if (_dataAreaContextMenu.Items.Count == 0)
 				{
-					DataGrid.ContextMenu.Items.Clear();
-					if (_dataAreaContextMenuItems.Length == 0)
-					{
-						e.Handled = true;
-					}
-					foreach (var menuItem in _dataAreaContextMenuItems)
-					{
-						DataGrid.ContextMenu.Items.Add(menuItem);
-					}
+					e.Handled = true;
 				}
+				// if (DataGrid.ContextMenu != null)
+				// {
+				// 	DataGrid.ContextMenu.Items.Clear();
+				// 	if (_dataAreaContextMenuItems.Length == 0)
+				// 	{
+				// 		e.Handled = true;
+				// 	}
+				// 	foreach (var menuItem in _dataAreaContextMenuItems)
+				// 	{
+				// 		DataGrid.ContextMenu.Items.Add(menuItem);
+				// 	}
+				// }
 			}
 			else//Select-all area on the top left
 			{
-				if (DataGrid.ContextMenu != null)
+				DataGrid.ContextMenu = _topLeftAreaContextMenu;
+				if (_topLeftAreaContextMenu.Items.Count == 0)
 				{
-					DataGrid.ContextMenu.Items.Clear();
-					if (_topLeftAreaContextMenuItems.Length == 0)
-					{
-						e.Handled = true;
-					}
-					foreach (var menuItem in _topLeftAreaContextMenuItems)
-					{
-						DataGrid.ContextMenu.Items.Add(menuItem);
-					}
+					e.Handled = true;
 				}
+				// if (DataGrid.ContextMenu != null)
+				// {
+				// 	DataGrid.ContextMenu.Items.Clear();
+				// 	if (_topLeftAreaContextMenuItems.Length == 0)
+				// 	{
+				// 		e.Handled = true;
+				// 	}
+				// 	foreach (var menuItem in _topLeftAreaContextMenuItems)
+				// 	{
+				// 		DataGrid.ContextMenu.Items.Add(menuItem);
+				// 	}
+				// }
 			}
 		}
 
 		private void DeleteRowCmd_OnExecuted(object sender, ExecutedRoutedEventArgs e)
 		{
 			DeleteSelectedRows();
+		}
+
+		private void StopEditCmd_OnExecuted(object sender, ExecutedRoutedEventArgs e)
+		{
+			_editCancelled = true;
+			DataGrid.CommitEdit();
+		}
+
+		private void DeleteTable_OnClick(object sender, RoutedEventArgs e)
+		{
+			if (MessageBox.Show(mainWindow,
+				    $"{GetLocalizedString("db_del_table_question")} {_table.Name} {GetLocalizedString("from")} {selectedDataSource.Name}?",
+				    GetLocalizedString("db_del_table_title"), MessageBoxButton.YesNo, MessageBoxImage.Question,
+				    MessageBoxResult.No) == MessageBoxResult.Yes)
+			{
+				selectedDataSource.DeleteTable(_table.Name);
+				tableBrowser.Refresh();
+			}
 		}
 	}
 }

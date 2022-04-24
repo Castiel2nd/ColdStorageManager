@@ -70,8 +70,7 @@ namespace ColdStorageManager.Controls
 
 		private void RegControlCreateTable_OnGotFocus(object sender, RoutedEventArgs e)
 		{
-			Console.WriteLine("throw new NotImplementedException();");
-			TableNameTxtBox.Focus();
+			// TableNameTxtBox.Focus();
 		}
 	}
 }

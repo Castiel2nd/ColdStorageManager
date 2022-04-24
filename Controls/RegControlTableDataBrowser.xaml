@@ -27,21 +27,26 @@
 		        </ResourceDictionary>
 	        </StackPanel.Resources>
 			<Button Content="{DynamicResource add_row}" Click="AddRowBtn_OnClick"></Button>
+			<Button Content="{DynamicResource del_table}" Click="DeleteTable_OnClick"></Button>
         </StackPanel>
 
         <DataGrid Grid.Row="1" Name="DataGrid" AutoGenerateColumns="False" CellEditEnding="DataGrid_OnCellEditEnding" SelectionChanged="DataGrid_OnSelectionChanged"
                   LoadingRow="DataGrid_OnLoadingRow"
                   BeginningEdit="DataGrid_OnBeginningEdit"
                   SelectionUnit="CellOrRowHeader"
-				  ContextMenuOpening="DataGrid_OnContextMenuOpening"
+                  ContextMenuOpening="DataGrid_OnContextMenuOpening"
                   RowHeaderWidth="25"
 				  ColumnHeaderHeight="25"
-                  >
+        >
+			<DataGrid.Resources>
+
+			</DataGrid.Resources>
 	        <DataGrid.CommandBindings>
 				<CommandBinding Command="{x:Static coldStorageManager:Commands.DataTableCellEditSwitchCmd}"
 				                Executed="CellEditSwitchCmd_OnExecuted"></CommandBinding>
 		        <CommandBinding Command="{x:Static coldStorageManager:Commands.DataTableDeleteRowCmd}"
 		                        Executed="DeleteRowCmd_OnExecuted"></CommandBinding>
+		        <CommandBinding Command="DataGrid.CancelEditCommand" Executed="StopEditCmd_OnExecuted"></CommandBinding>
 			</DataGrid.CommandBindings>
 			<DataGrid.ContextMenu>
 				<ContextMenu></ContextMenu>

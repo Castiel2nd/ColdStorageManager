@@ -5,15 +5,25 @@
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		xmlns:local="clr-namespace:ColdStorageManager"
 		xmlns:models="clr-namespace:ColdStorageManager.Models"
+		xmlns:attachedProperties="http://schemas.fontawesome.com/icons/svg/properties"
+		xmlns:fa6="http://schemas.fontawesome.com/icons/svg"
 		mc:Ignorable="d"
-		Title="Cold Storage Manager v0" Height="850" Width="1280"
+		Height="850" Width="1280"
 		Closed="MainWindow_OnClosed"
         >
 	<DockPanel>
 		<Menu DockPanel.Dock="Top">
 			<MenuItem Header="{DynamicResource file}">
-				<MenuItem Header="{DynamicResource mysql_connect}" Click="MySQLMenuItem_Click"></MenuItem>
-				<MenuItem Header="{DynamicResource options}" Click="OptionsMenu_Click"></MenuItem>
+				<MenuItem Header="{DynamicResource mysql_connect}" Click="MySQLMenuItem_Click">
+					<MenuItem.Icon>
+						<fa6:ImageAwesome Icon="Solid_Database" Height="15"></fa6:ImageAwesome>
+					</MenuItem.Icon>
+				</MenuItem>
+				<MenuItem Header="{DynamicResource options}" Click="OptionsMenu_Click">
+					<MenuItem.Icon>
+						<fa6:ImageAwesome Icon="Solid_Gear" Height="15"></fa6:ImageAwesome>
+					</MenuItem.Icon>
+				</MenuItem>
 			</MenuItem>
 			<MenuItem Header="{DynamicResource help}">
 				<MenuItem Header="{DynamicResource about}"></MenuItem>
@@ -61,7 +71,7 @@
 
 		<TabControl>
 			<TabControl.Resources>
-				<ResourceDictionary Source="Styles/TabItemHeader.xaml"></ResourceDictionary>
+				<ResourceDictionary Source="../Styles/TabItemHeader.xaml"></ResourceDictionary>
 			</TabControl.Resources>
 			<TabItem Header="{DynamicResource capture}">
 				<Grid DockPanel.Dock="Left" HorizontalAlignment="Stretch">

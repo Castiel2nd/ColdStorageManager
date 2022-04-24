@@ -42,127 +42,11 @@ namespace ColdStorageManager
 
 	public partial class MainWindow : Window
 	{
-
-		private Dictionary<string, string> defaultSettings = new Dictionary<string, string>()
-		{
-			{ "language","en-US" },
-			{ "startupWindowState","normal" },
-			{ "startupWindowLocation","remember" },
-			{ "startupWindowLocationCoords","0,0" },
-		};
-
-		private Dictionary<string, Dictionary<string, string>> defaultSectionSettings =
-			new Dictionary<string, Dictionary<string, string>>()
-			{
-				{
-					"searchSettings", new Dictionary<string, string>()
-					{
-						{ "selectedCaptureConnection", "local" },
-						{ "searchQuery", "" },
-						{ "sizeEnabled", "False" },
-						{ "sizeRelCmbx_selectedIndex", "0" },
-						{ "sizeSlider_value", "0" },
-						{ "sizeCmbx_selectedIndex", "0" },
-						{ "creationTimeEnable", "False" },
-						{ "lastAccessEnable", "False" },
-						{ "lastModTimeEnable", "False" },
-						{ "createTimeRelCmbx_selectedIndex", "0" },
-						{ "createTimeDP", "" },
-						{ "accessTimeRelCmbx_selectedIndex", "0" },
-						{ "accessTimeDP", "" },
-						{ "lastModTimeRelCmbx_selectedIndex", "0" },
-						{ "lastModTimeDP", "" },
-						// 0=filename, 1=path, 2=size, 3=creation_time, 4=access_time, 5=mod_time
-						{ "fileResultsColumnsOrder", "0,1,2,3,4,5" },
-						{ "dirResultsColumnsOrder", "0,1,2,3,4,5" },
-						{ "fileResultsColumnWidths", "70,100,60,70,70,70" },
-						{ "dirResultsColumnWidths", "70,100,60,70,70,70" },
-					}
-				},
-				{
-					"captureSettings", new Dictionary<string, string>()
-					{
-						{ "capPropSizeCb", "False" },
-						{ "capPropCreateTimeCb", "False" },
-						{ "capPropLastAccessCb", "False" },
-						{ "capPropLastModCb", "False" },
-					}
-				},
-				{
-					"exceptions", new Dictionary<string, string>()
-					{
-						{ "exceptionPathsEnableCb", "True" },
-						{ "exceptionsList", "\\Windows\n" +
-											"\\System Volume Information\n" +
-											"\\$RECYCLE.BIN\n" +
-											"\\$Recycle.Bin" },
-						{ "exceptionFileTypesCaptureEnableCb", "True" },
-						{ "exceptionFileTypesCaptureTxtBx", "tmp" },
-						{ "exceptionFileTypesSearchEnableCb", "False" },
-						{ "exceptionFileTypesSearchTxtBx", "" },
-					}
-				},
-				{
-					"mysqlConnectionProfiles", new Dictionary<string, string>() {}
-				}
-			};
-
 		private bool captureConnSelectionChangedEnabled = false;
 
 		private void LoadSettingsBeforeUI()
 		{
-			var configFileMap = new ExeConfigurationFileMap();
-			configFileMap.ExeConfigFilename = Globals.configFileName;
 			AppSettingsSection section;
-			try
-			{
-				var configFile = ConfigurationManager.OpenMappedExeConfiguration(configFileMap, ConfigurationUserLevel.None);
-				Globals.configFile = configFile;
-				//configFile.Sections.Add("general", new AppSettingsSection());
-				//AppSettingsSection sec = configFile.Sections.Get("general") as AppSettingsSection;
-				//sec.Settings.Add("hello", "test");
-
-				var settings = configFile.AppSettings.Settings;
-				Globals.settings = settings;
-				//load default settings
-				foreach (KeyValuePair<string, string> setting in defaultSettings)
-				{
-					if (settings[setting.Key] == null)
-					{
-						settings.Add(setting.Key, setting.Value);
-					}
-				}
-				//load default section settings
-				foreach (var sectionInfo in defaultSectionSettings)
-				{
-					if (configFile.Sections.Get(sectionInfo.Key) == null)
-					{
-						configFile.Sections.Add(sectionInfo.Key, new AppSettingsSection());
-					}
-
-					foreach (var setting in sectionInfo.Value)
-					{
-						section = configFile.Sections.Get(sectionInfo.Key) as AppSettingsSection;
-						if (section.Settings[setting.Key] == null)
-						{
-							section.Settings.Add(setting.Key, setting.Value);
-						}
-					}
-				}
-				configFile.Save(ConfigurationSaveMode.Modified);
-				ConfigurationManager.RefreshSection(configFile.AppSettings.SectionInformation.Name);
-			}
-			catch (ConfigurationErrorsException e)
-			{
-				Console.WriteLine("Configuration error: " + e.BareMessage);
-			}
-
-			//loading settings
-			//if set language is not the default, load it
-			if (Globals.settings["language"].Value != "en-US")
-			{
-				LoadLanguage("en-US");
-			}
 
 			//defaultSettings other than language
 			Globals.startupWindowLocation = Globals.settings["startupWindowLocation"].Value;
@@ -214,7 +98,7 @@ namespace ColdStorageManager
 		private void InitVarsBeforeUI()
 		{
 			Title = $"Cold Storage Manager {version}";
-
+			Console.WriteLine(Title);
 			Globals.mainWindow = this;
 
 			//creating data sources
@@ -334,26 +218,6 @@ namespace ColdStorageManager
 			capPropCreateTimeCb.IsChecked = bool.Parse(section.Settings["capPropCreateTimeCb"].Value);
 			capPropLastAccessCb.IsChecked = bool.Parse(section.Settings["capPropLastAccessCb"].Value);
 			capPropLastModCb.IsChecked = bool.Parse(section.Settings["capPropLastModCb"].Value);
-		}
-
-		public void LoadLanguage(string prev)
-		{
-			string lang = Globals.settings["language"].Value;
-
-			var resourceDictionaryToLoad = new ResourceDictionary();
-			resourceDictionaryToLoad.Source =
-				new Uri("Language/"+lang+".xaml",
-						UriKind.RelativeOrAbsolute);
-
-			var current = Application.Current.Resources.MergedDictionaries.FirstOrDefault(
-					m => m.Source.OriginalString.EndsWith(prev+".xaml"));
-
-			if (current != null)
-			{
-				Application.Current.Resources.MergedDictionaries.Remove(current);
-			}
-
-			Application.Current.Resources.MergedDictionaries.Add(resourceDictionaryToLoad);
 		}
 
 		private void ConvertFSObservListToList()
@@ -822,7 +686,9 @@ namespace ColdStorageManager
 				else // if there was nothing selected, try local as fallback
 				{
 					RefreshCapturesWithFallback();
-				}	
+				}
+
+				tableBrowser.Refresh();
 			}
 		}
 

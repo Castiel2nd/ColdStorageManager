@@ -3,6 +3,8 @@
                     xmlns:local="clr-namespace:ColdStorageManager"
                     xmlns:main="local:MainWindow"
                     xmlns:models="clr-namespace:ColdStorageManager.Models"
+                    xmlns:attachedProperties="http://schemas.fontawesome.com/icons/svg/properties"
+                    xmlns:fa6="http://schemas.fontawesome.com/icons/svg"
                     x:Class="ColdStorageManager.Templates.DataTemplates">
 
 	<local:VisibilityConverter x:Key="VisibilityConverter"></local:VisibilityConverter>
@@ -117,7 +119,23 @@
 	<Label x:Key="capturePlaceholder" FontSize="16" FontWeight="Medium" Content="{Binding Msg}"></Label>
 
 	<ContextMenu x:Key="DataGridRowHeaderContextMenu">
-		<MenuItem Header="hellol"></MenuItem>
+		<MenuItem Header="{DynamicResource del_selected}">
+			<MenuItem.Icon>
+				<fa6:ImageAwesome Icon="Solid_TrashCan" PrimaryColor="Red"></fa6:ImageAwesome>
+			</MenuItem.Icon>
+		</MenuItem>
+	</ContextMenu>
+
+	<ContextMenu x:Key="DataGridColumnHeaderContextMenu">
+		
+	</ContextMenu>
+
+	<ContextMenu x:Key="DataGridDataAreaContextMenu">
+
+	</ContextMenu>
+
+	<ContextMenu x:Key="DataGridTopLeftAreaContextMenu">
+
 	</ContextMenu>
 
 </ResourceDictionary>

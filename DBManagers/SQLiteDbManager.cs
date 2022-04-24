@@ -86,6 +86,7 @@ namespace ColdStorageManager
 		public SQLiteDbManager()
 		{
 			PrepFile(dbPath, dbCapturesFile);
+			PrepFile(dbPath, dbRegisterFile);
 
 			//constructing sql commands
 			stringBuilder = new StringBuilder();
@@ -99,12 +100,14 @@ namespace ColdStorageManager
 			{
 				_connectionCaptures.Open();
 
-				LogDbActionWithStatus($"{GetLocalizedString("db_connect_suc")}{dbCapturesFilePath}",
+				LogDbActionWithStatus($"{GetLocalizedString("db_connect_suc")} {dbCapturesFilePath}",
 					$"Successfully connected to db.:{dbCapturesFilePath}.");
 			}
 			catch (Exception e)
 			{
-
+				LogDbActionWithStatus($"{GetLocalizedString("error_connection")} {dbCapturesFilePath}",
+					$"There was an error connecting to {dbCapturesFilePath}.{LineSeparator}" +
+					$"Error message: {e.Message}", ERROR);
 			}
 
 			_connectionRegister = CreateConnection(dbRegisterFilePath);
@@ -113,18 +116,21 @@ namespace ColdStorageManager
 			{
 				_connectionRegister.Open();
 
-				LogDbActionWithStatus($"{GetLocalizedString("db_connect_suc")}{dbRegisterFilePath}",
+				LogDbActionWithStatus($"{GetLocalizedString("db_connect_suc")} {dbRegisterFilePath}",
 					$"Successfully connected to db.:{dbRegisterFilePath}.");
 			}
 			catch (Exception e)
 			{
-
+				LogDbActionWithStatus($"{GetLocalizedString("error_connection")} {dbRegisterFilePath}",
+					$"There was an error connecting to {dbRegisterFilePath}.{LineSeparator}" +
+					$"Error message: {e.Message}", ERROR);
 			}
 
 			IsConnectionSuccessful = true;
 			_commandCaptures = _connectionCaptures.CreateCommand();
 			_commandRegister = _connectionRegister.CreateCommand();
 			CreateTableIfNotFound(_commandCaptures, IDbManager.DbCapturesTableName, _createCapturesTableSqlCommand, dbCapturesFilePath);
+
 		}
 
 		~SQLiteDbManager()
@@ -168,10 +174,10 @@ namespace ColdStorageManager
 			int i;
 			for (i = 0; i < colNames.Length-1; i++)
 			{
-				stringBuilder.Append(colNames[i]).Append(" ").Append(colProperties[i])
+				stringBuilder.Append("\"").Append(colNames[i]).Append("\" ").Append(colProperties[i])
 					.Append(", ");
 			}
-			stringBuilder.Append(colNames[i]).Append(" ").Append(colProperties[i]).Append(")");
+			stringBuilder.Append("\"").Append(colNames[i]).Append("\" ").Append(colProperties[i]).Append(")");
 			
 			return stringBuilder.ToString();
 		}
@@ -326,8 +332,6 @@ namespace ColdStorageManager
 		//implicitly adds an id column
 		public bool CreateTable(string tableName, List<ColumnInfo> columns)
 		{
-			PrepFile(dbPath, dbRegisterFile);
-
 			List<string> colNames = new List<string>();
 			List<string> colProp = new List<string>();
 
@@ -353,6 +357,12 @@ namespace ColdStorageManager
 			{
 				var res = conn.Query(GetTableNamesSql);
 
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_get_table_names_suc")} {filepath}",
+						$"Successfully loaded tables from {filepath}. Result = {res}, Count = {res.Count()}");
+				}
+
 				tableNames = new List<string>();
 
 				string tableName;
@@ -369,7 +379,8 @@ namespace ColdStorageManager
 			}
 			catch (Exception e)
 			{
-				LogDbActionWithStatus($"{GetLocalizedString("db_get_table_names_fail")} {filepath}" ,$"Failed to get table names from {filepath}.{LineSeparator}" +
+				LogDbActionWithStatus($"{GetLocalizedString("db_get_table_names_fail")} {filepath}" ,
+					$"Failed to get table names from {filepath}.{LineSeparator}" +
 				            $"Error message: {e.Message}", ERROR);
 			}
 
@@ -389,6 +400,12 @@ namespace ColdStorageManager
 			{
 				var res = connection.Query($"PRAGMA table_info({tableName})");
 
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_get_table_cols_suc")} {tableName}",
+						$"Successfully loaded columns of table {tableName}. Source = {connection.DataSource}, Result = {res}, Count = {res.Count()}");
+				}
+
 				foreach (dynamic row in res)
 				{
 					ColumnInfo columnInfo = new ColumnInfo();
@@ -402,6 +419,10 @@ namespace ColdStorageManager
 							columnInfo.Type = CSMColumnType.Integer;
 							break;
 						default:
+							if (debugLogging)
+							{
+								LogDbAction($"Unsupported column type ({row.Type as string}) found in table {tableName}, at {dbRegisterFilePath}.", WARNING);
+							}
 							columnInfo.Type = CSMColumnType.NullType;
 							break;
 					}
@@ -439,6 +460,12 @@ namespace ColdStorageManager
 			{
 				var res = connection.Query($"SELECT * FROM {table.Name}");
 
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_get_table_data_suc")} {table.Name}",
+						$"Successfully loaded data from table {table.Name}. Source = {connection.DataSource}, Result = {res}, Count = {res.Count()}");
+				}
+
 				List<object[]> data = new List<object[]>();
 
 				foreach (dynamic dapperRow in res)
@@ -452,7 +479,6 @@ namespace ColdStorageManager
 					for (int i = 0; i < table.Columns.Length; i++)
 					{
 						row.TryGetValue(table.Columns[i].Name, out dataArray[i]);
-
 						// Console.WriteLine($"Column name: {table.Columns[i].Name}");
 						// Console.WriteLine($"Column value: {dataArray[i]}");
 					}
@@ -481,14 +507,20 @@ namespace ColdStorageManager
 
 		//a rowId of -1 indicates a new record that should be added 
 		private bool SetCellDataViaConnection(SQLiteConnection connection, string tableName, string columnName,
-			int rowId, object data)
+			object rowId, object data)
 		{
-			if (rowId == -1)
+			if (rowId == null)
 			{
 				try
 				{
-					int affectedRows = connection.Execute($"INSERT INTO {tableName} ({columnName}) VALUES (@Data)",
+					int affectedRows = connection.Execute($"INSERT INTO {tableName} (\"{columnName}\") VALUES (@Data)",
 						new { Data = data });
+
+					if (debugLogging)
+					{
+						LogDbActionWithStatus($"{GetLocalizedString("db_insert_row_suc")} {tableName}",
+							$"Successfully inserted row into table {tableName}. Column = {columnName}, affectedRows = {affectedRows}");
+					}
 
 					return affectedRows == 1;
 				}
@@ -503,13 +535,16 @@ namespace ColdStorageManager
 			{
 				try
 				{
-					int affectedRows = connection.Execute($"UPDATE {tableName} SET {columnName} = @Data WHERE id = {rowId}",
+					int affectedRows = connection.Execute($"UPDATE {tableName} SET \"{columnName}\" = @Data WHERE id = {rowId}",
 						new { Data = data });
 
-					if (affectedRows == 1)
+					if (debugLogging)
 					{
-						return true;
+						LogDbActionWithStatus($"{GetLocalizedString("db_update_row_suc")} {tableName}",
+							$"Successfully updated row in table {tableName}. Column = {columnName}, id = {rowId}, affectedRows = {affectedRows}");
 					}
+
+					return affectedRows == 1;
 				}
 				catch (Exception e)
 				{
@@ -522,19 +557,25 @@ namespace ColdStorageManager
 			return false;
 		}
 
-		public bool SetCellData(string tableName, string columnName, int rowId, object data)
+		public bool SetCellData(string tableName, string columnName, object rowId, object data)
 		{
 			return SetCellDataViaConnection(_connectionRegister, tableName, columnName, rowId, data);
 		}
 
 		//returns -1 if the query didn't complete, 0 if there was no previously inserted row in the current session
-		private long GetLastInsertedRowIdViaConnection(SQLiteConnection connection)
+		private ulong GetLastInsertedRowIdViaConnection(SQLiteConnection connection)
 		{
-			long ret = -1;
+			ulong ret = UInt64.MaxValue;
 
 			try
 			{
-				ret = (long)connection.ExecuteScalar("SELECT last_insert_rowid()");
+				ret = MapLongToUlong((long)connection.ExecuteScalar("SELECT last_insert_rowid()"));
+
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_get_last_row_id_suc")} {connection.DataSource}",
+						$"Successfully loaded row from {connection.DataSource}");
+				}
 			}
 			catch (Exception e)
 			{
@@ -546,7 +587,7 @@ namespace ColdStorageManager
 			return ret;
 		}
 
-		public long GetLastInsertedRowId()
+		public ulong GetLastInsertedRowId()
 		{
 			return GetLastInsertedRowIdViaConnection(_connectionRegister);
 		}
@@ -556,9 +597,9 @@ namespace ColdStorageManager
 			ColumnInfo[] columns)
 		{
 			object[] ret = null;
-			long rowId = GetLastInsertedRowIdViaConnection(connection);
+			ulong rowId = GetLastInsertedRowIdViaConnection(connection);
 
-			if (rowId == -1)
+			if (rowId == UInt64.MaxValue)
 			{
 
 			}else if (rowId == 0)
@@ -580,7 +621,7 @@ namespace ColdStorageManager
 
 		//returns null of row was not found
 		private object[] GetRowByIdViaConnection(SQLiteConnection connection, string tableName, ColumnInfo[] columns,
-			long rowId)
+			object rowId)
 		{
 			object[] row = null;
 
@@ -595,6 +636,12 @@ namespace ColdStorageManager
 				{
 					rowAsDict.TryGetValue(columns[i].Name, out row[i]);
 				}
+
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_get_row_by_id_suc")} {tableName} (id = {rowId})",
+						$"Successfully loaded row from {tableName}. (id = {rowId})");
+				}
 			}
 			catch (Exception e)
 			{
@@ -606,16 +653,22 @@ namespace ColdStorageManager
 			return row;
 		}
 
-		public object[] GetRowById(string tableName, ColumnInfo[] columns, long rowId)
+		public object[] GetRowById(string tableName, ColumnInfo[] columns, object rowId)
 		{
 			return GetRowByIdViaConnection(_connectionRegister, tableName, columns, rowId);
 		}
 
-		private bool DeleteRowByIdViaConnection(SQLiteConnection connection, string tableName, long rowId)
+		private bool DeleteRowByIdViaConnection(SQLiteConnection connection, string tableName, object rowId)
 		{
 			try
 			{
 				int rowsAffected = connection.Execute($"DELETE FROM {tableName} WHERE id = @Id", new { Id = rowId });
+
+				if (debugLogging)
+				{
+					LogDbActionWithStatus($"{GetLocalizedString("db_del_row_by_id_suc")} {tableName} (id = {rowId})",
+						$"Successfully deleted row from table {tableName}. (id = {rowId})");
+				}
 
 				return rowsAffected == 1;
 			}
@@ -629,9 +682,51 @@ namespace ColdStorageManager
 			return false;
 		}
 
-		public bool DeleteRowById(string tableName, long rowId)
+		public bool DeleteRowById(string tableName, object rowId)
 		{
 			return DeleteRowByIdViaConnection(_connectionRegister, tableName, rowId);
+		}
+
+		private bool DeleteTableViaConnection(SQLiteConnection connection, string tableName)
+		{
+			try
+			{
+				connection.Execute($"DROP TABLE {tableName}");
+
+				LogDbActionWithStatus($"{GetLocalizedString("db_del_table_suc")} {tableName} {GetLocalizedString("from")} {connection.DataSource}",
+					$"Successfully deleted table {tableName} from {connection.DataSource}.");
+				
+
+				return true;
+			}
+			catch (Exception e)
+			{
+				LogDbActionWithStatus($"{GetLocalizedString("db_del_table_fail")} {tableName} {GetLocalizedString("from")} {connection.DataSource}",
+					$"Failed to delete table {tableName} from {connection.DataSource}.{LineSeparator}" +
+					$"Error message: {e.Message}", ERROR);
+			}
+
+			return false;
+		}
+
+		public bool DeleteTable(string tableName)
+		{
+			return DeleteTableViaConnection(_connectionRegister, tableName);
+		}
+
+		public bool TryParse(CSMColumnType columnType, object data)
+		{
+			switch (columnType)
+			{
+				case CSMColumnType.Text:
+					return true;
+				case CSMColumnType.Integer:
+					return long.TryParse(data.ToString(), out long res);
+				case CSMColumnType.NullType:
+					return false;
+			}
+
+			return false;
 		}
 
 		//returns whether the operation completed successfully
@@ -650,7 +745,8 @@ namespace ColdStorageManager
 				catch (Exception e)
 				{
 					LogDbActionWithMsgBox($"{GetLocalizedString("db_table_create_fail")} ",
-						$"Failed to create table: {dbFilePath}/{tableName}.",
+						$"Failed to create table: {dbFilePath}/{tableName}.{LineSeparator}" + 
+						$"Error msg: {e.Message}{(debugLogging ? $"{LineSeparator} SQL: {createCommand}" : "")}",
 						GetLocalizedString("db_table_create_fail_title"), MessageBoxImage.Error, e.Message);
 
 					return false;

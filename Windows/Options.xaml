@@ -10,7 +10,7 @@
 >
 	<DockPanel LastChildFill="True" Margin="0,0,0,0">
 		<DockPanel.Resources>
-			<ResourceDictionary Source="Styles/CommonLinearUIStylesSetter.xaml"></ResourceDictionary>
+			<ResourceDictionary Source="../Styles/CommonLinearUIStylesSetter.xaml"></ResourceDictionary>
 		</DockPanel.Resources>
 		<StackPanel DockPanel.Dock="Bottom" Height="80" VerticalAlignment="Bottom">
 			<Grid Height="80" Width="800">
@@ -59,10 +59,10 @@
 					<StackPanel Orientation="Vertical" Margin="0">
 						<TextBlock TextWrapping="WrapWithOverflow" Text="{DynamicResource exceptions_capture_desc}" Margin="{StaticResource OptionsMargin}"></TextBlock>
 						<StackPanel Orientation="Horizontal">
-							<CheckBox Name="exceptionPathsEnableCb" Checked="ExceptionPathsEnableCb_OnChecked" Unchecked="ExceptionPathsEnableCb_OnUnchecked"></CheckBox>
+							<CheckBox Name="exceptionPathsEnableCb"></CheckBox>
 							<TextBlock Text="{DynamicResource enable}"></TextBlock>
 						</StackPanel>
-						<GroupBox Name="exceptionPathsGB" Header="{DynamicResource paths}">
+						<GroupBox Name="exceptionPathsGB" Header="{DynamicResource paths}" IsEnabled="{Binding IsChecked, ElementName=exceptionPathsEnableCb}">
 							<StackPanel Margin="0">
 								<StackPanel Orientation="Horizontal">
 									<TextBox Name="addExceptionTxtBx" MinWidth="400"></TextBox>
@@ -74,10 +74,10 @@
 							</StackPanel>
 						</GroupBox>
 						<StackPanel Orientation="Horizontal">
-							<CheckBox Name="exceptionFileTypesCaptureEnableCb" Checked="ExceptionFileTypesCaptureEnableCb_OnChecked" Unchecked="ExceptionFileTypesCaptureEnableCb_OnUnchecked"></CheckBox>
+							<CheckBox Name="exceptionFileTypesCaptureEnableCb"></CheckBox>
 							<TextBlock Text="{DynamicResource enable}"></TextBlock>
 						</StackPanel>
-						<GroupBox Name="exceptionFileTypesCaptureGB" Header="{DynamicResource file_types}">
+						<GroupBox Name="exceptionFileTypesCaptureGB" Header="{DynamicResource file_types}" IsEnabled="{Binding ElementName=exceptionFileTypesCaptureEnableCb, Path=IsChecked}">
 							<StackPanel Margin="0">
 								<TextBlock TextWrapping="WrapWithOverflow" Text="{DynamicResource file_type_desc}" Margin="{StaticResource OptionsMargin}"></TextBlock>
 								<TextBox Name="exceptionFileTypesCaptureTxtBx" MinWidth="400" Margin="{StaticResource OptionsMarginAllAround}" HorizontalAlignment="Left"></TextBox>
@@ -100,6 +100,17 @@
 								<TextBox Name="exceptionFileTypesSearchTxtBx" MinWidth="400" Margin="{StaticResource OptionsMarginAllAround}" HorizontalAlignment="Left"></TextBox>
 							</StackPanel>
 						</GroupBox>
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+
+			<TabItem Header="{DynamicResource advanced_cat}" MinWidth="100">
+				<ScrollViewer>
+					<StackPanel Orientation="Vertical" Margin="0">
+						<StackPanel Orientation="Horizontal" ToolTip="{DynamicResource debug_logging_tt}">
+							<CheckBox Name="debugLoggingCb"></CheckBox>
+							<TextBlock Text="{DynamicResource debug_logging}"></TextBlock>
+						</StackPanel>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>

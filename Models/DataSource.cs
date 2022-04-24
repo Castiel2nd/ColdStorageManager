@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using ColdStorageManager.DBManagers;
 using static ColdStorageManager.Globals;
+using static ColdStorageManager.Logger;
 
 namespace ColdStorageManager.Models
 {
@@ -111,12 +112,12 @@ namespace ColdStorageManager.Models
 			return DbManager.SetTableData(ref table);
 		}
 
-		public bool SetCellData(string tableName, string columnName, int rowId, object data)
+		public bool SetCellData(string tableName, string columnName, object rowId, object data)
 		{
 			return DbManager.SetCellData(tableName, columnName, rowId, data);
 		}
 
-		public long GetLastInsertedRowId()
+		public object GetLastInsertedRowId()
 		{
 			return DbManager.GetLastInsertedRowId();
 		}
@@ -126,14 +127,34 @@ namespace ColdStorageManager.Models
 			return DbManager.GetLastInsertedRow(tableName, columns);
 		}
 
-		public object[] GetRowById(string tableName, ColumnInfo[] columns, long rowId)
+		public object[] GetRowById(string tableName, ColumnInfo[] columns, object rowId)
 		{
 			return DbManager.GetRowById(tableName, columns, rowId);
 		}
 
-		public bool DeleteRowById(string tableName, long rowId)
+		public bool DeleteRowById(string tableName, object rowId)
 		{
 			return DbManager.DeleteRowById(tableName, rowId);
+		}
+
+		public bool DeleteTable(string tableName)
+		{
+			return DbManager.DeleteTable(tableName);
+		}
+
+		public bool TryParse(CSMColumnType columnType, object data)
+		{
+			if (data == null)
+			{
+				if (debugLogging)
+				{
+					LogDbAction($"Tried parsing null data. ColumnType = {columnType}", WARNING);
+				}
+
+				return false;
+			}
+
+			return DbManager.TryParse(columnType, data);
 		}
 
 		public void InvalidateCache()

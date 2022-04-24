@@ -5,11 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ColdStorageManager"
         xmlns:models="clr-namespace:ColdStorageManager.Models"
+        xmlns:fa6="http://schemas.fontawesome.com/icons/svg"
         mc:Ignorable="d"
         Title="{DynamicResource mysql_connect_window_title}" Height="230" Width="550"
         >
 	<Window.Resources>
-		<ResourceDictionary Source="Styles/CommonLinearUIStylesSetter.xaml"></ResourceDictionary>
+		<ResourceDictionary Source="../Styles/CommonLinearUIStylesSetter.xaml"></ResourceDictionary>
 	</Window.Resources>
 	<DockPanel Margin="0,0,0,0">
 		<Grid DockPanel.Dock="Top">

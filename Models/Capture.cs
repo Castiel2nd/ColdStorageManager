@@ -8,28 +8,44 @@ namespace ColdStorageManager.Models
 	public class CaptureBase
 	{
 		public string drive_model { get; set; }
+		
 		public string drive_sn { get; set; }
 		
 		public bool isNVMe { get; set; }
+		
 		public bool NVMeSerialNumberDetectionFail { get; set; }
+		
 		public string drive_nickname { get; set; }
+		
 		public ulong drive_size { get; set; }
 	}
 
 	public class Capture : CaptureBase
 	{
 		public int id { get; set; }
+
 		public string partition_label { get; set; }
+		
 		public uint partition_number { get; set; }
+		
 		public ulong partition_size { get; set; }
+		
 		public ulong partition_free_space { get; set; }
+		
 		public string volume_guid { get; set; }
+		
 		public string FreeSpaceFormatted { get; set; }
+		
 		public string TotalSpaceFormatted { get; set; }
+		
 		public string UsedSpaceFormatted { get; set; }
+		
 		public ushort UsedSpacePercent { get; set; }
+		
 		public ushort capture_properties { get; set; }
+		
 		public string capture_datetime { get; set; }
+		
 		public DateTime capture_datetime_object { get; set; }
 
 		public uint capture_lines_number { get; set; }
@@ -43,15 +59,25 @@ namespace ColdStorageManager.Models
 		}
 
 		public uint capture_files_number { get; set; }
+		
 		public uint capture_directories_number { get; set; }
+		
 		public byte[] capture { get; set; }
+		
 		public byte[] sizes { get; set; }
+		
 		public long[] sizes_prepared { get; set; }
+		
 		public byte[] creation_times { get; set; }
+		
 		public DateTime[] creation_times_prepared { get; set; }
+		
 		public byte[] last_access_times { get; set; }
+		
 		public DateTime[] last_access_times_prepared { get; set; }
+		
 		public byte[] last_mod_times { get; set; }
+		
 		public DateTime[] last_mod_times_prepared { get; set; }
 
 
@@ -132,10 +158,9 @@ namespace ColdStorageManager.Models
 	}
 
 	public class CapturePhDisk : CaptureBase
-	{
-
+	{ 
 		public List<Capture> captures { get; set; }
-
+		
 		public string FormattedSize { get; set; }
 
 		public CapturePhDisk(string driveModel, string driveSn, ulong driveSize, string driveNickname)

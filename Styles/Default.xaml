@@ -54,6 +54,21 @@
 		<Setter Property="VerticalAlignment" Value="Center"></Setter>
 	</Style>
 
+	<Style TargetType="TextBlock" x:Key="PopupError">
+		<Setter Property="Background" Value="#fce6e5"></Setter>
+		<Setter Property="Foreground" Value="#300008"></Setter>
+		<Setter Property="Padding" Value="7,4"></Setter>
+	</Style>
+
+	<Style TargetType="TextBlock" x:Key="PopupWarning">
+		<Setter Property="Background" Value="LightGoldenrodYellow"></Setter>
+		<Setter Property="Foreground" Value="#302f00"></Setter>
+		<Setter Property="Padding" Value="7,4"></Setter>
+	</Style>
+
+	<Style TargetType="TextBlock" x:Key="PopupNormal">
+		<Setter Property="Padding" Value="7,4"></Setter>
+	</Style>
 
 	<!-- source: https://stackoverflow.com/questions/865767/slider-on-off-switch-in-wpf -->
 	<Style x:Key="CheckBoxOnOffSlider" TargetType="{x:Type CheckBox}">

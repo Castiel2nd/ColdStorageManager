@@ -34,7 +34,7 @@ namespace ColdStorageManager
 
 		public override string ToString()
 		{
-			return $"{nameof(Model)}: {Model}, {nameof(SerialNumber)}: {SerialNumber}, {nameof(TotalSpace)}: {TotalSpace}, {nameof(Index)}: {Index}";
+			return $"{nameof(Model)}: {Model}, {nameof(SerialNumber)}: {SerialNumber}, {nameof(isNVMe)}: {isNVMe}, {nameof(NVMeSerialNumberDetectionFail)}: {NVMeSerialNumberDetectionFail}, {nameof(TotalSpace)}: {TotalSpace}, {nameof(Index)}: {Index}, {nameof(Partitions)}: {Partitions}, {nameof(GetFormattedSize)}: {GetFormattedSize}";
 		}
 	}
 }

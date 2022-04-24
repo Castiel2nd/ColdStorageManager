@@ -108,7 +108,7 @@ namespace ColdStorageManager
 		{
 			if (capture.capture_properties != 0)
 			{
-				MemoryStream[] msArray = new MemoryStream[numBlobTypes-1];
+				MemoryStream[] msArray = new MemoryStream[numBlobTypes - 1];
 				StreamReader[] srArray = new StreamReader[numBlobTypes - 1];
 				var bools = Globals.DecodeCaptureProperties(capture.capture_properties);
 				bool size = bools.size;

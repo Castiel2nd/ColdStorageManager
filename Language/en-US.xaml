@@ -36,10 +36,10 @@
 	<System:String x:Key="create_table">Create Table</System:String>
 	<System:String x:Key="create">Create</System:String>
 	<System:String x:Key="add_row">Add Row</System:String>
+	<System:String x:Key="del_table">Delete table</System:String>
 
 	<!-- Tooltips -->
 	<System:String x:Key="del_capture_tooltip">Delete selected capture(s)</System:String>
-
 
 	<!-- Capture/search -->
 	<System:String x:Key="save_fs_prompt">Select a partition and the desired entries you want to capture, then press Capture</System:String>
@@ -86,6 +86,11 @@
 	<System:String x:Key="exceptions_search_desc">The following file types will not show up in search results.</System:String>
 	<System:String x:Key="exceptions_search_cat">Exceptions (search)</System:String>
 
+	<!-- Options advanced tab -->
+	<System:String x:Key="advanced_cat">Advanced</System:String>
+	<System:String x:Key="debug_logging">Debug logging</System:String>
+	<System:String x:Key="debug_logging_tt">More verbose logging. A lot more things are logged, e.g. internal errors, every row insert/modification etc.</System:String>
+
 	<!-- MySQLConnectWindow -->
 	<System:String x:Key="mysql_connect_window_title">MySQL/MariaDB Connections</System:String>
 	<System:String x:Key="conn_profile">Saved connections:</System:String>
@@ -109,11 +114,11 @@
 	<System:String x:Key="dbInit">Initializing database</System:String>
 	<System:String x:Key="db_dir_create_suc" xml:space="preserve">Successfully created db. directory: </System:String>
 	<System:String x:Key="db_file_create_suc" xml:space="preserve">Successfully created db. file: </System:String>
-	<System:String x:Key="db_connect_suc" xml:space="preserve">Successfully connected to db.: </System:String>
+	<System:String x:Key="db_connect_suc" xml:space="preserve">Successfully connected to db.:</System:String>
 	<System:String x:Key="db_connect_closed" xml:space="preserve">Closed connection to:</System:String>
 	<System:String x:Key="db_connect_already_closed" xml:space="preserve">Tried to close already closed connection:</System:String>
-	<System:String x:Key="db_table_create_suc" xml:space="preserve">Successfully created table: </System:String>
-	<System:String x:Key="db_table_create_fail" xml:space="preserve">Failed to create table: </System:String>
+	<System:String x:Key="db_table_create_suc" xml:space="preserve">Successfully created table:</System:String>
+	<System:String x:Key="db_table_create_fail" xml:space="preserve">Failed to create table:</System:String>
 	<System:String x:Key="db_table_create_fail_title" xml:space="preserve">Table creation failed</System:String>
 	<System:String x:Key="db_table_found" xml:space="preserve">Found table '</System:String>
 	<System:String x:Key="db_table_found2" xml:space="preserve">' in database: </System:String>
@@ -146,6 +151,14 @@
 	<System:String x:Key="db_get_row_by_id_suc" xml:space="preserve">Successfully loaded row from</System:String>
 	<System:String x:Key="db_del_row_by_id_fail" xml:space="preserve">Failed to delete row from table</System:String>
 	<System:String x:Key="db_del_row_by_id_suc" xml:space="preserve">Successfully deleted row from table</System:String>
+	<System:String x:Key="db_del_table_fail" xml:space="preserve">Failed to delete table</System:String>
+	<System:String x:Key="db_del_table_suc" xml:space="preserve">Successfully deleted table</System:String>
+	<System:String x:Key="db_bad_cell_value" xml:space="preserve">Invalid value</System:String>
+
+	<!-- MessageBox -->
+	<System:String x:Key="db_del_table_question" xml:space="preserve">Are you sure you want to delete table </System:String>
+	<System:String x:Key="db_del_table_title" xml:space="preserve">Delete table</System:String>
+
 
 	<!-- RC Create table -->
 	<System:String x:Key="col_type">Column type:</System:String>
@@ -164,6 +177,7 @@
 
 	<!-- Generic status messages -->
 	<System:String x:Key="ready">Ready</System:String>
+	<System:String x:Key="drive_detection">Finished detecting drives in</System:String>
 
 	<!-- hx titles -->
 	<System:String x:Key="capture_contents">Capture contents selection:</System:String>
@@ -179,5 +193,6 @@
 	<System:String x:Key="selected_drive">Selected drive:</System:String>
 	<System:String x:Key="sn_selected_drive">Serial number of selected drive:</System:String>
 	<System:String x:Key="nickname">Drive nickname:</System:String>
+	<System:String x:Key="from">from</System:String>
 	
 </ResourceDictionary>

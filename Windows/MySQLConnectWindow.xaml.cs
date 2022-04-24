@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Printing;
 using System.Text;
 using System.Windows;
@@ -12,6 +13,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using ColdStorageManager.DBManagers;
 using ColdStorageManager.Models;
+using FontAwesome6;
+using FontAwesome6.Svg.Converters;
 using static ColdStorageManager.Globals;
 
 namespace ColdStorageManager
@@ -28,6 +31,8 @@ namespace ColdStorageManager
 
 		public MySQLConnectWindow(MainWindow mainWindow)
 		{
+			SetIcon(this, EFontAwesomeIcon.Solid_Database);
+
 			parent = mainWindow;
 			Owner = parent;
 			WindowStartupLocation = WindowStartupLocation.CenterOwner;
