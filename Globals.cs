@@ -17,6 +17,7 @@ using System.Windows.Media;
 using System.Xml;
 using ColdStorageManager.Controls;
 using ColdStorageManager.DBManagers;
+using ColdStorageManager.ForeignCode;
 using ColdStorageManager.Models;
 using FontAwesome6;
 using FontAwesome6.Svg.Converters;
@@ -101,6 +102,10 @@ namespace ColdStorageManager
 
 			return string.Format("{0:0.00}", size) + sizes[i];
 		}
+
+		//multi-threading
+		public static LimitedConcurrencyLevelTaskScheduler SerialTaskScheduler = new LimitedConcurrencyLevelTaskScheduler(1);
+		public static TaskFactory SerialTaskFactory = new TaskFactory(SerialTaskScheduler);
 
 		//bitmasks for capture properties
 		public const ushort SIZE = 0b1;
@@ -196,7 +201,7 @@ namespace ColdStorageManager
 			return Application.Current.Resources[key];
 		}
 
-		public static List<CSMFileSystemEntry> GetFileSystemEntries(in string path, in CSMDirectory parent = null, in bool getIcon = true)
+		public static List<CSMFileSystemEntry> GetFileSystemEntries(in string path, in CSMDirectory parent = null)
 		{
 			List<CSMFileSystemEntry> fileSystemEntries = new List<CSMFileSystemEntry>();
 
@@ -224,12 +229,12 @@ namespace ColdStorageManager
 
 			foreach (string dir in dirs)
 			{
-				fileSystemEntries.Add(new CSMDirectory(dir, parent, getIcon));
+				fileSystemEntries.Add(new CSMDirectory(dir, parent));
 			}
 
 			foreach (string file in Directory.GetFiles(path))
 			{
-				fileSystemEntries.Add(new CSMFile(file, parent, getIcon));
+				fileSystemEntries.Add(new CSMFile(file, parent));
 			}
 
 			return fileSystemEntries;

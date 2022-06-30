@@ -839,6 +839,16 @@ namespace ColdStorageManager
 			}
 		}
 
+		private void AddColCmd_OnExecuted(object sender, ExecutedRoutedEventArgs e)
+		{
+			CreateTableControl.AddColumn();
+		}
+
+		private void RemoveColCmd_OnExecuted(object sender, ExecutedRoutedEventArgs e)
+		{
+			CreateTableControl.RemoveColumn();
+		}
+
 		//save settings on window close
 #pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
 		private void MainWindow_OnClosed(object? sender, EventArgs e)
@@ -899,7 +909,6 @@ namespace ColdStorageManager
 
 	}
 
-
 	public class VisibilityConverter : IValueConverter
 	{
 		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -916,69 +925,6 @@ namespace ColdStorageManager
 		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
 		{
 			throw new NotImplementedException();
-		}
-	}
-
-	//class for collecting all the unmanaged function references and interfacing methods
-	internal sealed class Win32
-	{
-		private const uint SHGFI_ICON = 0x100;
-		private const uint SHGFI_LARGEICON = 0x0;
-		private const uint SHGFI_SMALLICON = 0x1;
-		private const int FILE_ATTRIBUTE_NORMAL = 0x80;
-		private const uint SHGFI_USEFILEATTRIBUTES = 0x000000010;
-		[StructLayout(LayoutKind.Sequential)]
-		private struct SHFILEINFO
-		{
-			public IntPtr hIcon;
-			public IntPtr iIcon;
-			public uint dwAttributes;
-			[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-			public string szDisplayName;
-			[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
-			public string szTypeName;
-		};
-
-		[DllImport("user32.dll")]
-		static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-		[DllImport("shell32.dll")]
-		private static extern IntPtr SHGetFileInfo(string pszPath, uint dwFileAttributes,
-			ref SHFILEINFO psfi, uint cbSizeFileInfo, uint uFlags);
-
-		public static Icon Extract(string fileName)
-		{
-			var shinfo = new SHFILEINFO();
-
-			IntPtr hIcon = SHGetFileInfo(fileName, 0, ref shinfo, (uint)Marshal.SizeOf(shinfo), SHGFI_ICON | SHGFI_SMALLICON);
-			//The icon is returned in the hIcon member of the shinfo struct
-			var icon = (Icon)Icon.FromHandle(shinfo.hIcon).Clone();
-			DestroyIcon(shinfo.hIcon);
-			return icon;
-		}
-
-		public static ImageSource ToImageSource(Icon icon)
-		{
-			ImageSource imageSource = Imaging.CreateBitmapSourceFromHIcon(
-				icon.Handle,
-				Int32Rect.Empty,
-				BitmapSizeOptions.FromEmptyOptions());
-
-			return imageSource;
-		}
-
-		[DllImport("User32.dll")]
-		public static extern int DestroyIcon(IntPtr hIcon);
-
-		// Hide console window by invoking the method once MainWindow is shown
-		public static void HideConsoleWindow()
-		{
-			IntPtr hWnd = Process.GetCurrentProcess().MainWindowHandle;
-
-			if (hWnd != IntPtr.Zero)
-			{
-				ShowWindow(hWnd, 0); // 0 = SW_HIDE
-			}
 		}
 	}
 }

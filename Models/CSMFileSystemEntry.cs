@@ -7,15 +7,20 @@ using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 using ColdStorageManager.Annotations;
+using static ColdStorageManager.Globals;
 
 namespace ColdStorageManager
 {
 	public abstract class CSMFileSystemEntry : INotifyPropertyChanged
 	{
+		private static ImageSource iconImageSource;
+
 		protected bool? isChecked;
 
 		public string Name { get; set; }
@@ -41,7 +46,65 @@ namespace ColdStorageManager
 			}
 		}
 
-		public ImageSource Icon { get; set; }
+		private ImageSource _icon = null;
+
+		public ImageSource Icon
+		{
+			get
+			{
+				if (_icon == null)
+				{
+					SerialTaskFactory.StartNew(() =>
+					{
+						iconImageSource = Win32.ToImageSource(Win32.Extract(Path));
+						iconImageSource.Freeze();
+						Icon = iconImageSource;
+					});
+
+					// Application.Current.Dispatcher.InvokeAsync(async () => {Icon = await GetIconFromPathAsync(Path); Console.WriteLine("hello");});
+
+					// Task.Run(() =>
+					// {
+					// 	Console.WriteLine($"Icon for {Path}:");
+					// 	stopwatch.Reset();
+					// 	stopwatch.Start();
+					// 	var icon = Win32.Extract(Path);
+					// 	Thread.Sleep(50);
+					// 	stopwatch.Stop();
+					//
+					// 	long ms1 = stopwatch.ElapsedMilliseconds;
+					//
+					// 	stopwatch.Reset();
+					// 	stopwatch.Start();
+					// 	var iconImageSource = Win32.ToImageSource(icon);
+					// 	iconImageSource.Freeze();
+					// 	Icon = iconImageSource;
+					//
+					// 	stopwatch.Stop();
+					//
+					// 	long ms2 = stopwatch.ElapsedMilliseconds;
+					//
+					// 	Console.WriteLine($"Time for Icon-extraction: {ms1}, time for icon-conversion: {ms2}");
+					// });
+				}
+
+				return _icon;
+			}
+
+			set
+			{
+				if (_icon != value)
+				{
+					_icon = value;
+					PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Icon)));
+
+					// Console.WriteLine($"NULL? {(value == null ? "YES" : "NO")}");
+					// Console.WriteLine($"{value.GetType().FullName} height: {value.Height}");
+					// Console.WriteLine("PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Icon)));");
+					
+				}
+			}
+		}
 
 		public virtual void CheckedByParent(bool? value)
 		{
@@ -49,9 +112,14 @@ namespace ColdStorageManager
 			IsCheckedChanged();
 		}
 
+		public async Task<ImageSource> GetIconFromPathAsync(string path)
+		{
+			return await Task.Run(() => Win32.ToImageSource(Win32.Extract(path)));
+		}
+
 		protected void IsCheckedChanged()
 		{
-			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("IsChecked"));
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsChecked)));
 		}
 
 		public void DirectCheck(bool? value)
@@ -141,11 +209,20 @@ namespace ColdStorageManager
 		public DateTime GetLastModificationTime => directoryInfo.LastWriteTime;
 
 		private bool toPrint { get; set; }
-		public CSMDirectory(string path, CSMDirectory parent = null, bool getIcon = true)
+
+		// public static async Task<CSMDirectory> CreateDirectoryAsync(string path, CSMDirectory parent = null,
+		// 	bool getIcon = true)
+		// {
+		// 	var dir = new CSMDirectory(path, parent, getIcon);
+		// }
+
+		public CSMDirectory(string path, CSMDirectory parent = null)
 		{
+			Path = path;
 			Parent = parent;
 			IsUnaccessible = false;
 			directoryInfo = new DirectoryInfo(path);
+			Name = directoryInfo.Name;
 
 			/*try
 			{
@@ -157,9 +234,8 @@ namespace ColdStorageManager
 				IsUnaccessible = true;
 			}*/
 
-			Path = path;
 			IsEmpty = false;
-			IsUnaccessible = false;
+
 			if (Parent != null)
 			{
 				isChecked = Parent.IsChecked;
@@ -182,13 +258,8 @@ namespace ColdStorageManager
 				}
 			}
 
-			if (getIcon)
-			{
-				Icon = Win32.ToImageSource(Win32.Extract(Path));
-			}
 			children = new WpfObservableRangeCollection<CSMFileSystemEntry>();
 			children.Add(new CSMPlaceholder(Application.Current.Resources["loading"].ToString()));
-			Name = directoryInfo.Name;
 		}
 
 		public override void CheckedByParent(bool? value)
@@ -254,7 +325,7 @@ namespace ColdStorageManager
 
 		public void ExpandChildrenListPropagate()
 		{
-			ChildrenList = Globals.GetFileSystemEntries(Path, this, false);
+			ChildrenList = Globals.GetFileSystemEntries(Path, this);
 			IsExpanded = true;
 			if (ChildrenList.Count == 0)
 			{
@@ -295,17 +366,11 @@ namespace ColdStorageManager
 			}
 		}
 
-		public CSMFile(string path, CSMDirectory parent = null, bool getIcon = true)
+		public CSMFile(string path, CSMDirectory parent = null)
 		{
+			Path = path;
 			Parent = parent;
 			fileInfo = new FileInfo(path);
-			Path = path;
-
-			if (getIcon)
-			{
-				Icon = Win32.ToImageSource(Win32.Extract(Path));
-			}
-
 			Size = fileInfo.Length;
 			Name = fileInfo.Name;
 

@@ -7,6 +7,7 @@
 		xmlns:models="clr-namespace:ColdStorageManager.Models"
 		xmlns:attachedProperties="http://schemas.fontawesome.com/icons/svg/properties"
 		xmlns:fa6="http://schemas.fontawesome.com/icons/svg"
+		xmlns:controls="clr-namespace:ColdStorageManager.Controls"
 		mc:Ignorable="d"
 		Height="850" Width="1280"
 		Closed="MainWindow_OnClosed"
@@ -441,8 +442,16 @@
 				</Grid>
 			</TabItem>
 
-			<TabItem Header="{DynamicResource register}">
-				<local:RegisterControlFrame></local:RegisterControlFrame>
+			<TabItem Header="{DynamicResource tables}" >
+				<controls:RegControlTableBrowser></controls:RegControlTableBrowser>
+			</TabItem>
+
+			<TabItem Header="{DynamicResource create_table}">
+				<TabItem.CommandBindings>
+					<CommandBinding Command="{x:Static local:Commands.CreateTableAddColCmd}" Executed="AddColCmd_OnExecuted"></CommandBinding>
+					<CommandBinding Command="{x:Static local:Commands.CreateTableRemoveColCmd}" Executed="RemoveColCmd_OnExecuted"></CommandBinding>
+				</TabItem.CommandBindings>
+				<controls:RegControlCreateTable x:Name="CreateTableControl"></controls:RegControlCreateTable>
 			</TabItem>
 		</TabControl>
 	</DockPanel>

@@ -41,7 +41,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="ForeignCode\" />
     <Folder Include="Images\Readme\" />
     <Folder Include="NVMeQuery.dll source %28from CLion project%29\" />
     <Folder Include="Resources\" />

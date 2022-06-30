@@ -12,7 +12,7 @@
 	<Border x:Key="fileDialogEntry" Style="{StaticResource fileDialogItemHoverStyle}" x:Shared="False">
 		<StackPanel Orientation="Horizontal" Margin="2">
 			<CheckBox IsThreeState="True" IsChecked="{Binding IsChecked, Mode=TwoWay}" Margin="2,4,2,2" Click="FSEntryCheckBox_Clicked"></CheckBox>
-			<Image Source="{Binding Icon}" RenderOptions.BitmapScalingMode="NearestNeighbor" Margin="0,0,2,0" Width="20" Height="20" ></Image>
+			<Image Source="{Binding Icon, Mode=OneWay}" RenderOptions.BitmapScalingMode="NearestNeighbor" Margin="0,0,2,0" Width="20" Height="20" ></Image>
 			<TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Medium"></TextBlock>
 		</StackPanel>
 	</Border>
